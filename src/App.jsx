@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { 
   Mail, Key, UserPlus, Play, ChevronRight, Bell, User, MapPin, 
   Search, Footprints, ArrowUp, Compass, Map, LogOut, Settings,
-  X, Heart, Share2, BookOpen, BarChart2, Camera, Calendar, ImageIcon 
+  X, Heart, Share2, BookOpen, BarChart2, Camera, Calendar, ImageIcon, Check
 } from 'lucide-react';
 
 export default function App() {
-  // Navigation State: 'home', 'auth', 'map', 'details'
+  // Navigation State: 'home', 'map', 'details', 'auth'
   const [currentPage, setCurrentPage] = useState('home');
-  const [isLogin, setIsLogin] = useState(true);
   
-  // Map State
+  // Auth Sub-State: 'login', 'register', 'forgot', 'restored'
+  const [authMode, setAuthMode] = useState('login');
+  const [selectedSprite, setSelectedSprite] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
 
   // User State
@@ -30,8 +31,8 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setAuthMode('login');
     setCurrentPage('auth');
-    setIsLogin(true);
   };
 
   // ==========================================
@@ -84,11 +85,11 @@ export default function App() {
           <Settings className="w-4 h-4 text-black" />
         </button>
         {isLoggedIn ? (
-          <div onClick={handleLogout} className="w-9 h-9 bg-amber-400 border-2 border-black rounded-lg flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <div onClick={handleLogout} className="w-9 h-9 bg-amber-400 border-2 border-black rounded-lg flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" title="Click to Logout">
             <span className="text-sm font-black">🚶</span>
           </div>
         ) : (
-          <button onClick={() => setCurrentPage('auth')} className="w-9 h-9 border-2 border-black rounded-lg flex items-center justify-center bg-[#cc0000] text-white hover:bg-red-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <button onClick={() => { setAuthMode('login'); setCurrentPage('auth'); }} className="w-9 h-9 border-2 border-black rounded-lg flex items-center justify-center bg-[#cc0000] text-white hover:bg-red-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             <User className="w-4 h-4" />
           </button>
         )}
@@ -111,7 +112,6 @@ export default function App() {
       {/* ========================================================= */}
       {currentPage === 'home' && (
         <div className="max-w-6xl mx-auto px-4 pb-12">
-          {/* HERO BANNER */}
           <section className="bg-white border-4 border-black rounded-2xl overflow-hidden mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-2">
             <div className="p-6 md:p-8 flex flex-col justify-between border-b-4 md:border-b-0 md:border-r-4 border-black">
               <div>
@@ -136,7 +136,6 @@ export default function App() {
               </div>
             </div>
             
-            {/* Map Preview */}
             <div className="bg-[#a2d2ff] relative min-h-[260px] flex flex-col justify-between p-4 bg-[radial-gradient(#4895ef_1px,transparent_1px)] [background-size:16px_16px]">
               <div className="self-end bg-amber-100 border-2 border-black px-2.5 py-1 rounded-md text-xs font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10">
                 🪙 Coin: {userProfile.coins}
@@ -148,22 +147,20 @@ export default function App() {
                 </div>
                 <div className="h-32 bg-[#aed581] border-2 border-black rounded relative flex items-center justify-around p-2">
                   <div className="absolute inset-x-8 top-1/2 h-1 bg-amber-700 border-t border-b border-black"></div>
-                  <div className="relative z-10 text-center cursor-pointer hover:scale-110 transition-transform">
+                  <div className="relative z-10 text-center cursor-pointer">
                     <div className="w-8 h-8 bg-amber-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">🏡</div>
                   </div>
-                  <div className="relative z-10 text-center cursor-pointer hover:scale-110 transition-transform">
+                  <div className="relative z-10 text-center cursor-pointer">
                     <div className="w-8 h-8 bg-emerald-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">🌲</div>
                   </div>
-                  <div onClick={() => setCurrentPage('details')} className="relative z-10 text-center cursor-pointer hover:scale-110 transition-transform">
-                    <div className="w-8 h-8 bg-sky-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-bounce">🏰</div>
-                    <span className="text-[9px] font-black bg-white px-1 border border-black rounded mt-1 inline-block absolute -bottom-5 -left-4 w-16">Click Me!</span>
+                  <div onClick={() => setCurrentPage('details')} className="relative z-10 text-center cursor-pointer animate-bounce">
+                    <div className="w-8 h-8 bg-sky-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">🏰</div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Core Loop */}
           <section className="bg-gray-200 border-4 border-black rounded-2xl p-6 md:p-8 mb-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <h3 className="text-center text-2xl font-black uppercase tracking-wider mb-8">THE CORE GAMEPLAY LOOP</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
@@ -190,126 +187,42 @@ export default function App() {
       )}
 
       {/* ========================================================= */}
-      {/* 2. WORLD MAP INTERACTIVE VIEW                              */}
+      {/* 2. WORLD MAP VIEW                                          */}
       {/* ========================================================= */}
       {currentPage === 'map' && (
         <div className="max-w-6xl mx-auto px-4 pb-12 h-[80vh]">
           <div className="w-full h-full border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9]">
-            
-            {/* Fake Map Background Pattern */}
-            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
             <div className="absolute top-1/3 left-0 w-full h-2 bg-blue-200/50"></div>
             <div className="absolute left-1/3 top-0 h-full w-2 bg-gray-300/50"></div>
             
-            {/* Big City Text */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center opacity-40 pointer-events-none">
-              <div className="text-6xl font-black tracking-tighter">Kyoto</div>
-              <div className="text-3xl font-bold">京都市</div>
-            </div>
-
-            {/* --- MAP SIDEBAR (Key Items) --- */}
-            <div className="absolute top-4 left-4 w-56 bg-white border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col z-20">
-              <div className="bg-[#cc0000] text-white p-2 border-b-4 border-black font-black text-sm flex justify-between items-center uppercase tracking-wider">
+            <div className="absolute top-4 left-4 w-56 bg-white border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20">
+              <div className="bg-[#cc0000] text-white p-2 border-b-4 border-black font-black text-sm uppercase flex justify-between">
                 <span>Key Items</span>
                 <Calendar className="w-4 h-4" />
               </div>
-              <div className="p-3 space-y-3 text-xs font-bold text-gray-800">
-                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black rounded-none" />
-                    <span className="text-blue-600">⛩️ Temples</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500">x12</span>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black rounded-none" />
-                    <span className="text-amber-700">☕ Cafes</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500">x05</span>
-                </label>
-                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" className="w-4 h-4 border-2 border-black rounded-none" />
-                    <span className="text-red-600">⛰️ Viewpoints</span>
-                  </div>
-                  <span className="text-[10px] text-gray-500">x08</span>
-                </label>
-              </div>
-              <div className="border-t-2 border-black p-2 bg-gray-100 text-[9px] text-center font-bold text-gray-500 uppercase">
-                Select filters to reveal
+              <div className="p-3 space-y-3 text-xs font-bold">
+                <label className="flex items-center justify-between cursor-pointer"><span className="text-blue-600">⛩️ Temples</span><input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black" /></label>
+                <label className="flex items-center justify-between cursor-pointer"><span className="text-amber-700">☕ Cafes</span><input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black" /></label>
               </div>
             </div>
 
-            {/* --- MAP PINS --- */}
-            
-            {/* Player Pin */}
-            <div className="absolute top-1/2 left-1/2 z-10 flex flex-col items-center">
-              <div className="w-8 h-10 bg-[#cc0000] border-2 border-black rounded-t-full flex items-center justify-center shadow-lg relative z-10">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div className="w-8 bg-white border border-black text-[8px] font-black text-center py-0.5 mt-[-2px] shadow-sm z-20">YOU</div>
-            </div>
-
-            {/* Cafe Pin */}
-            <div className="absolute bottom-1/4 right-1/3 z-10">
-              <div className="w-8 h-8 bg-amber-100 border-4 border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-110 cursor-pointer transition-transform">
-                ☕
-              </div>
-            </div>
-
-            {/* Mountain Pin */}
-            <div className="absolute top-1/4 right-1/4 z-10">
-              <div className="w-8 h-8 bg-white border-4 border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-110 cursor-pointer transition-transform">
-                <span className="text-red-600 font-bold">▲</span>
-              </div>
-            </div>
-
-            {/* Shrine Pin (Interactive) */}
             <div className="absolute top-1/3 left-1/3 z-10">
-              <div 
-                onClick={() => setShowPopup(!showPopup)}
-                className="w-10 h-10 bg-indigo-50 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:scale-110 cursor-pointer transition-transform animate-bounce"
-              >
-                <span className="text-indigo-600 text-lg">⛩️</span>
+              <div onClick={() => setShowPopup(true)} className="w-10 h-10 bg-indigo-50 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:scale-110 animate-bounce">
+                <span className="text-lg">⛩️</span>
               </div>
-              
-              {/* POPUP MODAL */}
               {showPopup && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50 rounded-sm">
-                  <div className="flex p-3 gap-3 border-b-2 border-black relative">
-                    <button 
-                      onClick={() => setShowPopup(false)}
-                      className="absolute top-2 right-2 w-5 h-5 bg-red-100 border border-black text-red-600 flex items-center justify-center text-xs font-bold hover:bg-red-200"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                    
-                    <div className="w-16 h-16 bg-indigo-600 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-shrink-0 items-center justify-center">
-                      <span className="text-white text-3xl">⛩️</span>
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm uppercase tracking-widest mb-1">Ancient Shrine</h4>
-                      <div className="border border-black p-1.5 bg-gray-50 text-[10px] font-sans font-medium text-gray-700 leading-tight">
-                        A forgotten shrine hidden deep within the pixelated bamboo forest. Legend says a rare item lies within.
-                      </div>
-                    </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50 p-4">
+                  <div className="flex justify-between items-center mb-2 border-b pb-1">
+                    <h4 className="font-black text-sm uppercase">Ancient Shrine</h4>
+                    <button onClick={() => setShowPopup(false)} className="text-red-600 font-bold"><X className="w-4 h-4" /></button>
                   </div>
-                  <div className="p-2 flex justify-end gap-2 bg-gray-100">
-                    <button className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1">
-                      <Heart className="w-3 h-3" /> Add to Favs
-                    </button>
-                    <button 
-                      onClick={() => setCurrentPage('details')}
-                      className="bg-[#cc0000] hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1 border-dashed"
-                    >
-                      Go to Details <ChevronRight className="w-3 h-3" />
-                    </button>
+                  <p className="text-xs text-gray-600 mb-3 font-sans">A forgotten shrine hidden deep within the bamboo forest.</p>
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={() => setCurrentPage('details')} className="bg-[#cc0000] text-white text-xs px-3 py-1 border-2 border-black font-bold uppercase">Go to Details</button>
                   </div>
                 </div>
               )}
             </div>
-
           </div>
         </div>
       )}
@@ -319,156 +232,28 @@ export default function App() {
       {/* ========================================================= */}
       {currentPage === 'details' && (
         <div className="max-w-5xl mx-auto px-4 pb-12 space-y-6">
-          
-          {/* Top Hero Card */}
           <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            {/* Image Placeholder */}
-            <div className="h-64 bg-slate-900 relative p-4 flex flex-col justify-between">
-              <div className="inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit">
-                <MapPin className="w-3 h-3" /> Paris, France
-              </div>
-              <div className="text-white/20 font-black text-6xl text-center self-center w-full select-none flex items-center justify-center">
-                <ImageIcon className="w-16 h-16 mr-4" /> [Location Photo]
-              </div>
+            <div className="h-48 bg-slate-900 flex items-center justify-center text-white/40 font-bold">
+              <ImageIcon className="w-12 h-12 mr-2" /> Eiffel Tower Preview
             </div>
-            
-            {/* Title Bar */}
-            <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">Eiffel Tower</h1>
-              <div className="flex gap-2">
-                <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  ★ Landmark
-                </span>
-                <span className="bg-white text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  📷 Scenic
-                </span>
-              </div>
+            <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex justify-between items-center">
+              <h1 className="text-3xl font-black">Eiffel Tower</h1>
+              <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black">★ Landmark</span>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Left Column */}
-            <div className="md:col-span-2 space-y-6">
-              
-              {/* Lore & Data */}
-              <div className="bg-white border-4 border-black rounded-xl p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2">
-                  <BookOpen className="w-5 h-5 text-red-600" /> Lore & Data
-                </h3>
-                <p className="text-sm text-gray-700 font-sans leading-relaxed mb-6">
-                  Constructed from 1887 to 1889 as the entrance to the 1889 World's Fair, it was initially criticized by some of France's leading artists and intellectuals for its design, but it has become a global cultural icon of France and one of the most recognizable structures in the world. It is the tallest structure in Paris.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border-2 border-black rounded-lg p-3 text-xs">
-                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3"/> Hours</div>
-                    <div className="font-black">09:30 - 23:45 (Daily)</div>
-                  </div>
-                  <div className="border-2 border-black rounded-lg p-3 text-xs">
-                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><BookOpen className="w-3 h-3"/> Entry Fee</div>
-                    <div className="font-black">From €11.30 (Stairs)</div>
-                  </div>
-                  <div className="border-2 border-black rounded-lg p-3 text-xs">
-                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3"/> Best Time</div>
-                    <div className="font-black">Sunset / Evening Sparkle</div>
-                  </div>
-                  <div className="border-2 border-black rounded-lg p-3 text-xs">
-                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><MapPin className="w-3 h-3"/> Travel</div>
-                    <div className="font-black">Metro: Bir-Hakeim / Trocadéro</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Traveler Logs */}
-              <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
-                  <h3 className="text-lg font-black flex items-center gap-2 text-indigo-700">
-                    <Camera className="w-5 h-5" /> Traveler Logs
-                  </h3>
-                  <button className="text-xs font-bold text-red-600 hover:underline">View All</button>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="aspect-square bg-sky-200 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl">📸</div>
-                  <div className="aspect-square bg-sky-300 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl">🌅</div>
-                  <div className="aspect-square bg-sky-100 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl">🗼</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              
-              {/* Stats Panel */}
-              <div className="bg-[#e8ecef] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-amber-700">
-                  <BarChart2 className="w-5 h-5" /> Location Stats
-                </h3>
-                
-                <div className="mb-4">
-                  <div className="flex justify-between text-xs font-bold mb-1">
-                    <span>Popularity Level</span>
-                    <span className="text-red-600">Lv. 99</span>
-                  </div>
-                  <div className="h-3 w-full border-2 border-black rounded-full bg-white overflow-hidden">
-                    <div className="h-full bg-red-600 w-[95%] border-r-2 border-black"></div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
-                    <div className="text-[9px] font-bold text-gray-500 uppercase">Visitors</div>
-                    <div className="text-xs font-black">7M / yr</div>
-                  </div>
-                  <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="text-amber-500 text-sm block mb-1">🎖️</span>
-                    <div className="text-[9px] font-bold text-gray-500 uppercase">Rarity</div>
-                    <div className="text-xs font-black">Legendary</div>
-                  </div>
-                </div>
-
-                <button className="w-full bg-[#cc0000] text-white font-bold py-2.5 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 mb-3 flex items-center justify-center gap-2 text-sm transition-all">
-                  <Heart className="w-4 h-4 fill-white" /> Add to Favorites
-                </button>
-                <button className="w-full bg-white hover:bg-gray-50 text-black font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2 text-xs transition-all">
-                  <Share2 className="w-4 h-4" /> Share Location
-                </button>
-              </div>
-
-              {/* Wild Encounters */}
-              <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                <h3 className="text-base font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-black">
-                  🗺️ Nearby POIs
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 border border-gray-300 p-2 rounded cursor-pointer hover:bg-gray-50">
-                    <div className="w-10 h-10 bg-blue-100 border-2 border-black rounded flex items-center justify-center text-sm shadow-sm">🚢</div>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold">Seine River Cruise</div>
-                      <div className="text-[10px] text-gray-500">500m away</div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div className="flex items-center gap-3 border border-gray-300 p-2 rounded cursor-pointer hover:bg-gray-50">
-                    <div className="w-10 h-10 bg-amber-100 border-2 border-black rounded flex items-center justify-center text-sm shadow-sm">🏛️</div>
-                    <div className="flex-1">
-                      <div className="text-xs font-bold">Musée du quai Branly</div>
-                      <div className="text-[10px] text-gray-500">800m away</div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-
-            </div>
+          <div className="bg-white border-4 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h3 className="text-lg font-black mb-3">Lore & Data</h3>
+            <p className="text-sm text-gray-700 font-sans mb-4">Constructed from 1887 to 1889 as the entrance to the 1889 World's Fair...</p>
+            <button onClick={() => setCurrentPage('home')} className="bg-black text-white text-xs font-bold px-4 py-2 border-2 border-black">← Back Home</button>
           </div>
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* 4. GAME BOY AUTH VIEW (LOGIN / REGISTER)                  */}
+      {/* 4. GAME BOY AUTH VIEW (4 Screen Modes)                    */}
       {/* ========================================================= */}
       {currentPage === 'auth' && (
-        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-mono">
           <button
             onClick={() => setCurrentPage('home')}
             className="mb-4 text-white text-xs font-bold bg-gray-800 hover:bg-gray-700 px-4 py-2 border-2 border-white rounded-lg flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]"
@@ -479,64 +264,147 @@ export default function App() {
           <div className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-[36px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] relative">
             <div className="bg-[#111111] p-3 rounded-t-2xl rounded-b-xl border-4 border-black mb-5 shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]">
               <div className="bg-white border-4 border-black rounded-lg overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-sm uppercase flex items-center justify-center gap-2">
-                  {!isLogin && <span className="text-xs">🎮</span>}
-                  <span>{isLogin ? 'POCKET ODYSSEY' : 'REGISTRATION'}</span>
+                
+                {/* Red Header Banner */}
+                <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
+                  <span>{authMode === 'login' && 'POCKET ODYSSEY'}</span>
+                  <span>{authMode === 'register' && 'TRAINER REGISTRATION'}</span>
+                  <span>{authMode === 'forgot' && 'SYSTEM RECOVERY'}</span>
+                  <span>{authMode === 'restored' && 'SYSTEM RESTORED'}</span>
                 </div>
                 
-                <div className="p-5">
-                  {isLogin ? (
-                    <form onSubmit={handleLoginSubmit} className="space-y-4">
-                      <h2 className="text-center text-xl font-extrabold text-black tracking-tight mb-2">Trainer Login</h2>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">Email</label>
-                        <input type="email" defaultValue="ash@pallet.town" className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-black mb-1">Password</label>
-                        <input type="password" defaultValue="12345678" className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
-                      </div>
-                      <button type="submit" className="w-full mt-2 bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-xs uppercase flex items-center justify-center gap-2">
-                        Start Adventure <Play className="w-3.5 h-3.5 fill-white" />
-                      </button>
-                    </form>
-                  ) : (
+                <div className="p-4 sm:p-5">
+                  {/* --- SCREEN 1: LOGIN --- */}
+                  {authMode === 'login' && (
                     <form onSubmit={handleLoginSubmit} className="space-y-3">
-                      <h2 className="text-center text-base font-extrabold text-black tracking-tight mb-2">New Trainer</h2>
+                      <div className="text-center text-[10px] text-gray-500 font-bold uppercase">System Boot... OK.</div>
+                      <h2 className="text-center text-lg font-extrabold text-black mb-2">Trainer Login</h2>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">Name</label>
-                        <input type="text" placeholder="Ash K." className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                        <label className="block text-xs font-bold text-black mb-1">Trainer Email</label>
+                        <div className="relative">
+                          <Mail className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-600" />
+                          <input type="email" defaultValue="ash@pallet.town" className="w-full pl-8 pr-2 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" required />
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-black mb-1">Email</label>
-                        <input type="email" placeholder="trainer@mail.com" className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                        <label className="block text-xs font-bold text-black mb-1">Secret Key</label>
+                        <div className="relative">
+                          <Key className="w-4 h-4 absolute left-2.5 top-2.5 text-gray-600" />
+                          <input type="password" defaultValue="••••••••" className="w-full pl-8 pr-2 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" required />
+                        </div>
                       </div>
-                      <button type="submit" className="w-full mt-2 bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-xs uppercase flex items-center justify-center gap-2">
+                      <div className="text-left">
+                        <button type="button" onClick={() => setAuthMode('forgot')} className="text-[11px] font-bold underline text-gray-800 hover:text-black">
+                          Forgot Pass?
+                        </button>
+                      </div>
+                      <button type="submit" className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-xs uppercase flex items-center justify-center gap-2">
                         Start Adventure <Play className="w-3.5 h-3.5 fill-white" />
                       </button>
+                      <div className="text-center pt-2">
+                        <button type="button" onClick={() => setAuthMode('register')} className="text-xs font-bold underline text-black">
+                          New Trainer? Register
+                        </button>
+                      </div>
                     </form>
                   )}
+
+                  {/* --- SCREEN 2: REGISTER --- */}
+                  {authMode === 'register' && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] text-gray-600 leading-tight">Welcome to Pocket Odyssey! Create your trainer profile.</p>
+                      <div>
+                        <label className="block text-xs font-bold text-black mb-1">Choose Your Sprite</label>
+                        <div className="grid grid-cols-4 gap-1">
+                          {[0, 1, 2].map((idx) => (
+                            <button key={idx} type="button" onClick={() => setSelectedSprite(idx)} className={`h-10 border-2 border-black rounded flex items-center justify-center bg-gray-100 ${selectedSprite === idx ? 'bg-amber-400' : ''}`}>🏃</button>
+                          ))}
+                          <div className="h-10 border-2 border-black rounded flex items-center justify-center bg-gray-100 font-bold">+</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-black mb-0.5">Trainer Name</label>
+                        <input type="text" placeholder="e.g. Ash K." className="w-full px-2 py-1 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-black mb-0.5">Pokédex Link (Email)</label>
+                        <input type="email" placeholder="trainer@pallettown.com" className="w-full px-2 py-1 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                      </div>
+                      <button onClick={handleLoginSubmit} className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase mt-1">
+                        START ADVENTURE
+                      </button>
+                      <div className="text-center pt-1">
+                        <button type="button" onClick={() => setAuthMode('login')} className="text-xs font-bold underline text-black">
+                          Already registered? Log In →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- SCREEN 3: FORGOT PASSWORD (SYSTEM RECOVERY) --- */}
+                  {authMode === 'forgot' && (
+                    <div className="space-y-4 py-2">
+                      <div className="text-center">
+                        <div className="inline-block text-red-600 font-bold text-lg mb-1">🔑 SYSTEM RECOVERY</div>
+                        <p className="text-[11px] text-gray-600 font-sans">Enter your Trainer Email to receive a Secret Key reset link.</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-black mb-1">Trainer Email</label>
+                        <input type="email" defaultValue="ash@pallet.town" className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+                      </div>
+                      <button onClick={() => setAuthMode('restored')} className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2">
+                        SEND RESET LINK <Play className="w-3 h-3 fill-white" />
+                      </button>
+                      <div className="text-center space-y-1 pt-2">
+                        <button onClick={() => setAuthMode('login')} className="block w-full text-xs font-bold underline text-black">← Back to Login</button>
+                        <button onClick={() => setAuthMode('register')} className="block w-full text-xs font-bold underline text-black">← New Trainer? Register</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- SCREEN 4: SYSTEM RESTORED --- */}
+                  {authMode === 'restored' && (
+                    <div className="space-y-4 text-center py-2">
+                      <div className="w-12 h-12 bg-red-600 border-2 border-black rounded-lg mx-auto flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <Check className="w-6 h-6 text-white stroke-[3]" />
+                      </div>
+                      <h3 className="font-black text-sm uppercase tracking-wider">SYSTEM RESTORED</h3>
+                      <p className="text-[10px] text-gray-600 font-sans leading-tight">
+                        Your Trainer Secret Key has been successfully updated. You can now log back into the system.
+                      </p>
+                      <button onClick={() => setAuthMode('login')} className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase">
+                        BACK TO LOGIN
+                      </button>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>
 
             {/* Game Boy Buttons */}
             <div className="flex items-center justify-between px-3 pt-1 pb-2">
-              <div className="relative w-16 h-16">
-                <div className="absolute top-0 left-5 w-6 h-16 bg-black rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"></div>
-                <div className="absolute top-5 left-0 w-16 h-6 bg-black rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]"></div>
-                <div className="absolute top-5 left-5 w-6 h-6 bg-[#222222] rounded-full flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 border border-gray-600 rounded-full"></div>
-                </div>
+              <div className="relative w-14 h-14">
+                <div className="absolute top-0 left-4 w-5 h-14 bg-black rounded-sm"></div>
+                <div className="absolute top-4 left-0 w-14 h-5 bg-black rounded-sm"></div>
+                <div className="absolute top-4 left-4 w-5 h-5 bg-[#222222] rounded-full"></div>
               </div>
-              <div className="flex flex-col items-center">
-                <button onClick={() => setIsLogin(!isLogin)} className="w-10 h-10 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
-                  <UserPlus className="w-5 h-5 text-black" />
-                </button>
-                <span className="text-[9px] font-black text-gray-700 mt-1 uppercase">SELECT</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-red-600 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
+                <div className="w-6 h-6 bg-amber-400 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
               </div>
             </div>
+
           </div>
+
+          <footer className="text-center text-xs text-white/60 mt-6 space-y-1 font-sans">
+            <div className="flex justify-center gap-4 font-bold underline">
+              <button>Legal</button>
+              <button>Support</button>
+              <button>Trainer Club</button>
+            </div>
+            <p className="text-[10px]">© 2026 Pocket Odyssey - Gotta Explore 'Em All</p>
+          </footer>
         </div>
       )}
 
