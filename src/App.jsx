@@ -11,7 +11,7 @@ export default function App() {
   const [isLogin, setIsLogin] = useState(true);
   
   // Map State
-  const [showPopup, setShowPopup] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   // User State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -33,6 +33,63 @@ export default function App() {
     setCurrentPage('auth');
     setIsLogin(true);
   };
+
+  const locations = {
+    cafe: {
+      title: 'Bamboo Cafe',
+      icon: '☕',
+      iconClass: 'bg-amber-100',
+      badgeClass: 'bg-amber-500',
+      description: 'A cozy pixel cafe tucked beside the bamboo trail. Stop by for a warm drink and a quick rest.',
+    },
+    mountain: {
+      title: 'Misty Mountain',
+      icon: '▲',
+      iconClass: 'bg-white',
+      badgeClass: 'bg-red-600',
+      description: 'A quiet viewpoint above the clouds. The summit rewards travelers with a rare view of Kyoto.',
+    },
+    shrine: {
+      title: 'Ancient Shrine',
+      icon: '⛩️',
+      iconClass: 'bg-indigo-600',
+      badgeClass: 'bg-indigo-600',
+      description: 'A forgotten shrine hidden deep within the pixelated bamboo forest. Legend says a rare item lies within.',
+    },
+  };
+
+  const LocationPopup = ({ location }) => (
+    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50 rounded-sm">
+      <div className="flex p-3 gap-3 border-b-2 border-black relative">
+        <button
+          onClick={() => setSelectedLocation(null)}
+          className="absolute top-2 right-2 w-5 h-5 bg-red-100 border border-black text-red-600 flex items-center justify-center text-xs font-bold hover:bg-red-200"
+        >
+          <X className="w-3 h-3" />
+        </button>
+        <div className={`w-16 h-16 ${location.iconClass} border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-shrink-0 items-center justify-center`}>
+          <span className={`${location.badgeClass === 'bg-indigo-600' ? 'text-white' : 'text-black'} text-3xl`}>{location.icon}</span>
+        </div>
+        <div>
+          <h4 className="font-black text-sm uppercase tracking-widest mb-1">{location.title}</h4>
+          <div className="border border-black p-1.5 bg-gray-50 text-[10px] font-sans font-medium text-gray-700 leading-tight">
+            {location.description}
+          </div>
+        </div>
+      </div>
+      <div className="p-2 flex justify-end gap-2 bg-gray-100">
+        <button className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1">
+          <Heart className="w-3 h-3" /> Add to Favs
+        </button>
+        <button
+          onClick={() => setCurrentPage('details')}
+          className="bg-[#cc0000] hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1 border-dashed"
+        >
+          Go to Details <ChevronRight className="w-3 h-3" />
+        </button>
+      </div>
+    </div>
+  );
 
   // ==========================================
   // SHARED HEADER COMPONENT
