@@ -12,7 +12,7 @@ export default function App() {
   // Auth Sub-State: 'login', 'register', 'forgot', 'restored'
   const [authMode, setAuthMode] = useState('login');
   const [selectedSprite, setSelectedSprite] = useState(0);
-  const [showPopup, setShowPopup] = useState(false);
+  const [showPopup, setShowPopup] = useState(true);
 
   // User State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -57,16 +57,16 @@ export default function App() {
           onClick={() => setCurrentPage('home')}
           className={`${currentPage === 'home' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 hover:text-black border-2 border-transparent px-2'}`}
         >
-          [Home]
+          Home
         </button>
         <button 
           onClick={() => setCurrentPage('map')}
           className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 hover:text-black border-2 border-transparent px-2'}`}
         >
-          [World Map]
+          World Map
         </button>
-        <button className="text-gray-700 hover:text-black border-2 border-transparent px-2 hidden md:block">[My Maps]</button>
-        <button className="text-gray-700 hover:text-black border-2 border-transparent px-2 hidden md:block">[Profile]</button>
+        <button className="text-gray-700 hover:text-black border-2 border-transparent px-2 hidden md:block">My Maps</button>
+        <button className="text-gray-700 hover:text-black border-2 border-transparent px-2 hidden md:block">Profile</button>
       </nav>
 
       <div className="flex items-center gap-3">
@@ -187,64 +187,276 @@ export default function App() {
       )}
 
       {/* ========================================================= */}
-      {/* 2. WORLD MAP VIEW                                          */}
+      {/* 2. WORLD MAP VIEW (KYOTO)                                  */}
       {/* ========================================================= */}
       {currentPage === 'map' && (
-        <div className="max-w-6xl mx-auto px-4 pb-12 h-[80vh]">
-          <div className="w-full h-full border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9]">
-            <div className="absolute top-1/3 left-0 w-full h-2 bg-blue-200/50"></div>
-            <div className="absolute left-1/3 top-0 h-full w-2 bg-gray-300/50"></div>
+        <div className="max-w-6xl mx-auto px-4 pb-12">
+          <div className="w-full h-[75vh] border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9]">
             
-            <div className="absolute top-4 left-4 w-56 bg-white border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20">
-              <div className="bg-[#cc0000] text-white p-2 border-b-4 border-black font-black text-sm uppercase flex justify-between">
-                <span>Key Items</span>
+            {/* Background Grid & City Waterways */}
+            <div className="absolute inset-0 opacity-15 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }}></div>
+            <div className="absolute top-1/3 left-0 w-full h-4 bg-blue-200/60 border-y border-black/20"></div>
+            <div className="absolute left-1/3 top-0 h-full w-4 bg-blue-200/60 border-x border-black/20"></div>
+            
+            {/* Kyoto City Watermark */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center opacity-25 pointer-events-none select-none">
+              <div className="text-8xl font-black tracking-tighter">Kyoto</div>
+              <div className="text-4xl font-bold">京都市</div>
+            </div>
+
+            {/* --- KEY ITEMS SIDEBAR --- */}
+            <div className="absolute top-4 left-4 w-60 bg-white border-4 border-black rounded shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20">
+              <div className="bg-[#cc0000] text-white p-2.5 border-b-4 border-black font-black text-xs flex justify-between items-center uppercase tracking-wider">
+                <span>KEY ITEMS</span>
                 <Calendar className="w-4 h-4" />
               </div>
-              <div className="p-3 space-y-3 text-xs font-bold">
-                <label className="flex items-center justify-between cursor-pointer"><span className="text-blue-600">⛩️ Temples</span><input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black" /></label>
-                <label className="flex items-center justify-between cursor-pointer"><span className="text-amber-700">☕ Cafes</span><input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black" /></label>
+              <div className="p-3 space-y-2 text-xs font-bold text-gray-800">
+                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black rounded-none" />
+                    <span className="text-blue-600">⛩️ Temples</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500">x12</span>
+                </label>
+                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 border-2 border-black rounded-none" />
+                    <span className="text-amber-700">☕ Cafes</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500">x05</span>
+                </label>
+                <label className="flex items-center justify-between cursor-pointer hover:bg-gray-100 p-1 rounded">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" className="w-4 h-4 border-2 border-black rounded-none" />
+                    <span className="text-red-600">⛰️ Viewpoints</span>
+                  </div>
+                  <span className="text-[10px] text-gray-500">x08</span>
+                </label>
+              </div>
+              <div className="border-t-2 border-black p-2 bg-gray-100 text-[9px] text-center font-bold text-gray-500 uppercase tracking-tighter">
+                Select filters to reveal
               </div>
             </div>
 
-            <div className="absolute top-1/3 left-1/3 z-10">
-              <div onClick={() => setShowPopup(true)} className="w-10 h-10 bg-indigo-50 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:scale-110 animate-bounce">
-                <span className="text-lg">⛩️</span>
+            {/* --- MAP PINS --- */}
+            
+            {/* Player Pin */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+              <div className="w-8 h-10 bg-[#cc0000] border-2 border-black rounded-t-full flex items-center justify-center shadow-lg relative z-10">
+                <User className="w-5 h-5 text-white" />
               </div>
+              <div className="w-8 bg-white border border-black text-[8px] font-black text-center py-0.5 mt-[-2px] shadow-sm z-20">YOU</div>
+            </div>
+
+            {/* Temple Pin 1 */}
+            <div className="absolute top-[38%] left-[42%] z-10">
+              <div className="w-9 h-9 bg-blue-600 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-white text-xs">⛩️</span>
+              </div>
+            </div>
+
+            {/* Cafe Pin */}
+            <div className="absolute bottom-[28%] right-[32%] z-10">
+              <div className="w-9 h-9 bg-amber-200 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-xs">☕</span>
+              </div>
+            </div>
+
+            {/* Mountain Pin */}
+            <div className="absolute top-[18%] right-[22%] z-10">
+              <div className="w-9 h-9 bg-white border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-red-600 font-bold text-xs">▲</span>
+              </div>
+            </div>
+
+            {/* Ancient Shrine Pin + Popup Modal */}
+            <div className="absolute top-[48%] left-[28%] z-20">
+              <div 
+                onClick={() => setShowPopup(true)}
+                className="w-10 h-10 bg-indigo-500 border-4 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:scale-110 transition-transform animate-bounce"
+              >
+                <span className="text-white text-base">⛩️</span>
+              </div>
+              
               {showPopup && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-80 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50 p-4">
-                  <div className="flex justify-between items-center mb-2 border-b pb-1">
-                    <h4 className="font-black text-sm uppercase">Ancient Shrine</h4>
-                    <button onClick={() => setShowPopup(false)} className="text-red-600 font-bold"><X className="w-4 h-4" /></button>
+                <div className="absolute top-12 left-0 w-80 bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] z-50 p-4 rounded-sm font-mono">
+                  <div className="flex items-start justify-between pb-2 border-b-2 border-black mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-indigo-600 border-2 border-black flex items-center justify-center text-white text-sm">⛩️</div>
+                      <h4 className="font-black text-sm uppercase tracking-wider">Ancient Shrine</h4>
+                    </div>
+                    <button 
+                      onClick={() => setShowPopup(false)}
+                      className="w-5 h-5 bg-red-100 border border-black text-red-600 flex items-center justify-center text-xs font-bold hover:bg-red-200"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </div>
-                  <p className="text-xs text-gray-600 mb-3 font-sans">A forgotten shrine hidden deep within the bamboo forest.</p>
-                  <div className="flex gap-2 justify-end">
-                    <button onClick={() => setCurrentPage('details')} className="bg-[#cc0000] text-white text-xs px-3 py-1 border-2 border-black font-bold uppercase">Go to Details</button>
+                  <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-4 border border-black p-2 bg-gray-50">
+                    A forgotten shrine hidden deep within the pixelated bamboo forest. Legend says a rare item lies within.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <button className="bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1">
+                      <Heart className="w-3 h-3 fill-white" /> Add to Favs
+                    </button>
+                    <button 
+                      onClick={() => setCurrentPage('details')}
+                      className="bg-[#cc0000] hover:bg-red-700 text-white text-[10px] font-black px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1"
+                    >
+                      Go To Details →
+                    </button>
                   </div>
                 </div>
               )}
             </div>
+
           </div>
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* 3. LOCATION DETAILS VIEW                                   */}
+      {/* 3. LOCATION DETAILS VIEW (EIFFEL TOWER)                    */}
       {/* ========================================================= */}
       {currentPage === 'details' && (
         <div className="max-w-5xl mx-auto px-4 pb-12 space-y-6">
+          
+          {/* Top Hero Banner */}
           <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="h-48 bg-slate-900 flex items-center justify-center text-white/40 font-bold">
-              <ImageIcon className="w-12 h-12 mr-2" /> Eiffel Tower Preview
+            <div className="h-64 bg-slate-900 relative p-4 flex flex-col justify-between">
+              <div className="inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit">
+                <MapPin className="w-3 h-3" /> Paris, France
+              </div>
+              <div className="text-white/20 font-black text-xl text-center self-center w-full select-none flex items-center justify-center">
+                <ImageIcon className="w-12 h-12 mr-3" /> [Location Photo Preview]
+              </div>
             </div>
-            <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex justify-between items-center">
-              <h1 className="text-3xl font-black">Eiffel Tower</h1>
-              <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black">★ Landmark</span>
+            
+            <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">Eiffel Tower</h1>
+              <div className="flex gap-2">
+                <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  ★ Landmark
+                </span>
+                <span className="bg-white text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  📷 Scenic
+                </span>
+              </div>
             </div>
           </div>
-          <div className="bg-white border-4 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <h3 className="text-lg font-black mb-3">Lore & Data</h3>
-            <p className="text-sm text-gray-700 font-sans mb-4">Constructed from 1887 to 1889 as the entrance to the 1889 World's Fair...</p>
-            <button onClick={() => setCurrentPage('home')} className="bg-black text-white text-xs font-bold px-4 py-2 border-2 border-black">← Back Home</button>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Content Column */}
+            <div className="md:col-span-2 space-y-6">
+              
+              <div className="bg-white border-4 border-black rounded-xl p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2">
+                  <BookOpen className="w-5 h-5 text-red-600" /> Lore & Data
+                </h3>
+                <p className="text-sm text-gray-700 font-sans leading-relaxed mb-6">
+                  Constructed from 1887 to 1889 as the entrance to the 1889 World's Fair, it was initially criticized by some of France's leading artists and intellectuals for its design, but it has become a global cultural icon of France and one of the most recognizable structures in the world. It is the tallest structure in Paris.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="border-2 border-black rounded-lg p-3 text-xs">
+                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3"/> Hours</div>
+                    <div className="font-black">09:30 - 23:45 (Daily)</div>
+                  </div>
+                  <div className="border-2 border-black rounded-lg p-3 text-xs">
+                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><BookOpen className="w-3 h-3"/> Entry Fee</div>
+                    <div className="font-black">From €11.30 (Stairs)</div>
+                  </div>
+                  <div className="border-2 border-black rounded-lg p-3 text-xs">
+                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><Calendar className="w-3 h-3"/> Best Time</div>
+                    <div className="font-black">Sunset / Evening Sparkle</div>
+                  </div>
+                  <div className="border-2 border-black rounded-lg p-3 text-xs">
+                    <div className="font-bold text-red-600 flex items-center gap-1 mb-1"><MapPin className="w-3 h-3"/> Travel</div>
+                    <div className="font-black">Metro: Bir-Hakeim / Trocadéro</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Traveler Logs */}
+              <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
+                  <h3 className="text-lg font-black flex items-center gap-2 text-indigo-700">
+                    <Camera className="w-5 h-5" /> Traveler Logs
+                  </h3>
+                  <button className="text-xs font-bold text-red-600 hover:underline">View All</button>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="aspect-square bg-sky-200 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold">🗼</div>
+                  <div className="aspect-square bg-sky-300 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold">🌅</div>
+                  <div className="aspect-square bg-sky-100 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold">✨</div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Right Sidebar Column */}
+            <div className="space-y-6">
+              
+              <div className="bg-[#e8ecef] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-amber-700">
+                  <BarChart2 className="w-5 h-5" /> Location Stats
+                </h3>
+                
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span>Popularity Level</span>
+                    <span className="text-red-600">Lv. 99</span>
+                  </div>
+                  <div className="h-3 w-full border-2 border-black rounded-full bg-white overflow-hidden">
+                    <div className="h-full bg-red-600 w-[95%] border-r-2 border-black"></div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
+                    <div className="text-[9px] font-bold text-gray-500 uppercase">Visitors</div>
+                    <div className="text-xs font-black">7M / yr</div>
+                  </div>
+                  <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="text-amber-500 text-sm block mb-1">🎖️</span>
+                    <div className="text-[9px] font-bold text-gray-500 uppercase">Rarity</div>
+                    <div className="text-xs font-black">Legendary</div>
+                  </div>
+                </div>
+
+                <button className="w-full bg-[#cc0000] text-white font-bold py-2.5 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 mb-3 flex items-center justify-center gap-2 text-sm transition-all">
+                  <Heart className="w-4 h-4 fill-white" /> Add to Favorites
+                </button>
+                <button className="w-full bg-white hover:bg-gray-50 text-black font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2 text-xs transition-all">
+                  <Share2 className="w-4 h-4" /> Share Location
+                </button>
+              </div>
+
+              {/* Wild Encounters */}
+              <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <h3 className="text-base font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-black">
+                  🗺️ Wild Encounters
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 border border-gray-300 p-2 rounded cursor-pointer hover:bg-gray-50">
+                    <div className="w-10 h-10 bg-blue-100 border-2 border-black rounded flex items-center justify-center text-sm shadow-sm">🚢</div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold">Seine River Cruise</div>
+                      <div className="text-[10px] text-gray-500">500m away</div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-3 border border-gray-300 p-2 rounded cursor-pointer hover:bg-gray-50">
+                    <div className="w-10 h-10 bg-amber-100 border-2 border-black rounded flex items-center justify-center text-sm shadow-sm">🏛️</div>
+                    <div className="flex-1">
+                      <div className="text-xs font-bold">Musée du quai Branly</div>
+                      <div className="text-[10px] text-gray-500">800m away</div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
       )}
