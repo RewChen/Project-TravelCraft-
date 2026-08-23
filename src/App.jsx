@@ -8,12 +8,17 @@ import DetailsPage from './pages/DetailsPage';
 import MyMapsPage from './pages/MyMapsPage';
 import ProfilePage from './pages/ProfilePage';
 import AuthPage from './pages/AuthPage';
+import MapEditor from './pages/MapEditor';
 
 function AppContent() {
-  const { currentPage, activeCommunityMap } = useApp();
+  const { currentPage, activeCommunityMap, navigateTo } = useApp();
 
   if (currentPage === 'auth') {
     return <AuthPage />;
+  }
+
+  if (currentPage === 'editor') {
+    return <MapEditor onBack={() => navigateTo('mymaps')} />;
   }
 
   return (
