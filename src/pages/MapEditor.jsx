@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { useApp } from '../context/AppContext';
 import { 
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
-  MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3
+  MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
+  Share2, MessageCircle, Smartphone, Copy, X
 } from 'lucide-react';
 
 export default function MapEditor({ onBack }) {
+  const { publishMapToCommunity } = useApp();
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
   const [zoom, setZoom] = useState(100);
@@ -23,8 +26,16 @@ export default function MapEditor({ onBack }) {
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
+  const [mapTitle, setMapTitle] = useState('Untitled Map');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
+
+  const pushHistory = () => {
+    setHistory((previous) => [...previous, { elements, elementPositions }]);
+    setFuture([]);
+  };
 
   useEffect(() => {
     if (!dragging) return undefined;
@@ -67,6 +78,26 @@ export default function MapEditor({ onBack }) {
     };
   }, [dragging, zoom]);
 
+  useEffect(() => {
+    const handleDeleteKey = (event) => {
+      if (!selectedElement || (event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement)) return;
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      event.preventDefault();
+      setHistory((previous) => [...previous, { elements, elementPositions }]);
+      setFuture([]);
+      setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+      setElementPositions((previous) => {
+        const next = { ...previous };
+        delete next[selectedElement];
+        return next;
+      });
+      setSelectedElement(null);
+    };
+
+    window.addEventListener('keydown', handleDeleteKey);
+    return () => window.removeEventListener('keydown', handleDeleteKey);
+  }, [selectedElement, elements, elementPositions]);
+
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
     const position = elementPositions[elementId];
@@ -82,11 +113,6 @@ export default function MapEditor({ onBack }) {
       startHeight: position.height,
       mode
     });
-  };
-
-  const pushHistory = () => {
-    setHistory((previous) => [...previous, { elements, elementPositions }]);
-    setFuture([]);
   };
 
   const undo = () => {
@@ -149,8 +175,67 @@ export default function MapEditor({ onBack }) {
   };
 
   const publishMap = () => {
-    saveDraft();
-    setSaveStatus('Map published');
+    const publishedPins = elements.map((element) => {
+      const position = elementPositions[element.id];
+      return {
+        id: `editor-${element.id}`,
+        title: element.label,
+        top: `${Math.round(((position.top + position.height / 2) / 600) * 100)}%`,
+        left: `${Math.round(((position.left + position.width / 2) / 800) * 100)}%`,
+        icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
+        category: 'landmarks',
+        lore: element.type === 'text' ? element.content : `${element.label} added to this custom map.`
+      };
+    });
+
+    publishMapToCommunity({
+      title: mapTitle.trim() || 'Untitled Map',
+      region: `${activeTemplate.label} Realm`,
+      description: `A custom map created with the ${activeTemplate.label} template.`,
+      pins: publishedPins
+    });
+  };
+
+  const shareUrl = window.location.href;
+  const shareTitle = 'My Pocket Odyssey Map';
+  const openShareLink = (url) => {
+    const shareWindow = window.open(url, '_blank');
+    if (!shareWindow) setSaveStatus('อนุญาต popup เพื่อเปิดช่องทางแชร์');
+  };
+  const copyShareLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = shareUrl;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        helper.remove();
+      }
+      setCopied(true);
+      setSaveStatus('คัดลอกลิงก์แล้ว');
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setSaveStatus('คัดลอกไม่สำเร็จ กรุณาคัดลอกลิงก์ด้วยตัวเอง');
+    }
+  };
+  const nativeShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: 'Check out my travel map!', url: shareUrl });
+      } else {
+        await copyShareLink();
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        await copyShareLink();
+      }
+    }
   };
 
   const addElement = (element) => {
@@ -170,6 +255,11 @@ export default function MapEditor({ onBack }) {
       if (!selectedElement) return;
       pushHistory();
       setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+      setElementPositions((previous) => {
+        const next = { ...previous };
+        delete next[selectedElement];
+        return next;
+      });
       setSelectedElement(null);
       return;
     }
@@ -256,7 +346,8 @@ export default function MapEditor({ onBack }) {
           <div className="h-6 w-1 bg-black rounded-full mx-2 hidden sm:block"></div>
           <input 
             type="text" 
-            defaultValue="Untitled Map" 
+            value={mapTitle}
+            onChange={(event) => setMapTitle(event.target.value)}
             className="font-bold text-sm bg-transparent border-none focus:outline-none focus:bg-gray-100 px-2 py-1 rounded w-32 sm:w-auto"
           />
         </div>
@@ -273,9 +364,34 @@ export default function MapEditor({ onBack }) {
           <button onClick={publishMap} className="bg-[#cc0000] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
             <Compass className="w-3 h-3 hidden sm:block" /> PUBLISH
           </button>
+          <button onClick={() => setShowShareModal(true)} title="Share map" className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
+            <Share2 className="w-3 h-3" /> SHARE
+          </button>
         </div>
       </header>
       {saveStatus && <div className="absolute top-16 right-4 z-30 bg-emerald-100 border-2 border-black px-3 py-2 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{saveStatus}</div>}
+
+      {showShareModal && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
+        <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg shadow-2xl p-5" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-white/20 pb-3">
+            <h2 className="font-black text-lg">Share map</h2>
+            <button onClick={() => setShowShareModal(false)} title="Close" className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+          </div>
+          <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">Share</button>
+          <p className="text-center text-sm text-gray-300 mb-5">Share this map with your friends</p>
+          <div className="grid grid-cols-5 gap-3 mb-6">
+            <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title="Facebook" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">Facebook</span></button>
+            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="Messages" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">Messages</span></button>
+            <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="WhatsApp" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Smartphone className="w-6 h-6" /></span><span className="text-[10px]">WhatsApp</span></button>
+            <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title="X" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">X</span></button>
+            <button onClick={copyShareLink} title="Copy link" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span></button>
+          </div>
+          <div className="flex items-center gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
+            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
+            <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? 'Copied' : 'Copy'}</button>
+          </div>
+        </div>
+      </div>}
 
       {/* EDITOR WORKSPACE */}
       <div className="flex-1 flex overflow-hidden">
@@ -479,7 +595,7 @@ export default function MapEditor({ onBack }) {
 
               {/* Delete Button */}
               <div className="pt-4 border-t-2 border-black border-dashed">
-                <button onClick={() => { pushHistory(); setElements((previous) => previous.filter((element) => element.id !== selectedElement)); setSelectedElement(null); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                <button onClick={() => { pushHistory(); setElements((previous) => previous.filter((element) => element.id !== selectedElement)); setElementPositions((previous) => { const next = { ...previous }; delete next[selectedElement]; return next; }); setSelectedElement(null); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                   <Trash2 className="w-4 h-4" /> DELETE ELEMENT
                 </button>
               </div>

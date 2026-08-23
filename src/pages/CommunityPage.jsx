@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Search, Mountain, Trees, Building2, Target } from 'lucide-react';
+import { Search, Mountain, Trees, Building2, Target, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function CommunityPage() {
-  const { communityMaps, trackMapOnWorldMap, navigateTo } = useApp();
+  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -153,6 +153,17 @@ export default function CommunityPage() {
                 >
                   <Target className="w-4 h-4 text-black" /> TRACK ON MAP
                 </button>
+
+                {mapItem.discoveredBy === userProfile.name && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Delete "${mapItem.title}"?`)) deleteCommunityMap(mapItem.id);
+                    }}
+                    className="w-full bg-white hover:bg-red-50 text-red-700 font-black py-2.5 px-4 border-2 border-red-700 text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" /> DELETE MY MAP
+                  </button>
+                )}
               </div>
             </div>
 

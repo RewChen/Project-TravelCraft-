@@ -374,12 +374,18 @@ export const AppProvider = ({ children }) => {
         visitors: 'Community Discoveries',
         rarity: 'Epic'
       },
-      pins: mapPins
+      pins: newCommunityMap.pins || mapPins
     };
 
     setCommunityMaps((prev) => [publishedItem, ...prev]);
     setUserProfile((prev) => ({ ...prev, coins: prev.coins + 150 }));
     navigateTo('community');
+  };
+
+  const deleteCommunityMap = (mapId) => {
+    setCommunityMaps((previous) => previous.filter((map) => (
+      map.id !== mapId || map.discoveredBy !== userProfile.name
+    )));
   };
 
   const login = (e) => {
@@ -427,6 +433,7 @@ export const AppProvider = ({ children }) => {
         setActiveCommunityMap,
         trackMapOnWorldMap,
         publishMapToCommunity,
+        deleteCommunityMap,
         addCustomPin,
         deleteCustomPin,
         favorites,
