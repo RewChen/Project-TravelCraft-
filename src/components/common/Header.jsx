@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 
 export default function Header() {
   const { currentPage, navigateTo, isLoggedIn, logout, setAuthMode, activeCommunityMap, userProfile } = useApp();
+  const avatar = userProfile?.avatar || '🏃';
 
   return (
     <header className="bg-white border-4 border-black rounded-2xl p-3 px-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between sticky top-4 z-50">
@@ -33,8 +34,8 @@ export default function Header() {
           Community Discoveries
         </button>
 
-        {/* Show World Map option only if user has tracked/selected a map or active map is set */}
-        {activeCommunityMap && (
+        {/* World Map — only shown to logged-in users who have an active map */}
+        {isLoggedIn && activeCommunityMap && (
           <button 
             onClick={() => navigateTo('map')}
             className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 hover:text-black border-2 border-transparent px-2'}`}
@@ -50,12 +51,15 @@ export default function Header() {
           My Maps
         </button>
 
-        <button 
-          onClick={() => navigateTo('profile')}
-          className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 hover:text-black border-2 border-transparent px-2'}`}
-        >
-          Profile
-        </button>
+        {/* Profile — only visible to logged-in users */}
+        {isLoggedIn && (
+          <button 
+            onClick={() => navigateTo('profile')}
+            className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 hover:text-black border-2 border-transparent px-2'}`}
+          >
+            Profile
+          </button>
+        )}
       </nav>
 
       <div className="flex items-center gap-3">
@@ -70,22 +74,25 @@ export default function Header() {
         <button className="w-9 h-9 border-2 border-black rounded-lg flex items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
           <Bell className="w-4 h-4 text-black" />
         </button>
-        <button 
-          onClick={() => navigateTo('profile')}
-          className="w-9 h-9 border-2 border-black rounded-lg items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hidden sm:flex cursor-pointer"
-        >
-          <Settings className="w-4 h-4 text-black" />
-        </button>
+        {/* Settings (Profile shortcut) — only for logged-in users */}
+        {isLoggedIn && (
+          <button 
+            onClick={() => navigateTo('profile')}
+            className="w-9 h-9 border-2 border-black rounded-lg items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hidden sm:flex cursor-pointer"
+          >
+            <Settings className="w-4 h-4 text-black" />
+          </button>
+        )}
         {isLoggedIn ? (
           <div 
-            onClick={logout} 
+            onClick={() => navigateTo('profile')} 
             className="w-9 h-9 bg-amber-400 border-2 border-black rounded-lg flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden" 
-            title="Click to Logout"
+            title="Go to Profile"
           >
-            {userProfile.avatar && userProfile.avatar.startsWith('data:image') ? (
-              <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+            {avatar.startsWith('data:image') ? (
+              <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-sm font-black">{userProfile.avatar || '🏃'}</span>
+              <span className="text-sm font-black">{avatar}</span>
             )}
           </div>
         ) : (

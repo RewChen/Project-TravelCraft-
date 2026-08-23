@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { Plus, Key, Mail, User as UserIcon, AlertCircle, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function RegisterForm() {
-  const { login, setAuthMode, setUserProfile } = useApp();
+  const { login, setAuthMode } = useApp();
   
   const [selectedSprite, setSelectedSprite] = useState(0);
   const [customSprite, setCustomSprite] = useState(null);
@@ -13,6 +14,9 @@ export default function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const [loading, setLoading] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -31,12 +35,13 @@ export default function RegisterForm() {
     }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
 
-    if (password.length < 4) {
-      setErrorMsg('Secret Key must be at least 4 characters long.');
+    if (password.length < 6) {
+      setErrorMsg('Secret Key must be at least 6 characters long.');
       return;
     }
 
@@ -49,15 +54,39 @@ export default function RegisterForm() {
       ? defaultSprites[selectedSprite] 
       : (customSprite || '🏃');
 
-    setUserProfile((prev) => ({
-      ...prev,
-      name: trainerName.trim() || 'Ash K.',
-      email: trainerEmail.trim() || 'ash@pallet.town',
-      avatar: chosenAvatar,
-      role: selectedRole
-    }));
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: trainerEmail.trim(),
+        password,
+        options: {
+          data: {
+            username: trainerName.trim() || 'Trainer',
+            avatar: chosenAvatar,
+            role: selectedRole
+          }
+        }
+      });
 
-    login(e);
+      if (error) {
+        // Supabase may return 403 if signups are disabled
+        if (error.status === 403 || error.message.includes('Signups not allowed')) {
+          setErrorMsg('Sign‑ups are currently disabled for this Supabase project. Please enable "Email sign‑ups" in the Auth settings of your Supabase dashboard, then try again.');
+        } else if (error.status === 429) {
+          setErrorMsg('Too many sign‑up attempts! Supabase rate limit reached. Please wait a few minutes and try again.');
+        } else if (error.message.includes('already registered')) {
+          setErrorMsg('This email is already registered. Please log in instead.');
+        } else {
+          setErrorMsg(error.message);
+        }
+      } else {
+        login(); // Context login function sets isLoggedIn and moves to home
+      }
+    } catch (err) {
+      setErrorMsg('Failed to register. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,6 +100,11 @@ export default function RegisterForm() {
         <div className="bg-red-100 border-2 border-black text-red-700 p-2 rounded text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>{errorMsg}</span>
+        </div>
+      )}
+      {successMsg && (
+        <div className="bg-emerald-100 border-2 border-black text-emerald-800 p-2 rounded text-[10px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {successMsg}
         </div>
       )}
 
@@ -221,9 +255,10 @@ export default function RegisterForm() {
       {/* Submit Button */}
       <button 
         type="submit" 
-        className="w-full bg-[#cc0000] text-white font-black py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase mt-2 cursor-pointer hover:bg-red-700 transition-colors"
+        disabled={loading}
+        className="w-full bg-[#cc0000] text-white font-black py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase mt-2 cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        START ADVENTURE
+        {loading ? 'Registering...' : 'START ADVENTURE'}
       </button>
 
       <div className="text-center pt-0.5">
