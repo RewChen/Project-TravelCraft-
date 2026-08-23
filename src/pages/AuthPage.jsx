@@ -15,11 +15,11 @@ export default function AuthPage() {
       >
         ← Back to Main Page
       </button>
-      
+
       <div className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-[36px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] relative">
         <div className="bg-[#111111] p-3 rounded-t-2xl rounded-b-xl border-4 border-black mb-5 shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]">
           <div className="bg-white border-4 border-black rounded-lg overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            
+
             {/* Red Header Banner */}
             <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
               <span>{authMode === 'login' && 'POCKET ODYSSEY'}</span>
@@ -27,7 +27,7 @@ export default function AuthPage() {
               <span>{authMode === 'forgot' && 'SYSTEM RECOVERY'}</span>
               <span>{authMode === 'restored' && 'SYSTEM RESTORED'}</span>
             </div>
-            
+
             <div className="p-4 sm:p-5">
               {authMode === 'login' && <LoginForm />}
               {authMode === 'register' && <RegisterForm />}

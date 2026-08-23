@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 const AppContext = createContext();
 
@@ -225,17 +226,89 @@ export const AppProvider = ({ children }) => {
   };
 
   // User Profile & Role State
-  const [isLoggedIn, setIsLoggedIn] = useState(() => loadStored('isLoggedIn', false));
-  const [userProfile, setUserProfile] = useState(() => loadStored('userProfile', {
-    name: 'Ash K.',
-    email: 'ash@pallet.town',
-    avatar: '🏃',
-    role: 'Cartographer', // Default role: Cartographer
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  const createFallbackProfile = (authUser) => ({
+    name: authUser.user_metadata?.username || 'Traveler',
+    email: authUser.email || '',
+    avatar: authUser.user_metadata?.avatar || '🏃',
+    role: authUser.user_metadata?.role || 'Cartographer',
     coins: 1245,
     level: 1,
-    badges: ['Pioneer', 'Kyoto Explorer'],
-    visitedCount: 14
-  }));
+    badges: [],
+    visitedCount: 0
+  });
+
+  const fetchUserProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setUserProfile({
+          name: data.username,
+          email: data.email,
+          avatar: data.avatar || '🏃',
+          role: data.role || 'Cartographer',
+          coins: 1245, // Placeholder game stats
+          level: 1,
+          badges: ['Pioneer', 'Kyoto Explorer'],
+          visitedCount: 14
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      // Fallback
+      setUserProfile({
+        name: 'Traveler',
+        email: 'trainer@pallet.town',
+        avatar: '🏃',
+        role: 'Cartographer',
+        coins: 1245, level: 1, badges: [], visitedCount: 0
+      });
+    }
+  };
+
+  useEffect(() => {
+    // Initial session check
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsLoggedIn(true);
+        setUserProfile(createFallbackProfile(session.user));
+        await fetchUserProfile(session.user.id);
+      } else {
+        setIsLoggedIn(false);
+        setUserProfile(null);
+      }
+      setIsAuthLoading(false); // Done loading
+    };
+
+    checkSession();
+
+    // Listen for auth changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        setIsLoggedIn(true);
+        setUserProfile(createFallbackProfile(session.user));
+        await fetchUserProfile(session.user.id);
+      } else {
+        setIsLoggedIn(false);
+        setUserProfile(null);
+      }
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
 
   // Map Pins, Background Image, Favorites, Community Maps
   const [mapPins, setMapPins] = useState(() => loadStored('mapPins', initialPins));
@@ -245,11 +318,9 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
-  // Sync to LocalStorage on State Changes
+  // Sync to LocalStorage on State Changes (Only non-auth data)
   useEffect(() => {
     try {
-      localStorage.setItem('pocket_odyssey_isLoggedIn', JSON.stringify(isLoggedIn));
-      localStorage.setItem('pocket_odyssey_userProfile', JSON.stringify(userProfile));
       localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
       localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
       localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
@@ -257,7 +328,7 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
-  }, [isLoggedIn, userProfile, mapPins, mapBackgroundImage, favorites, communityMaps]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps]);
 
   // Selected Location for Details Page
   const [selectedLocation, setSelectedLocation] = useState({
@@ -348,8 +419,9 @@ export const AppProvider = ({ children }) => {
   // Publish a custom user map to Community Discoveries!
   const publishMapToCommunity = (newCommunityMap) => {
     const mapSlug = newCommunityMap.title ? newCommunityMap.title.replace(/\s+/g, '-').toLowerCase() : 'user-map';
+    const uniqueId = `comm-user-${mapSlug}-${newCommunityMap.id || mapSlug}`;
     const publishedItem = {
-      id: `comm-user-${mapSlug}`,
+      id: uniqueId,
       title: newCommunityMap.title.toUpperCase(),
       discoveredBy: userProfile.name,
       authorRole: userProfile.role || 'Cartographer',
@@ -382,6 +454,7 @@ export const AppProvider = ({ children }) => {
     navigateTo('community');
   };
 
+<<<<<<< HEAD
   const deleteCommunityMap = (mapId) => {
     setCommunityMaps((previous) => previous.filter((map) => (
       map.id !== mapId || map.discoveredBy !== userProfile.name
@@ -390,12 +463,18 @@ export const AppProvider = ({ children }) => {
 
   const login = (e) => {
     if (e) e.preventDefault();
+=======
+  // Login now handled in LoginForm via Supabase Auth
+  const login = () => {
+>>>>>>> 6bf306537afc30d56ba7df9473e8f9a1088a94a6
     setIsLoggedIn(true);
     setCurrentPage('home');
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
+    setUserProfile(null);
     setAuthMode('login');
     setCurrentPage('auth');
   };
@@ -442,7 +521,8 @@ export const AppProvider = ({ children }) => {
         toggleFilter,
         login,
         logout,
-        navigateTo
+        navigateTo,
+        isAuthLoading
       }}
     >
       {children}

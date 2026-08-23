@@ -30,10 +30,10 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-        
+
         <div className="bg-[#a2d2ff] relative min-h-[260px] flex flex-col justify-between p-4 bg-[radial-gradient(#4895ef_1px,transparent_1px)] [background-size:16px_16px]">
           <div className="self-end bg-amber-100 border-2 border-black px-2.5 py-1 rounded-md text-xs font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10">
-            🪙 Coin: {userProfile.coins}
+            <p>🪙 Coin: {userProfile?.coins ?? 0}</p>
           </div>
           <div className="my-auto bg-[#81c784] border-4 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
             <div className="text-[10px] font-bold text-emerald-950 uppercase mb-2 flex items-center justify-between">
@@ -48,14 +48,14 @@ export default function HomePage() {
               <div className="relative z-10 text-center cursor-pointer hover:scale-110 transition-transform">
                 <div className="w-8 h-8 bg-emerald-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">🌲</div>
               </div>
-              <div 
+              <div
                 onClick={() => {
                   if (communityMaps && communityMaps[1]) {
                     trackMapOnWorldMap(communityMaps[1]);
                   } else {
                     navigateTo('community');
                   }
-                }} 
+                }}
                 className="relative z-10 text-center cursor-pointer animate-bounce"
               >
                 <div className="w-8 h-8 bg-sky-400 border-2 border-black rounded-full flex items-center justify-center mx-auto text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">🏰</div>
