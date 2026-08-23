@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { 
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
-  BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check
+  BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
+  MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3
 } from 'lucide-react';
 
 export default function MapEditor({ onBack }) {
@@ -21,6 +22,7 @@ export default function MapEditor({ onBack }) {
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
+  const [activeTool, setActiveTool] = useState('select');
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
 
@@ -161,6 +163,29 @@ export default function MapEditor({ onBack }) {
       [id]: { left: 330, top: 220, width: element.type === 'text' ? 220 : 100, height: element.type === 'text' ? 70 : 100 }
     }));
     setSelectedElement(id);
+  };
+
+  const handleToolAction = (tool) => {
+    if (tool === 'eraser') {
+      if (!selectedElement) return;
+      pushHistory();
+      setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+      setSelectedElement(null);
+      return;
+    }
+    if (tool === 'select') {
+      setActiveTool('select');
+      return;
+    }
+    const toolElements = {
+      pen: { type: 'shape', shape: 'line', label: 'Draw Line', content: '' },
+      highlight: { type: 'shape', shape: 'highlight', label: 'Highlight', content: '' },
+      rectangle: { type: 'shape', shape: 'rectangle', label: 'Rectangle', content: '' },
+      circle: { type: 'shape', shape: 'circle', label: 'Circle', content: '' },
+      grid: { type: 'shape', shape: 'grid', label: 'Grid', content: '' }
+    };
+    if (toolElements[tool]) addElement(toolElements[tool]);
+    setActiveTool('select');
   };
 
   const handleUpload = (event) => {
@@ -329,6 +354,21 @@ export default function MapEditor({ onBack }) {
           style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}
           onClick={() => setSelectedElement(null)}
         >
+          <div className="absolute top-4 left-4 z-20 bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
+            {[
+              ['select', MousePointer2, 'Select and move'],
+              ['pen', Pencil, 'Draw line'],
+              ['highlight', Minus, 'Add highlight'],
+              ['rectangle', Square, 'Add rectangle'],
+              ['circle', Circle, 'Add circle'],
+              ['grid', Grid3X3, 'Add grid'],
+              ['eraser', Eraser, 'Delete selected']
+            ].map(([tool, Icon, label]) => (
+              <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={label} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
+                <Icon className="w-5 h-5" />
+              </button>
+            ))}
+          </div>
           {/* Zoom Control */}
           <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setZoom(Math.max(50, zoom - 10)); }}>-</button>
@@ -350,8 +390,8 @@ export default function MapEditor({ onBack }) {
                 const position = elementPositions[element.id];
                 const isSelected = selectedElement === element.id;
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center bg-white/50 cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)}>
-                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : <span className={`${element.type === 'text' ? 'text-xl font-black px-2 text-center' : 'text-5xl'} filter drop-shadow-md`}>{element.content}</span>}
+                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)}>
+                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : <span className={`${element.type === 'text' ? 'text-xl font-black px-2 text-center' : 'text-5xl'} filter drop-shadow-md`}>{element.content}</span>}
                     {isSelected && <>
                       <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
                       <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500"></div>
