@@ -454,19 +454,14 @@ export const AppProvider = ({ children }) => {
     navigateTo('community');
   };
 
-<<<<<<< HEAD
   const deleteCommunityMap = (mapId) => {
     setCommunityMaps((previous) => previous.filter((map) => (
-      map.id !== mapId || map.discoveredBy !== userProfile.name
+      !(map.id === mapId && map.discoveredBy === userProfile?.name)
     )));
   };
 
   const login = (e) => {
     if (e) e.preventDefault();
-=======
-  // Login now handled in LoginForm via Supabase Auth
-  const login = () => {
->>>>>>> 6bf306537afc30d56ba7df9473e8f9a1088a94a6
     setIsLoggedIn(true);
     setCurrentPage('home');
   };
