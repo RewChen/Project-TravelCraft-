@@ -12,7 +12,7 @@ import MapEditor from './pages/MapEditor';
 import AdminDashboard from './pages/AdminDashboard';
 
 function AppContent() {
-  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo } = useApp();
+  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo, isAdminLoggedIn, userProfile } = useApp();
 
   // Show loading screen while Supabase checks session
   if (isAuthLoading) {
@@ -31,11 +31,29 @@ function AppContent() {
     );
   }
 
+<<<<<<< Updated upstream
+=======
+  // Redirect to auth if not logged in and page requires auth
+  if (!isLoggedIn && !['auth', 'home', 'community', 'mymaps', 'details'].includes(currentPage)) {
+    return <AuthPage />;
+  }
+
+>>>>>>> Stashed changes
   if (currentPage === 'auth') {
     return <AuthPage />;
   }
 
   if (currentPage === 'admin') {
+    if (!isLoggedIn) {
+      return <AuthPage />;
+    }
+    
+    const isAdmin = isAdminLoggedIn || (userProfile && (userProfile.role === 'Admin' || userProfile.role === 'admin' || userProfile.role === 'Superuser'));
+    if (!isAdmin) {
+      setTimeout(() => navigateTo('home'), 0);
+      return null;
+    }
+    
     return <AdminDashboard />;
   }
 
