@@ -3,7 +3,7 @@ import { Map, LogOut, Check, Sparkles, User as UserIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function ProfilePage() {
-  const { userProfile, setUserProfile, isLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
+  const { userProfile, setUserProfile, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
   const [selectedRole, setSelectedRole] = useState(userProfile?.role || 'Novice Traveler');
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
 
@@ -134,14 +134,16 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Admin Command Center & Logout */}
+          {/* Admin Command Center (Only for Admins) & Logout */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => navigateTo('admin')}
-              className="bg-amber-400 hover:bg-amber-300 text-black font-black px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer uppercase"
-            >
-              🛡️ Open Command Center (Admin)
-            </button>
+            {isAdminLoggedIn && (
+              <button
+                onClick={() => navigateTo('admin')}
+                className="bg-amber-400 hover:bg-amber-300 text-black font-black px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer uppercase"
+              >
+                🛡️ Open Command Center (Admin)
+              </button>
+            )}
 
             <button
               onClick={logout}

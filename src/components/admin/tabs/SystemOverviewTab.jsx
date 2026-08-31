@@ -228,7 +228,6 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
                 <th className="p-3">Location Name</th>
                 <th className="p-3">Region</th>
                 <th className="p-3">Category</th>
-                <th className="p-3">Popularity</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Actions</th>
               </tr>
@@ -240,13 +239,12 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
                     <span>{loc.icon || '📍'}</span>
                     <span>{loc.title}</span>
                   </td>
-                  <td className="p-3 text-gray-600">{loc.region}</td>
+                  <td className="p-3 text-gray-600">{loc.region || 'Global Realm'}</td>
                   <td className="p-3">
                     <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px] uppercase">
                       {loc.category}
                     </span>
                   </td>
-                  <td className="p-3 text-indigo-700">Lv. {loc.popularity || 80}</td>
                   <td className="p-3">
                     <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-400 px-2 py-0.5 rounded-full font-black">
                       <CheckCircle2 className="w-2.5 h-2.5" />
