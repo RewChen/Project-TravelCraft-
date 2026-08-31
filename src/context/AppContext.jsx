@@ -391,6 +391,7 @@ const initialGlobalSettings = {
 export const AppProvider = ({ children }) => {
   // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth', 'admin'
   const [currentPage, setCurrentPage] = useState('home');
+  const [editorSetup, setEditorSetup] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   
   // LocalStorage Helper Read
@@ -703,15 +704,20 @@ export const AppProvider = ({ children }) => {
         type: 'Community Map',
         tag: 'Custom',
         lore: newCommunityMap.description || 'A custom world map created and shared by an explorer.',
-        hours: '24/7',
-        fee: 'Free Exploration',
-        bestTime: 'Anytime',
-        travel: 'Community Gateway',
+        hours: newCommunityMap.hours || '24/7',
+        fee: newCommunityMap.fee || 'Free Exploration',
+        bestTime: newCommunityMap.bestTime || 'Anytime',
+        travel: newCommunityMap.travel || 'Community Gateway',
         popularity: 85,
         visitors: 'Community Discoveries',
-        rarity: 'Epic'
+        rarity: 'Epic',
+        logs: newCommunityMap.logs || [],
+        tags: newCommunityMap.tags || [],
+        privacy: newCommunityMap.privacy || 'public'
       },
-      pins: newCommunityMap.pins || mapPins
+      pins: newCommunityMap.pins || mapPins,
+      tags: newCommunityMap.tags || [],
+      privacy: newCommunityMap.privacy || 'public'
     };
 
     setCommunityMaps((prev) => [publishedItem, ...prev]);
@@ -966,6 +972,8 @@ export const AppProvider = ({ children }) => {
       value={{
         currentPage,
         setCurrentPage,
+        editorSetup,
+        setEditorSetup,
         authMode,
         setAuthMode,
         isLoggedIn,

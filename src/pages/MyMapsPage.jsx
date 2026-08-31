@@ -1,10 +1,36 @@
 import { useState } from 'react';
-import { Map, Plus, Star, MapPin, Globe, Check } from 'lucide-react';
+import { Map, Plus, Star, MapPin, Globe, Check, X, Clock3, CircleDollarSign, Sun, Train, Rocket, Sparkles, ShieldCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function MyMapsPage() {
-  const { navigateTo, favorites, publishMapToCommunity } = useApp();
+  const { navigateTo, favorites, publishMapToCommunity, setEditorSetup } = useApp();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [mapForm, setMapForm] = useState({
+    title: 'Untitled Map',
+    description: '',
+    hours: '09:30 - 23:45 (Daily)',
+    fee: 'Free',
+    bestTime: 'Anytime',
+    travel: '',
+    privacy: 'public',
+    tags: ['landmark'],
+    logs: ['rocket']
+  });
   const [publishedSuccess, setPublishedSuccess] = useState('');
+
+  const tagOptions = [['landmark', 'LANDMARK'], ['scenic', 'SCENIC'], ['food', 'FOOD'], ['hidden', 'HIDDEN GEM']];
+  const logOptions = [['rocket', Rocket, 'Exploration'], ['sun', Sun, 'Best Time'], ['sparkles', Sparkles, 'Scenic']];
+  const updateForm = (field, value) => setMapForm((previous) => ({ ...previous, [field]: value }));
+  const toggleFormValue = (field, value) => setMapForm((previous) => ({
+    ...previous,
+    [field]: previous[field].includes(value) ? previous[field].filter((item) => item !== value) : [...previous[field], value]
+  }));
+  const startDesigning = (event) => {
+    event.preventDefault();
+    setEditorSetup(mapForm);
+    setShowCreateModal(false);
+    navigateTo('editor');
+  };
 
   const myMapsList = [
     {
@@ -57,12 +83,62 @@ export default function MyMapsPage() {
         </div>
 
         <button 
-          onClick={() => navigateTo('editor')}
+          onClick={() => setShowCreateModal(true)}
           className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs uppercase cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create New Map
         </button>
       </div>
+
+      {showCreateModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
+        <form onSubmit={startDesigning} onClick={(event) => event.stopPropagation()} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+          <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center justify-between sticky top-0 z-10">
+            <h2 className="font-black uppercase tracking-wide">Create New Map</h2>
+            <button type="button" onClick={() => setShowCreateModal(false)} title="Close" className="w-8 h-8 bg-white text-black border-2 border-black rounded flex items-center justify-center"><X className="w-5 h-5" /></button>
+          </div>
+          <div className="p-5 space-y-4">
+            <div>
+              <label htmlFor="map-title" className="block text-[10px] font-black uppercase mb-1.5">Map Title</label>
+              <input id="map-title" required value={mapForm.title} onChange={(event) => updateForm('title', event.target.value)} className="w-full border-2 border-black p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+            </div>
+            <div>
+              <label htmlFor="map-description" className="block text-[10px] font-black uppercase mb-1.5">Description</label>
+              <textarea id="map-description" required rows="3" value={mapForm.description} onChange={(event) => updateForm('description', event.target.value)} placeholder="Describe this destination or route..." className="w-full border-2 border-black p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase"><span>▣</span> Lore &amp; Data</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[[Clock3, 'hours', 'Hours'], [CircleDollarSign, 'fee', 'Entry Fee'], [Sun, 'bestTime', 'Best Time'], [Train, 'travel', 'Travel']].map(([Icon, field, label]) => (
+                <label key={field} className="border-2 border-black p-2.5 block">
+                  <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Icon className="w-3.5 h-3.5" /> {label}</span>
+                  <input value={mapForm[field]} onChange={(event) => updateForm(field, event.target.value)} placeholder={label} className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                </label>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] font-black uppercase"><span>▣ Traveler Logs</span><span className="text-red-600">Choose up to 3</span></div>
+            <div className="grid grid-cols-3 gap-2">
+              {logOptions.map(([value, Icon, label]) => <button type="button" key={value} onClick={() => toggleFormValue('logs', value)} className={`h-24 border-2 border-black flex flex-col items-center justify-center gap-2 ${mapForm.logs.includes(value) ? value === 'rocket' ? 'bg-[#b9c7f7]' : value === 'sun' ? 'bg-[#1268ed] text-white' : 'bg-[#f5f4fb]' : 'bg-gray-100 opacity-60'}`}><Icon className="w-8 h-8" /><span className="text-[9px] font-black uppercase">{label}</span></button>)}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <fieldset>
+                <legend className="text-[10px] font-black uppercase mb-2 flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5" /> Privacy</legend>
+                <div className="space-y-1 text-xs font-bold">{[['public', 'Public'], ['unlisted', 'Unlisted'], ['private', 'Private']].map(([value, label]) => <label key={value} className="flex items-center gap-2"><input type="radio" name="create-privacy" checked={mapForm.privacy === value} onChange={() => updateForm('privacy', value)} /> {label}</label>)}</div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-[10px] font-black uppercase mb-2">Tags</legend>
+                <div className="flex flex-wrap gap-1.5">{tagOptions.map(([value, label]) => <button type="button" key={value} onClick={() => toggleFormValue('tags', value)} className={`px-2 py-1 border-2 border-black text-[9px] font-black uppercase ${mapForm.tags.includes(value) ? 'bg-amber-300' : 'bg-gray-100'}`}>{mapForm.tags.includes(value) ? '★ ' : ''}{label}</button>)}</div>
+                <p className="text-[9px] text-gray-500 font-bold mt-2">Select tags for your map.</p>
+              </fieldset>
+            </div>
+          </div>
+          <div className="p-4 bg-gray-100 border-t-4 border-black flex justify-end gap-2 sticky bottom-0">
+            <button type="button" onClick={() => setShowCreateModal(false)} className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase">Cancel</button>
+            <button type="submit" className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2"><Rocket className="w-4 h-4" /> Start Designing <span>→</span></button>
+          </div>
+        </form>
+      </div>}
 
       {/* Success Alert Banner */}
       {publishedSuccess && (
