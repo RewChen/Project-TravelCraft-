@@ -14,7 +14,7 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export default function AdminSidebar({ onOpenNewMission }) {
-  const { adminActiveTab, setAdminActiveTab, adminUser, navigateTo, adminLogout, reportedLocations } = useApp();
+  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
 
@@ -99,11 +99,11 @@ export default function AdminSidebar({ onOpenNewMission }) {
         <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-[#cc0000] text-white border-2 border-black rounded-lg flex items-center justify-center font-black text-xs shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-              {adminUser?.badge || 'A1'}
+              {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : 'A'}
             </div>
             <div className="overflow-hidden">
-              <div className="text-xs font-black truncate">{adminUser?.name || 'Admin_01'}</div>
-              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{adminUser?.role || 'SUPERUSER'}</div>
+              <div className="text-xs font-black truncate">{userProfile?.name || 'Admin'}</div>
+              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{userProfile?.role || 'SUPERUSER'}</div>
             </div>
           </div>
 
