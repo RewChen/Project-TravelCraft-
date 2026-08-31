@@ -31,11 +31,6 @@ function AppContent() {
     );
   }
 
-  // Redirect to auth if not logged in and page requires auth (admin is accessible directly or for testing)
-  if (!isLoggedIn && !['auth', 'home', 'community', 'mymaps', 'details', 'admin'].includes(currentPage)) {
-    return <AuthPage />;
-  }
-
   if (currentPage === 'auth') {
     return <AuthPage />;
   }
@@ -58,12 +53,11 @@ function AppContent() {
         <main>
           {currentPage === 'home' && <HomePage />}
           {currentPage === 'community' && <CommunityPage />}
-          {currentPage === 'map' && (
-            activeCommunityMap ? <WorldMapPage /> : <CommunityPage />
-          )}
+          {currentPage === 'map' && <WorldMapPage />}
           {currentPage === 'details' && <DetailsPage />}
           {currentPage === 'mymaps' && <MyMapsPage />}
           {currentPage === 'profile' && <ProfilePage />}
+          {!['home', 'community', 'map', 'details', 'mymaps', 'profile'].includes(currentPage) && <HomePage />}
         </main>
       </div>
 

@@ -138,7 +138,7 @@ export default function CommunityPage() {
                   <Target className="w-4 h-4 text-black" /> TRACK ON MAP
                 </button>
 
-                {mapItem.discoveredBy === userProfile.name && (
+                {userProfile?.name && mapItem.discoveredBy === userProfile.name && (
                   <button
                     onClick={() => {
                       if (window.confirm(`Delete "${mapItem.title}"?`)) deleteCommunityMap(mapItem.id);
