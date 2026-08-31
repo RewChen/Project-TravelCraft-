@@ -1,4 +1,4 @@
-import { Compass, Search, Bell, Settings, User } from 'lucide-react';
+import { Compass, Bell, Settings, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function Header() {
@@ -76,14 +76,6 @@ export default function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
-        <div className="hidden md:flex relative items-center">
-          <Search className="w-4 h-4 absolute left-2 text-gray-500" />
-          <input 
-            type="text" 
-            placeholder="Search region..." 
-            className="pl-8 pr-3 py-1.5 border-2 border-black rounded text-xs font-bold w-40 focus:outline-none focus:bg-amber-50"
-          />
-        </div>
         <button className="w-9 h-9 border-2 border-black rounded-lg flex items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
           <Bell className="w-4 h-4 text-black" />
         </button>
