@@ -29,6 +29,7 @@ export default function MapEditor({ onBack }) {
   const [mapTitle, setMapTitle] = useState('Untitled Map');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [editingTextId, setEditingTextId] = useState(null);
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
 
@@ -242,12 +243,23 @@ export default function MapEditor({ onBack }) {
     pushHistory();
     nextElementId.current += 1;
     const id = `${element.type}-${nextElementId.current}`;
-    setElements((previous) => [...previous, { ...element, id }]);
+    const textStyles = element.type === 'text'
+      ? {
+          fontSize: element.fontSize ?? 28,
+          fontWeight: element.fontWeight ?? 900
+        }
+      : {};
+    setElements((previous) => [...previous, { ...element, ...textStyles, id }]);
     setElementPositions((previous) => ({
       ...previous,
       [id]: { left: 330, top: 220, width: element.type === 'text' ? 220 : 100, height: element.type === 'text' ? 70 : 100 }
     }));
     setSelectedElement(id);
+  };
+
+  const updateSelectedTextStyle = (updates) => {
+    if (!selectedElement) return;
+    setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, ...updates } : element));
   };
 
   const handleToolAction = (tool) => {
@@ -449,9 +461,9 @@ export default function MapEditor({ onBack }) {
             )}
             {activeTab === 'TEXT' && (
               <div className="space-y-3">
-                <button onClick={() => addElement({ type: 'text', label: 'Heading', content: 'เพิ่มหัวเรื่อง' })} className="w-full border-2 border-black bg-white p-3 text-left text-2xl font-black hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มหัวเรื่อง</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Subheading', content: 'เพิ่มหัวเรื่องย่อย' })} className="w-full border-2 border-black bg-white p-3 text-left text-lg font-bold hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มหัวเรื่องย่อย</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Body', content: 'เพิ่มข้อความในสไตล์ของคุณ' })} className="w-full border-2 border-black bg-white p-3 text-left text-sm hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มข้อความ</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Heading', content: 'เพิ่มหัวเรื่อง', fontSize: 32, fontWeight: 900 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '32px', fontWeight: 900 }}>เพิ่มหัวเรื่อง</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Subheading', content: 'เพิ่มหัวเรื่องย่อย', fontSize: 22, fontWeight: 700 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '22px', fontWeight: 700 }}>เพิ่มหัวเรื่องย่อย</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Body', content: 'เพิ่มข้อความในสไตล์ของคุณ', fontSize: 16, fontWeight: 400 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '16px', fontWeight: 400 }}>เพิ่มข้อความ</button>
               </div>
             )}
             {activeTab === 'UPLOADS' && (
@@ -505,10 +517,39 @@ export default function MapEditor({ onBack }) {
               {elements.map((element) => {
                 const position = elementPositions[element.id];
                 const isSelected = selectedElement === element.id;
+                const isEditingText = editingTextId === element.id && element.type === 'text';
+
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)}>
-                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : <span className={`${element.type === 'text' ? 'text-xl font-black px-2 text-center' : 'text-5xl'} filter drop-shadow-md`}>{element.content}</span>}
-                    {isSelected && <>
+                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)} onDoubleClick={(event) => {
+                    if (element.type === 'text') {
+                      event.stopPropagation();
+                      setSelectedElement(element.id);
+                      setEditingTextId(element.id);
+                    }
+                  }}>
+                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : (
+                      isEditingText ? (
+                        <textarea
+                          autoFocus
+                          value={element.content}
+                          onChange={(event) => setElements((previous) => previous.map((item) => item.id === element.id ? { ...item, content: event.target.value } : item))}
+                          onBlur={() => setEditingTextId(null)}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          className="w-full h-full bg-transparent border-none outline-none resize-none p-2 text-center"
+                          style={{
+                            fontSize: `${element.fontSize ?? 28}px`,
+                            fontWeight: element.fontWeight ?? 900,
+                            lineHeight: 1.2,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word'
+                          }}
+                        />
+                      ) : (
+                        <span className="filter drop-shadow-md px-2 text-center" style={{ fontSize: `${element.fontSize ?? 28}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{element.content}</span>
+                      )
+                    )}
+                    {isSelected && !isEditingText && <>
                       <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
                       <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500"></div>
                       <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
@@ -545,7 +586,18 @@ export default function MapEditor({ onBack }) {
               {selectedData.type === 'text' && (
                 <div>
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">TEXT</label>
-                  <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
+                  <div className="space-y-3">
+                    <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
+                    <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Font Size</label>
+                        <input type="number" min="8" max="120" value={selectedData.fontSize ?? 28} onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(120, Number(event.target.value) || 8)) })} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
+                      </div>
+                      <button type="button" onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight ?? 900) > 400 ? 400 : 900 })} className={`px-3 py-2 border-2 border-black rounded font-black text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedData.fontWeight && selectedData.fontWeight > 400 ? 'bg-gray-900 text-white' : 'bg-yellow-200 text-black'}`}>
+                        {selectedData.fontWeight && selectedData.fontWeight > 400 ? 'Normal' : 'Bold'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
