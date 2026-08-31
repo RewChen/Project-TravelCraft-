@@ -498,6 +498,20 @@ export const AppProvider = ({ children }) => {
 
   // Admin Dashboard States & Persistence
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    try {
+      return sessionStorage.getItem('pocket_odyssey_isAdmin') === 'true' || localStorage.getItem('pocket_odyssey_isAdmin') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
+    name: 'Admin_01',
+    email: 'admin@odyssey.net',
+    role: 'SUPERUSER',
+    badge: 'A1',
+    clearanceLevel: 5
+  }));
   const [baseMaps, setBaseMaps] = useState(() => loadStored('adminBaseMaps', initialBaseMaps));
   const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
   const [reportedLocations, setReportedLocations] = useState(() => loadStored('adminReports', initialReportedLocations));
@@ -743,6 +757,69 @@ export const AppProvider = ({ children }) => {
     showAdminToast('Global Map Settings updated successfully!', 'success');
   };
 
+  const adminLogin = async (adminId, password) => {
+    const cleanId = (adminId || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    // 1. Master & Demo credentials check
+    const isValidMaster =
+      (cleanId === 'admin_01' || cleanId === 'admin' || cleanId === 'admin@odyssey.net' || cleanId === 'system lord') &&
+      (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026' || cleanPass === '123456');
+
+    if (isValidMaster) {
+      setIsAdminLoggedIn(true);
+      try {
+        sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
+        localStorage.setItem('pocket_odyssey_isAdmin', 'true');
+      } catch (err) {
+        console.warn('Storage error:', err);
+      }
+      showAdminToast('🔑 Clearance Verified: Welcome, System Lord!', 'success');
+      return { success: true };
+    }
+
+    // 2. Also check Supabase admins table
+    try {
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('*')
+        .or(`email.eq.${cleanId},username.eq.${cleanId}`)
+        .single();
+
+      if (adminData && (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026')) {
+        setIsAdminLoggedIn(true);
+        setAdminUser({
+          name: adminData.username || 'Admin_01',
+          email: adminData.email,
+          role: 'SUPERUSER',
+          badge: 'A1',
+          clearanceLevel: 5
+        });
+        sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
+        localStorage.setItem('pocket_odyssey_isAdmin', 'true');
+        showAdminToast(`🔑 Clearance Verified: ${adminData.username}`, 'success');
+        return { success: true };
+      }
+    } catch (e) {
+      console.warn('Supabase admin check fallback:', e);
+    }
+
+    // Invalid credentials
+    showAdminToast('⛔ Access Denied: Invalid Clearance Key', 'error');
+    return { success: false, error: 'Invalid Admin Identifier or Security Clearance Code.' };
+  };
+
+  const adminLogout = () => {
+    setIsAdminLoggedIn(false);
+    try {
+      sessionStorage.removeItem('pocket_odyssey_isAdmin');
+      localStorage.removeItem('pocket_odyssey_isAdmin');
+    } catch (e) {
+      console.warn(e);
+    }
+    showAdminToast('🔒 Command Center Session Terminated.', 'info');
+  };
+
   const login = (e) => {
     if (e) e.preventDefault();
     setIsLoggedIn(true);
@@ -804,6 +881,11 @@ export const AppProvider = ({ children }) => {
         // Admin exports
         adminActiveTab,
         setAdminActiveTab,
+        isAdminLoggedIn,
+        setIsAdminLoggedIn,
+        adminUser,
+        adminLogin,
+        adminLogout,
         baseMaps,
         setBaseMaps,
         trainers,

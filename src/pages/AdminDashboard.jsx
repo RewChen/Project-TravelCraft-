@@ -9,14 +9,21 @@ import ReportedLocationsTab from '../components/admin/tabs/ReportedLocationsTab'
 import NewMissionModal from '../components/admin/modals/NewMissionModal';
 import DeployUpdateModal from '../components/admin/modals/DeployUpdateModal';
 import AddBaseMapModal from '../components/admin/modals/AddBaseMapModal';
+import AdminAuthGate from '../components/admin/AdminAuthGate';
 import { Sparkles, AlertCircle, CheckCircle2, X } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { adminActiveTab, adminToast } = useApp();
+  const { adminActiveTab, adminToast, isAdminLoggedIn } = useApp();
 
   const [isNewMissionModalOpen, setIsNewMissionModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [isAddBaseMapModalOpen, setIsAddBaseMapModalOpen] = useState(false);
+
+  // Require Admin Authentication before accessing Command Center
+  if (!isAdminLoggedIn) {
+    return <AdminAuthGate />;
+  }
 
   return (
     <div className="min-h-screen bg-[#e8ecef] text-gray-900 font-mono antialiased flex flex-col md:flex-row relative selection:bg-red-200">
