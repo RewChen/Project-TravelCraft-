@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function MapEditor({ onBack }) {
-  const { publishMapToCommunity } = useApp();
+  const { publishMapToCommunity, editorSetup } = useApp();
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
   const [zoom, setZoom] = useState(100);
@@ -26,7 +26,11 @@ export default function MapEditor({ onBack }) {
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
-  const [mapTitle, setMapTitle] = useState('Untitled Map');
+  const [mapTitle, setMapTitle] = useState(() => editorSetup?.title || 'Untitled Map');
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [publishDescription, setPublishDescription] = useState(() => editorSetup?.description || '');
+  const [publishTags, setPublishTags] = useState(() => editorSetup?.tags?.join(', ') || '');
+  const [publishPrivacy, setPublishPrivacy] = useState(() => editorSetup?.privacy || 'public');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
@@ -230,12 +234,29 @@ export default function MapEditor({ onBack }) {
       };
     });
 
-    publishMapToCommunity({
+    const mapData = {
       title: mapTitle.trim() || 'Untitled Map',
       region: `${activeTemplate.label} Realm`,
-      description: `A custom map created with the ${activeTemplate.label} template.`,
+      description: publishDescription.trim() || `A custom map created with the ${activeTemplate.label} template.`,
+      hours: editorSetup?.hours || '24/7',
+      fee: editorSetup?.fee || 'Free Exploration',
+      bestTime: editorSetup?.bestTime || 'Anytime',
+      travel: editorSetup?.travel || 'Community Gateway',
+      logs: editorSetup?.logs || [],
+      tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      privacy: publishPrivacy,
       pins: publishedPins
-    });
+    };
+
+    if (publishPrivacy === 'private') {
+      localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
+      setSaveStatus('Private draft saved');
+      setShowPublishModal(false);
+      return;
+    }
+
+    publishMapToCommunity(mapData);
+    setShowPublishModal(false);
   };
 
   const shareUrl = window.location.href;
@@ -420,7 +441,7 @@ export default function MapEditor({ onBack }) {
           <button onClick={saveDraft} className="bg-[#4895ef] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase">
             SAVE <span className="hidden sm:inline">DRAFT</span>
           </button>
-          <button onClick={publishMap} className="bg-[#cc0000] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
+          <button onClick={() => setShowPublishModal(true)} className="bg-[#cc0000] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
             <Compass className="w-3 h-3 hidden sm:block" /> PUBLISH
           </button>
           <button onClick={() => setShowShareModal(true)} title="Share map" className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
@@ -450,6 +471,46 @@ export default function MapEditor({ onBack }) {
             <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? 'Copied' : 'Copy'}</button>
           </div>
         </div>
+      </div>}
+
+      {showPublishModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowPublishModal(false)}>
+        <form onSubmit={(event) => { event.preventDefault(); publishMap(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+          <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
+            <h2 className="font-black uppercase tracking-wide">Publish Map</h2>
+            <button type="button" onClick={() => setShowPublishModal(false)} title="Close" className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
+          </div>
+          <div className="p-5 space-y-4">
+            <div>
+              <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">Map Title</label>
+              <input id="publish-title" value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+            </div>
+            <div>
+              <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">Description</label>
+              <textarea id="publish-description" rows="3" value={publishDescription} onChange={(event) => setPublishDescription(event.target.value)} placeholder="Tell travelers what makes this map special" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+            </div>
+            <div>
+              <label htmlFor="publish-tags" className="block text-xs font-black uppercase mb-1.5">Tags</label>
+              <input id="publish-tags" value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder="landmark, scenic, adventure" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+              <p className="mt-1 text-[10px] text-gray-500 font-bold">Separate tags with commas.</p>
+            </div>
+            <fieldset>
+              <legend className="block text-xs font-black uppercase mb-2">Privacy</legend>
+              <div className="grid grid-cols-3 gap-2">
+                {[['public', 'Public', 'Visible in Community'], ['unlisted', 'Unlisted', 'Only with a link'], ['private', 'Private', 'Keep as a draft']].map(([value, label, description]) => (
+                  <label key={value} className={`border-2 border-black rounded p-2 cursor-pointer ${publishPrivacy === value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                    <input type="radio" name="privacy" value={value} checked={publishPrivacy === value} onChange={(event) => setPublishPrivacy(event.target.value)} className="sr-only" />
+                    <span className="block text-xs font-black uppercase">{label}</span>
+                    <span className="block mt-1 text-[9px] leading-tight font-bold text-gray-600">{description}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
+              <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">Cancel</button>
+              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">Publish Map</button>
+            </div>
+          </div>
+        </form>
       </div>}
 
       {/* EDITOR WORKSPACE */}

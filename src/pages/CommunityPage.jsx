@@ -15,7 +15,7 @@ export default function CommunityPage() {
     { id: 'urban', label: 'URBAN', icon: Building2 }
   ];
 
-  const filteredMaps = communityMaps.filter((item) => {
+  const filteredMaps = communityMaps.filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
     const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           item.discoveredBy.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
