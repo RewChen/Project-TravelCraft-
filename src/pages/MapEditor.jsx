@@ -4,7 +4,7 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw
 } from 'lucide-react';
 
 export default function MapEditor({ onBack }) {
@@ -26,6 +26,7 @@ export default function MapEditor({ onBack }) {
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
+  const [drawingColor, setDrawingColor] = useState('#111111');
   const [mapTitle, setMapTitle] = useState(() => editorSetup?.title || 'Untitled Map');
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishDescription, setPublishDescription] = useState(() => editorSetup?.description || '');
@@ -196,6 +197,13 @@ export default function MapEditor({ onBack }) {
     setSelectedElement(duplicateId);
   };
 
+  const rotateSelectedElement = () => {
+    if (!selectedElement) return;
+    setElements((previous) => previous.map((element) => element.id === selectedElement
+      ? { ...element, rotation: ((element.rotation ?? 0) + 15) % 360 }
+      : element));
+  };
+
   const deleteSelectedElement = () => {
     if (!selectedElement) return;
     pushHistory();
@@ -309,13 +317,15 @@ export default function MapEditor({ onBack }) {
     pushHistory();
     nextElementId.current += 1;
     const id = `${element.type}-${nextElementId.current}`;
+    const colorValue = element.color ?? drawingColor ?? '#111111';
     const textStyles = element.type === 'text'
       ? {
           fontSize: element.fontSize ?? 28,
-          fontWeight: element.fontWeight ?? 900
+          fontWeight: element.fontWeight ?? 900,
+          color: colorValue
         }
-      : {};
-    setElements((previous) => [...previous, { ...element, ...textStyles, id }]);
+      : { color: colorValue };
+    setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
     setElementPositions((previous) => ({
       ...previous,
       [id]: { left: 330, top: 220, width: element.type === 'text' ? 220 : 100, height: element.type === 'text' ? 70 : 100 }
@@ -330,6 +340,7 @@ export default function MapEditor({ onBack }) {
 
   const handleToolAction = (tool) => {
     if (tool === 'eraser') {
+      setActiveTool('eraser');
       if (!selectedElement) return;
       pushHistory();
       setElements((previous) => previous.filter((element) => element.id !== selectedElement));
@@ -346,14 +357,18 @@ export default function MapEditor({ onBack }) {
       return;
     }
     const toolElements = {
-      pen: { type: 'shape', shape: 'line', label: 'Draw Line', content: '' },
-      highlight: { type: 'shape', shape: 'highlight', label: 'Highlight', content: '' },
-      rectangle: { type: 'shape', shape: 'rectangle', label: 'Rectangle', content: '' },
-      circle: { type: 'shape', shape: 'circle', label: 'Circle', content: '' },
-      grid: { type: 'shape', shape: 'grid', label: 'Grid', content: '' }
+      pen: { type: 'shape', shape: 'line', label: 'Draw Line', content: '', color: drawingColor },
+      highlight: { type: 'shape', shape: 'highlight', label: 'Highlight', content: '', color: drawingColor },
+      rectangle: { type: 'shape', shape: 'rectangle', label: 'Rectangle', content: '', color: drawingColor },
+      circle: { type: 'shape', shape: 'circle', label: 'Circle', content: '', color: drawingColor },
+      grid: { type: 'shape', shape: 'grid', label: 'Grid', content: '', color: drawingColor }
     };
-    if (toolElements[tool]) addElement(toolElements[tool]);
-    setActiveTool('select');
+    if (toolElements[tool]) {
+      setActiveTool(tool);
+      addElement(toolElements[tool]);
+      return;
+    }
+    setActiveTool(tool);
   };
 
   const handleUpload = (event) => {
@@ -368,6 +383,43 @@ export default function MapEditor({ onBack }) {
   const selectedData = elements.find((element) => element.id === selectedElement);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
+  const selectionToolbarStyle = selectedPosition ? {
+    top: Math.max(10, selectedPosition.top - 50),
+    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2 - 72, 660))
+  } : {};
+  const getShapeStyle = (element) => {
+    const color = element.color ?? drawingColor ?? '#111111';
+
+    if (element.shape === 'line') {
+      return { borderTop: `4px solid ${color}`, background: 'transparent', borderColor: color };
+    }
+
+    if (element.shape === 'highlight') {
+      return {
+        backgroundColor: `${color}55`,
+        border: `2px solid ${color}`,
+        boxShadow: `inset 0 0 0 1px ${color}`
+      };
+    }
+
+    if (element.shape === 'rectangle') {
+      return { border: `4px solid ${color}`, background: 'transparent', borderColor: color };
+    }
+
+    if (element.shape === 'circle') {
+      return { border: `4px solid ${color}`, borderRadius: '9999px', background: 'transparent', borderColor: color };
+    }
+
+    if (element.shape === 'grid') {
+      return {
+        backgroundImage: `linear-gradient(90deg, transparent 9px, ${color} 10px), linear-gradient(transparent 9px, ${color} 10px)`,
+        backgroundSize: '10px 10px',
+        backgroundColor: 'transparent'
+      };
+    }
+
+    return { borderColor: color };
+  };
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
@@ -594,20 +646,31 @@ export default function MapEditor({ onBack }) {
           style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}
           onClick={() => setSelectedElement(null)}
         >
-          <div className="absolute top-4 left-4 z-20 bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
-            {[
-              ['select', MousePointer2, 'Select and move'],
-              ['pen', Pencil, 'Draw line'],
-              ['highlight', Minus, 'Add highlight'],
-              ['rectangle', Square, 'Add rectangle'],
-              ['circle', Circle, 'Add circle'],
-              ['grid', Grid3X3, 'Add grid'],
-              ['eraser', Eraser, 'Delete selected']
-            ].map(([tool, Icon, label]) => (
-              <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={label} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-                <Icon className="w-5 h-5" />
-              </button>
-            ))}
+          <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
+                {[
+                  ['select', MousePointer2, 'Select and move'],
+                  ['pen', Pencil, 'Draw line'],
+                  ['highlight', Minus, 'Add highlight'],
+                  ['rectangle', Square, 'Add rectangle'],
+                  ['circle', Circle, 'Add circle'],
+                  ['grid', Grid3X3, 'Add grid'],
+                  ['eraser', Eraser, 'Delete selected']
+                ].map(([tool, Icon, label]) => (
+                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={label} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
+                    <Icon className="w-5 h-5" />
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
+                <span className="text-[8px] font-black uppercase text-gray-700">Color</span>
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-black overflow-hidden bg-white">
+                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title="Choose drawing color" />
+                </span>
+              </label>
+            </div>
           </div>
           {/* Zoom Control */}
           <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
@@ -626,6 +689,23 @@ export default function MapEditor({ onBack }) {
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
                 {activeTemplate.label}
               </div>
+
+              {selectedElement && selectedData && selectedPosition && (
+                <div className="absolute z-40 flex items-center gap-1 rounded-full border-2 border-black bg-white px-1.5 py-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
+                  <button type="button" title="Move" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
+                    <MousePointer2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button type="button" title={selectedData.locked ? 'Unlock' : 'Lock'} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
+                    {selectedData.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                  </button>
+                  <button type="button" title="Duplicate" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button type="button" title="Delete" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {contextMenuElement && contextMenuPosition && (
                 <div className="absolute z-30 w-56 rounded-xl border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={quickActionMenuStyle}>
@@ -659,7 +739,7 @@ export default function MapEditor({ onBack }) {
                 const isEditingText = editingTextId === element.id && element.type === 'text';
 
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined, opacity: 1 }} onContextMenu={(event) => {
+                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-violet-500 bg-transparent' : 'hover:outline hover:outline-2 hover:outline-blue-400 bg-transparent'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}00` : 'transparent', opacity: 1, transform: `rotate(${element.rotation ?? 0}deg)` }} onContextMenu={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
                     setSelectedElement(element.id);
@@ -677,7 +757,7 @@ export default function MapEditor({ onBack }) {
                       setEditingTextId(element.id);
                     }
                   }}>
-                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : (
+                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
                       isEditingText ? (
                         <textarea
                           autoFocus
@@ -692,18 +772,22 @@ export default function MapEditor({ onBack }) {
                             lineHeight: 1.2,
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            overflowWrap: 'break-word'
+                            overflowWrap: 'break-word',
+                            color: element.color ?? drawingColor ?? '#111111'
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full" style={{ fontSize: `${Math.max(12, Math.min(120, Math.round(Math.min(position.width, position.height) * 0.7)))}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{element.content}</span>
+                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full" style={{ fontSize: `${Math.max(12, Math.min(120, Math.round(Math.min(position.width, position.height) * 0.7)))}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
                       )
                     )}
                     {isSelected && !isEditingText && <>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nwse-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-red-500 cursor-nwse-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nwse-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize"></div>
+                      <button type="button" title="Rotate selected element" onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-7 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50">
+                        <RotateCw className="w-3 h-3 text-violet-600" />
+                      </button>
                     </>}
                   </div>
                 );
