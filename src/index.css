@@ -1,7 +1,53 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   background-color: #e8ecef;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.dark body {
+  background-color: #020817;
+  color: #e2e8f0;
+}
+
+@layer utilities {
+  .dark .text-gray-600,
+  .dark .text-gray-700,
+  .dark .text-gray-800,
+  .dark .text-gray-900,
+  .dark .text-gray-500,
+  .dark .text-slate-600,
+  .dark .text-slate-500,
+  .dark .text-slate-700,
+  .dark .text-slate-800,
+  .dark .text-black,
+  .dark .text-slate-900 {
+    color: #e2e8f0;
+  }
+
+  .dark .text-gray-300,
+  .dark .text-slate-300,
+  .dark .text-slate-400 {
+    color: #f8fafc;
+  }
+
+  .dark .bg-white {
+    background-color: #0f172a;
+  }
+
+  .dark .bg-gray-100,
+  .dark .bg-gray-200,
+  .dark .bg-slate-100 {
+    background-color: #1e293b;
+  }
+
+  .dark .border-black {
+    border-color: rgba(148, 163, 184, 0.9);
+  }
 }

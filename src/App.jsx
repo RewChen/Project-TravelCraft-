@@ -12,7 +12,8 @@ import MapEditor from './pages/MapEditor';
 import AdminDashboard from './pages/AdminDashboard';
 
 function AppContent() {
-  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo } = useApp();
+  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo, themeMode } = useApp();
+  const isDarkMode = themeMode === 'dark';
 
   // Show loading screen while Supabase checks session
   if (isAuthLoading) {
@@ -32,11 +33,19 @@ function AppContent() {
   }
 
   if (currentPage === 'auth') {
-    return <AuthPage />;
+    return (
+      <div className={`${isDarkMode ? 'dark' : ''} min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} font-mono antialiased transition-colors duration-200`}>
+        <AuthPage />
+      </div>
+    );
   }
 
   if (currentPage === 'admin') {
-    return <AdminDashboard />;
+    return (
+      <div className={`${isDarkMode ? 'dark' : ''} min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} font-mono antialiased transition-colors duration-200`}>
+        <AdminDashboard />
+      </div>
+    );
   }
 
   if (currentPage === 'editor') {
@@ -44,8 +53,8 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#e8ecef] text-gray-900 font-mono antialiased relative selection:bg-red-200 flex flex-col justify-between">
-      <div>
+    <div className={`${isDarkMode ? 'dark' : ''} min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} font-mono antialiased relative selection:bg-red-200 flex flex-col justify-between transition-colors duration-200`}>
+      <div className={isDarkMode ? 'bg-slate-950' : 'bg-[#e8ecef]'}>
         <div className="max-w-6xl mx-auto px-4 pt-4">
           <Header />
         </div>

@@ -393,6 +393,14 @@ export const AppProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState('home');
   const [editorSetup, setEditorSetup] = useState(null);
   const [authMode, setAuthMode] = useState('login');
+  const [themeMode, setThemeMode] = useState(() => {
+    try {
+      const storedTheme = localStorage.getItem('pocket_odyssey_themeMode');
+      return storedTheme || 'light';
+    } catch {
+      return 'light';
+    }
+  });
   
   // LocalStorage Helper Read
   const loadStored = (key, fallback) => {
@@ -595,10 +603,20 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
       localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
       localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
+      localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', themeMode === 'dark');
+    document.documentElement.dataset.theme = themeMode;
+  }, [themeMode]);
+
+  const toggleTheme = () => {
+    setThemeMode((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   // Selected Location for Details Page
   const [selectedLocation, setSelectedLocation] = useState({
@@ -991,6 +1009,9 @@ export const AppProvider = ({ children }) => {
         setEditorSetup,
         authMode,
         setAuthMode,
+        themeMode,
+        setThemeMode,
+        toggleTheme,
         isLoggedIn,
         setIsLoggedIn,
         userProfile,

@@ -13,7 +13,8 @@ import AuthPage from './AuthPage';
 import { Sparkles, AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode } = useApp();
+  const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode, themeMode } = useApp();
+  const isDarkMode = themeMode === 'dark';
 
   const [isNewMissionModalOpen, setIsNewMissionModalOpen] = useState(false);
   const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
@@ -27,22 +28,22 @@ export default function AdminDashboard() {
   // 2. If logged in as regular player without admin role
   if (!isAdminLoggedIn && userProfile?.role?.toLowerCase() !== 'admin') {
     return (
-      <div className="min-h-screen bg-[#1a1d20] flex flex-col items-center justify-center p-4 font-mono">
-        <div className="w-full max-w-md bg-[#e8ecef] border-4 border-black rounded-[28px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4">
+      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-[#1a1d20]'} flex flex-col items-center justify-center p-4 font-mono`}>
+        <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#e8ecef] text-black'} border-4 border-black rounded-[28px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4`}>
           <div className="w-16 h-16 bg-red-100 border-4 border-black rounded-full mx-auto flex items-center justify-center text-3xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             🔒
           </div>
 
-          <h2 className="text-xl font-black uppercase text-black">
+          <h2 className={`text-xl font-black uppercase ${isDarkMode ? 'text-slate-100' : 'text-black'}`}>
             RESTRICTED ACCESS
           </h2>
 
-          <div className="bg-red-50 border-2 border-red-400 rounded-xl p-3 text-left space-y-1">
-            <div className="text-[11px] font-black uppercase text-red-900 flex items-center gap-1.5">
+          <div className={`${isDarkMode ? 'bg-slate-800 border-red-500' : 'bg-red-50 border-red-400'} border-2 rounded-xl p-3 text-left space-y-1`}>
+            <div className={`text-[11px] font-black uppercase ${isDarkMode ? 'text-red-300' : 'text-red-900'} flex items-center gap-1.5`}>
               <ShieldAlert className="w-4 h-4 text-red-600" />
               <span>Admin Clearance Required</span>
             </div>
-            <p className="text-[10px] text-red-800 font-sans font-bold leading-relaxed">
+            <p className={`text-[10px] ${isDarkMode ? 'text-red-200' : 'text-red-800'} font-sans font-bold leading-relaxed`}>
               Your account <span className="font-mono font-black">"{userProfile?.name}"</span> ({userProfile?.role || 'Player'}) does not have system administration privileges.
             </p>
           </div>
@@ -75,7 +76,7 @@ export default function AdminDashboard() {
 
   // 3. Admin is logged in -> Render Command Center directly!
   return (
-    <div className="min-h-screen bg-[#e8ecef] text-gray-900 font-mono antialiased flex flex-col md:flex-row relative selection:bg-red-200">
+    <div className={`${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} min-h-screen font-mono antialiased flex flex-col md:flex-row relative selection:bg-red-200`}>
       {/* Left Sidebar */}
       <AdminSidebar onOpenNewMission={() => setIsNewMissionModalOpen(true)} />
 
