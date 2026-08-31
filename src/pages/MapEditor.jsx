@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { useApp } from '../context/AppContext';
 import { 
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
-  MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3
+  MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
+  Share2, MessageCircle, Smartphone, Copy, X
 } from 'lucide-react';
 
 export default function MapEditor({ onBack }) {
+  const { publishMapToCommunity } = useApp();
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
   const [zoom, setZoom] = useState(100);
@@ -23,8 +26,18 @@ export default function MapEditor({ onBack }) {
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
+  const [mapTitle, setMapTitle] = useState('Untitled Map');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [editingTextId, setEditingTextId] = useState(null);
+  const [contextMenuElementId, setContextMenuElementId] = useState(null);
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
+
+  const pushHistory = () => {
+    setHistory((previous) => [...previous, { elements, elementPositions }]);
+    setFuture([]);
+  };
 
   useEffect(() => {
     if (!dragging) return undefined;
@@ -40,9 +53,9 @@ export default function MapEditor({ onBack }) {
         const maxTop = 600 - element.height;
 
         if (dragging.mode === 'resize') {
-          const width = Math.max(40, Math.min(800 - element.left, dragging.startWidth + deltaX));
-          const height = Math.max(40, Math.min(600 - element.top, dragging.startHeight + deltaY));
-          return { ...previous, [dragging.id]: { ...element, width, height } };
+          const nextWidth = Math.max(40, Math.min(800 - element.left, dragging.startWidth + deltaX));
+          const nextHeight = Math.max(40, Math.min(600 - element.top, dragging.startHeight + deltaY));
+          return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight } };
         }
 
         return {
@@ -67,6 +80,26 @@ export default function MapEditor({ onBack }) {
     };
   }, [dragging, zoom]);
 
+  useEffect(() => {
+    const handleDeleteKey = (event) => {
+      if (!selectedElement || (event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement)) return;
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+      event.preventDefault();
+      setHistory((previous) => [...previous, { elements, elementPositions }]);
+      setFuture([]);
+      setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+      setElementPositions((previous) => {
+        const next = { ...previous };
+        delete next[selectedElement];
+        return next;
+      });
+      setSelectedElement(null);
+    };
+
+    window.addEventListener('keydown', handleDeleteKey);
+    return () => window.removeEventListener('keydown', handleDeleteKey);
+  }, [selectedElement, elements, elementPositions]);
+
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
     const position = elementPositions[elementId];
@@ -82,11 +115,6 @@ export default function MapEditor({ onBack }) {
       startHeight: position.height,
       mode
     });
-  };
-
-  const pushHistory = () => {
-    setHistory((previous) => [...previous, { elements, elementPositions }]);
-    setFuture([]);
   };
 
   const undo = () => {
@@ -143,21 +171,126 @@ export default function MapEditor({ onBack }) {
     });
   };
 
+  const duplicateSelectedElement = () => {
+    if (!selectedElement) return;
+    const source = elements.find((element) => element.id === selectedElement);
+    if (!source) return;
+
+    const duplicateId = `${source.type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const position = elementPositions[selectedElement] ?? { left: 0, top: 0, width: 100, height: 100 };
+
+    setElements((previous) => [...previous, { ...source, id: duplicateId, label: `${source.label} Copy` }]);
+    setElementPositions((previous) => ({
+      ...previous,
+      [duplicateId]: {
+        left: Math.min(position.left + 24, 760),
+        top: Math.min(position.top + 24, 540),
+        width: position.width,
+        height: position.height
+      }
+    }));
+    setSelectedElement(duplicateId);
+  };
+
+  const deleteSelectedElement = () => {
+    if (!selectedElement) return;
+    pushHistory();
+    setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+    setElementPositions((previous) => {
+      const next = { ...previous };
+      delete next[selectedElement];
+      return next;
+    });
+    setSelectedElement(null);
+  };
+
+  const toggleLockSelectedElement = () => {
+    if (!selectedElement) return;
+    setElements((previous) => previous.map((element) =>
+      element.id === selectedElement ? { ...element, locked: !element.locked } : element
+    ));
+  };
+
   const saveDraft = () => {
     localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate }));
     setSaveStatus('Draft saved');
   };
 
   const publishMap = () => {
-    saveDraft();
-    setSaveStatus('Map published');
+    const publishedPins = elements.map((element) => {
+      const position = elementPositions[element.id];
+      return {
+        id: `editor-${element.id}`,
+        title: element.label,
+        top: `${Math.round(((position.top + position.height / 2) / 600) * 100)}%`,
+        left: `${Math.round(((position.left + position.width / 2) / 800) * 100)}%`,
+        icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
+        category: 'landmarks',
+        lore: element.type === 'text' ? element.content : `${element.label} added to this custom map.`
+      };
+    });
+
+    publishMapToCommunity({
+      title: mapTitle.trim() || 'Untitled Map',
+      region: `${activeTemplate.label} Realm`,
+      description: `A custom map created with the ${activeTemplate.label} template.`,
+      pins: publishedPins
+    });
+  };
+
+  const shareUrl = window.location.href;
+  const shareTitle = 'My Pocket Odyssey Map';
+  const openShareLink = (url) => {
+    const shareWindow = window.open(url, '_blank');
+    if (!shareWindow) setSaveStatus('อนุญาต popup เพื่อเปิดช่องทางแชร์');
+  };
+  const copyShareLink = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const helper = document.createElement('textarea');
+        helper.value = shareUrl;
+        helper.setAttribute('readonly', '');
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        helper.remove();
+      }
+      setCopied(true);
+      setSaveStatus('คัดลอกลิงก์แล้ว');
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setSaveStatus('คัดลอกไม่สำเร็จ กรุณาคัดลอกลิงก์ด้วยตัวเอง');
+    }
+  };
+  const nativeShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: shareTitle, text: 'Check out my travel map!', url: shareUrl });
+      } else {
+        await copyShareLink();
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        await copyShareLink();
+      }
+    }
   };
 
   const addElement = (element) => {
     pushHistory();
     nextElementId.current += 1;
     const id = `${element.type}-${nextElementId.current}`;
-    setElements((previous) => [...previous, { ...element, id }]);
+    const textStyles = element.type === 'text'
+      ? {
+          fontSize: element.fontSize ?? 28,
+          fontWeight: element.fontWeight ?? 900
+        }
+      : {};
+    setElements((previous) => [...previous, { ...element, ...textStyles, id }]);
     setElementPositions((previous) => ({
       ...previous,
       [id]: { left: 330, top: 220, width: element.type === 'text' ? 220 : 100, height: element.type === 'text' ? 70 : 100 }
@@ -165,11 +298,21 @@ export default function MapEditor({ onBack }) {
     setSelectedElement(id);
   };
 
+  const updateSelectedTextStyle = (updates) => {
+    if (!selectedElement) return;
+    setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, ...updates } : element));
+  };
+
   const handleToolAction = (tool) => {
     if (tool === 'eraser') {
       if (!selectedElement) return;
       pushHistory();
       setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+      setElementPositions((previous) => {
+        const next = { ...previous };
+        delete next[selectedElement];
+        return next;
+      });
       setSelectedElement(null);
       return;
     }
@@ -199,6 +342,12 @@ export default function MapEditor({ onBack }) {
 
   const selectedData = elements.find((element) => element.id === selectedElement);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
+  const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
+  const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
+  const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
+    top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
+    left: Math.max(20, Math.min(contextMenuPosition.left, 650))
+  } : {};
   const mapTemplates = [
     {
       id: 'tropical',
@@ -256,7 +405,8 @@ export default function MapEditor({ onBack }) {
           <div className="h-6 w-1 bg-black rounded-full mx-2 hidden sm:block"></div>
           <input 
             type="text" 
-            defaultValue="Untitled Map" 
+            value={mapTitle}
+            onChange={(event) => setMapTitle(event.target.value)}
             className="font-bold text-sm bg-transparent border-none focus:outline-none focus:bg-gray-100 px-2 py-1 rounded w-32 sm:w-auto"
           />
         </div>
@@ -273,9 +423,34 @@ export default function MapEditor({ onBack }) {
           <button onClick={publishMap} className="bg-[#cc0000] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
             <Compass className="w-3 h-3 hidden sm:block" /> PUBLISH
           </button>
+          <button onClick={() => setShowShareModal(true)} title="Share map" className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
+            <Share2 className="w-3 h-3" /> SHARE
+          </button>
         </div>
       </header>
       {saveStatus && <div className="absolute top-16 right-4 z-30 bg-emerald-100 border-2 border-black px-3 py-2 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{saveStatus}</div>}
+
+      {showShareModal && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
+        <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg shadow-2xl p-5" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-white/20 pb-3">
+            <h2 className="font-black text-lg">Share map</h2>
+            <button onClick={() => setShowShareModal(false)} title="Close" className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+          </div>
+          <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">Share</button>
+          <p className="text-center text-sm text-gray-300 mb-5">Share this map with your friends</p>
+          <div className="grid grid-cols-5 gap-3 mb-6">
+            <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title="Facebook" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">Facebook</span></button>
+            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="Messages" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">Messages</span></button>
+            <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="WhatsApp" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Smartphone className="w-6 h-6" /></span><span className="text-[10px]">WhatsApp</span></button>
+            <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title="X" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">X</span></button>
+            <button onClick={copyShareLink} title="Copy link" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span></button>
+          </div>
+          <div className="flex items-center gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
+            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
+            <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? 'Copied' : 'Copy'}</button>
+          </div>
+        </div>
+      </div>}
 
       {/* EDITOR WORKSPACE */}
       <div className="flex-1 flex overflow-hidden">
@@ -333,9 +508,9 @@ export default function MapEditor({ onBack }) {
             )}
             {activeTab === 'TEXT' && (
               <div className="space-y-3">
-                <button onClick={() => addElement({ type: 'text', label: 'Heading', content: 'เพิ่มหัวเรื่อง' })} className="w-full border-2 border-black bg-white p-3 text-left text-2xl font-black hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มหัวเรื่อง</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Subheading', content: 'เพิ่มหัวเรื่องย่อย' })} className="w-full border-2 border-black bg-white p-3 text-left text-lg font-bold hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มหัวเรื่องย่อย</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Body', content: 'เพิ่มข้อความในสไตล์ของคุณ' })} className="w-full border-2 border-black bg-white p-3 text-left text-sm hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">เพิ่มข้อความ</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Heading', content: 'เพิ่มหัวเรื่อง', fontSize: 32, fontWeight: 900 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '32px', fontWeight: 900 }}>เพิ่มหัวเรื่อง</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Subheading', content: 'เพิ่มหัวเรื่องย่อย', fontSize: 22, fontWeight: 700 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '22px', fontWeight: 700 }}>เพิ่มหัวเรื่องย่อย</button>
+                <button onClick={() => addElement({ type: 'text', label: 'Body', content: 'เพิ่มข้อความในสไตล์ของคุณ', fontSize: 16, fontWeight: 400 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '16px', fontWeight: 400 }}>เพิ่มข้อความ</button>
               </div>
             )}
             {activeTab === 'UPLOADS' && (
@@ -386,17 +561,84 @@ export default function MapEditor({ onBack }) {
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
                 {activeTemplate.label}
               </div>
+
+              {contextMenuElement && contextMenuPosition && (
+                <div className="absolute z-30 w-56 rounded-xl border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={quickActionMenuStyle}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[8px] font-black uppercase tracking-wide text-gray-500">Actions</span>
+                    <button onClick={() => setContextMenuElementId(null)} className="flex h-5 w-5 items-center justify-center rounded-full border border-black bg-gray-100 text-[10px] font-black">×</button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⧉</span>Duplicate</span>
+                    </button>
+                    <button onClick={() => { moveLayer('front'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇡</span>Bring to front</span>
+                    </button>
+                    <button onClick={() => { moveLayer('back'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇣</span>Send to back</span>
+                    </button>
+                    <button onClick={() => { toggleLockSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">{selectedData?.locked ? '🔓' : '🔒'}</span>{selectedData?.locked ? 'Unlock' : 'Lock'}</span>
+                    </button>
+                    <button onClick={() => { deleteSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-red-50 text-red-600">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">🗑</span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {elements.map((element) => {
                 const position = elementPositions[element.id];
                 const isSelected = selectedElement === element.id;
+                const isEditingText = editingTextId === element.id && element.type === 'text';
+
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)}>
-                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : <span className={`${element.type === 'text' ? 'text-xl font-black px-2 text-center' : 'text-5xl'} filter drop-shadow-md`}>{element.content}</span>}
-                    {isSelected && <>
-                      <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div onPointerDown={(event) => startDragging(element.id, event, 'resize')} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-red-500 cursor-nwse-resize"></div>
+                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined, opacity: 1 }} onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setSelectedElement(element.id);
+                    setContextMenuElementId(element.id);
+                  }} onPointerDown={(event) => {
+                    if (!element.locked) startDragging(element.id, event);
+                    else {
+                      event.stopPropagation();
+                      setSelectedElement(element.id);
+                    }
+                  }} onDoubleClick={(event) => {
+                    if (element.type === 'text') {
+                      event.stopPropagation();
+                      setSelectedElement(element.id);
+                      setEditingTextId(element.id);
+                    }
+                  }}>
+                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className={`w-full h-full ${element.shape === 'line' ? 'border-t-4 border-black mt-1/2' : ''} ${element.shape === 'highlight' ? 'h-5 bg-yellow-300/70 border-2 border-yellow-500' : ''} ${element.shape === 'rectangle' ? 'border-4 border-red-500' : ''} ${element.shape === 'circle' ? 'rounded-full border-4 border-blue-600' : ''} ${element.shape === 'grid' ? 'bg-[linear-gradient(90deg,transparent_9px,#2563eb_10px),linear-gradient(transparent_9px,#2563eb_10px)] bg-[size:10px_10px]' : ''} pointer-events-none`} /> : (
+                      isEditingText ? (
+                        <textarea
+                          autoFocus
+                          value={element.content}
+                          onChange={(event) => setElements((previous) => previous.map((item) => item.id === element.id ? { ...item, content: event.target.value } : item))}
+                          onBlur={() => setEditingTextId(null)}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          className="w-full h-full bg-transparent border-none outline-none resize-none p-2 text-center"
+                          style={{
+                            fontSize: `${element.fontSize ?? 28}px`,
+                            fontWeight: element.fontWeight ?? 900,
+                            lineHeight: 1.2,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word'
+                          }}
+                        />
+                      ) : (
+                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full" style={{ fontSize: `${Math.max(12, Math.min(120, Math.round(Math.min(position.width, position.height) * 0.7)))}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{element.content}</span>
+                      )
+                    )}
+                    {isSelected && !isEditingText && <>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nwse-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-red-500 cursor-nwse-resize"></div>
                     </>}
                   </div>
                 );
@@ -429,7 +671,18 @@ export default function MapEditor({ onBack }) {
               {selectedData.type === 'text' && (
                 <div>
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">TEXT</label>
-                  <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
+                  <div className="space-y-3">
+                    <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
+                    <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                      <div>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Font Size</label>
+                        <input type="number" min="8" max="120" value={selectedData.fontSize ?? 28} onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(120, Number(event.target.value) || 8)) })} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
+                      </div>
+                      <button type="button" onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight ?? 900) > 400 ? 400 : 900 })} className={`px-3 py-2 border-2 border-black rounded font-black text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedData.fontWeight && selectedData.fontWeight > 400 ? 'bg-gray-900 text-white' : 'bg-yellow-200 text-black'}`}>
+                        {selectedData.fontWeight && selectedData.fontWeight > 400 ? 'Normal' : 'Bold'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -479,7 +732,7 @@ export default function MapEditor({ onBack }) {
 
               {/* Delete Button */}
               <div className="pt-4 border-t-2 border-black border-dashed">
-                <button onClick={() => { pushHistory(); setElements((previous) => previous.filter((element) => element.id !== selectedElement)); setSelectedElement(null); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                <button onClick={deleteSelectedElement} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                   <Trash2 className="w-4 h-4" /> DELETE ELEMENT
                 </button>
               </div>

@@ -446,7 +446,7 @@ export const AppProvider = ({ children }) => {
         visitors: 'Community Discoveries',
         rarity: 'Epic'
       },
-      pins: mapPins
+      pins: newCommunityMap.pins || mapPins
     };
 
     setCommunityMaps((prev) => [publishedItem, ...prev]);
@@ -454,8 +454,14 @@ export const AppProvider = ({ children }) => {
     navigateTo('community');
   };
 
-  // Login now handled in LoginForm via Supabase Auth
-  const login = () => {
+  const deleteCommunityMap = (mapId) => {
+    setCommunityMaps((previous) => previous.filter((map) => (
+      !(map.id === mapId && map.discoveredBy === userProfile?.name)
+    )));
+  };
+
+  const login = (e) => {
+    if (e) e.preventDefault();
     setIsLoggedIn(true);
     setCurrentPage('home');
   };
@@ -501,6 +507,7 @@ export const AppProvider = ({ children }) => {
         setActiveCommunityMap,
         trackMapOnWorldMap,
         publishMapToCommunity,
+        deleteCommunityMap,
         addCustomPin,
         deleteCustomPin,
         favorites,
