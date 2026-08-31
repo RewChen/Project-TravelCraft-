@@ -1,3 +1,5 @@
+
+
 import { useState } from 'react';
 import { Map, LogOut, Check, Sparkles, User as UserIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
