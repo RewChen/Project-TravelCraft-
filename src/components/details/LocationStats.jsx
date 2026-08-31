@@ -37,10 +37,6 @@ export default function LocationStats() {
       </h3>
       
       <div className="mb-4">
-        <div className="flex justify-between text-xs font-bold mb-1">
-          <span>Popularity Level</span>
-          <span className="text-red-600">Lv. {selectedLocation.popularity || 99}</span>
-        </div>
         <div className="h-3 w-full border-2 border-black rounded-full bg-white overflow-hidden">
           <div 
             className="h-full bg-red-600 border-r-2 border-black transition-all duration-500" 
