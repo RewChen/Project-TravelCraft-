@@ -3,7 +3,7 @@ import { Map, Plus, Star, MapPin, Globe, Check, X, Clock3, CircleDollarSign, Sun
 import { useApp } from '../context/AppContext';
 
 export default function MyMapsPage() {
-  const { navigateTo, favorites, publishMapToCommunity, setEditorSetup } = useApp();
+  const { navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mapForm, setMapForm] = useState({
     title: 'Untitled Map',
@@ -83,7 +83,7 @@ export default function MyMapsPage() {
         </div>
 
         <button 
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => isLoggedIn ? setShowCreateModal(true) : navigateTo('auth')}
           className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs uppercase cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create New Map
