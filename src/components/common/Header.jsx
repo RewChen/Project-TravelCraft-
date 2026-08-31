@@ -2,7 +2,7 @@ import { Compass, Search, Bell, Settings, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, logout, setAuthMode, activeCommunityMap, userProfile } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, logout, setAuthMode, activeCommunityMap, userProfile } = useApp();
   const avatar = userProfile?.avatar || '🏃';
 
   return (
@@ -54,9 +54,18 @@ export default function Header() {
         {/* Admin Command Center */}
         <button 
           onClick={() => navigateTo('admin')}
-          className={`${currentPage === 'admin' ? 'bg-[#cc0000] text-white px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'text-red-700 hover:bg-red-50 border-2 border-red-200 px-2 py-0.5 rounded-lg'}`}
+          className={`${
+            currentPage === 'admin' 
+              ? 'bg-[#cc0000] text-white px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
+              : isAdminLoggedIn 
+              ? 'bg-amber-100 text-amber-900 hover:bg-amber-200 border-2 border-black px-2 py-0.5 rounded-lg shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
+              : 'text-red-700 hover:bg-red-50 border-2 border-red-200 px-2 py-0.5 rounded-lg'
+          } flex items-center gap-1`}
         >
-          🛡️ Admin
+          <span>🛡️ Admin</span>
+          {isAdminLoggedIn && (
+            <span className="w-2 h-2 rounded-full bg-emerald-500 border border-black animate-pulse"></span>
+          )}
         </button>
 
         {/* Profile — only visible to logged-in users */}

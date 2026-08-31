@@ -14,7 +14,6 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export default function AdminSidebar({ onOpenNewMission }) {
-  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, logout, reportedLocations } = useApp();
   const { adminActiveTab, setAdminActiveTab, adminUser, navigateTo, adminLogout, reportedLocations } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
@@ -100,12 +99,9 @@ export default function AdminSidebar({ onOpenNewMission }) {
         <div className="bg-white border-2 border-black rounded-xl p-2.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-[#cc0000] text-white border-2 border-black rounded-lg flex items-center justify-center font-black text-xs shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-              A1
               {adminUser?.badge || 'A1'}
             </div>
             <div className="overflow-hidden">
-              <div className="text-xs font-black truncate">{userProfile?.name || 'Admin_01'}</div>
-              <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">SUPERUSER</div>
               <div className="text-xs font-black truncate">{adminUser?.name || 'Admin_01'}</div>
               <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">{adminUser?.role || 'SUPERUSER'}</div>
             </div>
@@ -116,13 +112,11 @@ export default function AdminSidebar({ onOpenNewMission }) {
             title="Exit to World Map"
             className="w-7 h-7 bg-gray-100 hover:bg-red-50 border-2 border-black rounded-lg flex items-center justify-center text-gray-700 hover:text-red-600 cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
           >
-            <LogOut className="w-3.5 h-3.5" />
             <ArrowLeft className="w-3.5 h-3.5" />
           </button>
         </div>
 
         <button
-          onClick={logout}
           onClick={adminLogout}
           className="w-full text-[10px] text-red-600 hover:text-red-800 font-black uppercase text-center py-1 cursor-pointer flex items-center justify-center gap-1"
         >

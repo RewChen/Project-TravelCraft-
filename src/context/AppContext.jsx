@@ -421,6 +421,41 @@ export const AppProvider = ({ children }) => {
 
   const fetchUserProfile = async (userId) => {
     try {
+      // 1. Check if user is in admins table
+      const { data: adminData } = await supabase
+        .from('admins')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (adminData && adminData.is_active) {
+        setIsAdminLoggedIn(true);
+        setUserProfile({
+          name: adminData.username || 'Admin_01',
+          email: adminData.email,
+          avatar: '🛡️',
+          role: 'Admin',
+          coins: 9999,
+          level: 99,
+          badges: ['Master Admin', 'System Lord'],
+          visitedCount: 99
+        });
+        setAdminUser({
+          name: adminData.username || 'Admin_01',
+          email: adminData.email,
+          role: 'SUPERUSER',
+          badge: 'A1',
+          clearanceLevel: 5
+        });
+        try {
+          localStorage.setItem('pocket_odyssey_isAdmin', 'true');
+        } catch (e) {
+          console.warn(e);
+        }
+        return;
+      }
+
+      // 2. Check public.users table
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -430,16 +465,35 @@ export const AppProvider = ({ children }) => {
       if (error) throw error;
 
       if (data) {
+        const isAdmin = data.role?.toLowerCase() === 'admin';
+        setIsAdminLoggedIn(isAdmin);
         setUserProfile({
           name: data.username,
           email: data.email,
           avatar: data.avatar || '🏃',
           role: data.role || 'Cartographer',
           coins: 1245, // Placeholder game stats
+          avatar: data.avatar || (isAdmin ? '🛡️' : '🏃'),
+          role: isAdmin ? 'Admin' : (data.role || 'Cartographer'),
+          coins: 1245,
           level: 1,
           badges: ['Pioneer', 'Kyoto Explorer'],
           visitedCount: 14
         });
+        if (isAdmin) {
+          setAdminUser({
+            name: data.username,
+            email: data.email,
+            role: 'SUPERUSER',
+            badge: 'A1',
+            clearanceLevel: 5
+          });
+          try {
+            localStorage.setItem('pocket_odyssey_isAdmin', 'true');
+          } catch (e) {
+            console.warn(e);
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -820,6 +874,59 @@ export const AppProvider = ({ children }) => {
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
   };
 
+  const loginAsAdmin = (customAdmin) => {
+    setIsLoggedIn(true);
+    setIsAdminLoggedIn(true);
+    const profile = {
+      name: customAdmin?.name || 'Admin_01',
+      email: customAdmin?.email || 'admin@odyssey.net',
+      avatar: customAdmin?.avatar || '🛡️',
+      role: 'Admin',
+      coins: 9999,
+      level: 99,
+      badges: ['Master Admin', 'System Lord'],
+      visitedCount: 99
+    };
+    setUserProfile(profile);
+    setAdminUser({
+      name: profile.name,
+      email: profile.email,
+      role: 'SUPERUSER',
+      badge: 'A1',
+      clearanceLevel: 5
+    });
+    try {
+      localStorage.setItem('pocket_odyssey_isAdmin', 'true');
+      sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
+    } catch (e) {
+      console.warn(e);
+    }
+    showAdminToast('🛡️ Welcome, Admin_01! Command Center unlocked.', 'success');
+    setCurrentPage('home');
+  };
+
+  const loginAsTrainer = (customTrainer) => {
+    setIsLoggedIn(true);
+    setIsAdminLoggedIn(false);
+    setUserProfile({
+      name: customTrainer?.name || 'Ash K.',
+      email: customTrainer?.email || 'trainer@pallet.town',
+      avatar: customTrainer?.avatar || '🧢',
+      role: customTrainer?.role || 'Cartographer',
+      coins: 1245,
+      level: 1,
+      badges: ['Pioneer'],
+      visitedCount: 4
+    });
+    try {
+      localStorage.removeItem('pocket_odyssey_isAdmin');
+      sessionStorage.removeItem('pocket_odyssey_isAdmin');
+    } catch (e) {
+      console.warn(e);
+    }
+    setCurrentPage('home');
+  };
+
   const login = (e) => {
     if (e) e.preventDefault();
     setIsLoggedIn(true);
@@ -828,8 +935,20 @@ export const AppProvider = ({ children }) => {
 
   const logout = async () => {
     await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn(e);
+    }
     setIsLoggedIn(false);
+    setIsAdminLoggedIn(false);
     setUserProfile(null);
+    try {
+      localStorage.removeItem('pocket_odyssey_isAdmin');
+      sessionStorage.removeItem('pocket_odyssey_isAdmin');
+    } catch (e) {
+      console.warn(e);
+    }
     setAuthMode('login');
     setCurrentPage('auth');
   };
@@ -875,6 +994,8 @@ export const AppProvider = ({ children }) => {
         mapFilters,
         toggleFilter,
         login,
+        loginAsAdmin,
+        loginAsTrainer,
         logout,
         navigateTo,
         isAuthLoading,
