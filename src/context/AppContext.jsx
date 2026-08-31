@@ -498,10 +498,10 @@ export const AppProvider = ({ children }) => {
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
-      // Fallback
+      // Fallback - use session email if available
       setUserProfile({
         name: 'Traveler',
-        email: 'trainer@pallet.town',
+        email: '',
         avatar: '🏃',
         role: 'Cartographer',
         coins: 1245, level: 1, badges: [], visitedCount: 0
@@ -562,7 +562,7 @@ export const AppProvider = ({ children }) => {
   });
   const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
     name: 'Admin_01',
-    email: 'admin@odyssey.net',
+    email: 'admin@travelcraft.com',
     role: 'SUPERUSER',
     badge: 'A1',
     clearanceLevel: 5
@@ -823,7 +823,7 @@ export const AppProvider = ({ children }) => {
 
     // 1. Master & Demo credentials check
     const isValidMaster =
-      (cleanId === 'admin_01' || cleanId === 'admin' || cleanId === 'admin@odyssey.net' || cleanId === 'system lord') &&
+      (cleanId === 'admin_01' || cleanId === 'admin' || cleanId === 'admin@travelcraft.com' || cleanId === 'system lord') &&
       (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026' || cleanPass === '123456');
 
     if (isValidMaster) {
@@ -885,7 +885,7 @@ export const AppProvider = ({ children }) => {
     setIsAdminLoggedIn(true);
     const profile = {
       name: customAdmin?.name || 'Admin_01',
-      email: customAdmin?.email || 'admin@odyssey.net',
+      email: customAdmin?.email || 'admin@travelcraft.com',
       avatar: customAdmin?.avatar || '🛡️',
       role: 'Admin',
       coins: 9999,
@@ -916,7 +916,7 @@ export const AppProvider = ({ children }) => {
     setIsAdminLoggedIn(false);
     setUserProfile({
       name: customTrainer?.name || 'Ash K.',
-      email: customTrainer?.email || 'trainer@pallet.town',
+      email: customTrainer?.email || '',
       avatar: customTrainer?.avatar || '🧢',
       role: customTrainer?.role || 'Cartographer',
       coins: 1245,

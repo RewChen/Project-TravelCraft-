@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -14,13 +14,90 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import TrainerMapsModal from '../modals/TrainerMapsModal';
+import { supabase } from '../../../lib/supabaseClient';
 
 export default function UserManagementTab() {
-  const { trainers, banTrainer, unbanTrainer, changeTrainerRole, showAdminToast } = useApp();
+  const { showAdminToast } = useApp();
+  const [trainers, setTrainers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchTrainer, setSearchTrainer] = useState('');
   const [selectedTrainerForMaps, setSelectedTrainerForMaps] = useState(null);
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchTrainers();
+  }, []);
+
+  const fetchTrainers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching real users:', error);
+        showAdminToast('Failed to fetch real users data.', 'error');
+      } else if (data) {
+        const mapped = data.map(u => ({
+          id: u.id,
+          name: u.username || 'Anonymous',
+          email: u.email || 'N/A',
+          role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
+          avatar: '🧢',
+          mapsCreated: 0,
+          joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
+          status: u.status || 'active',
+          maps: []
+        }));
+        setTrainers(mapped);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const banTrainer = async (id) => {
+    try {
+      const { error } = await supabase.from('users').update({ status: 'banned', role: 'Banned' }).eq('id', id);
+      if (!error) {
+        setTrainers(prev => prev.map(t => t.id === id ? { ...t, status: 'banned', role: 'Banned' } : t));
+        showAdminToast('Trainer has been BANNED in Database.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const unbanTrainer = async (id) => {
+    try {
+      const { error } = await supabase.from('users').update({ status: 'active', role: 'Member' }).eq('id', id);
+      if (!error) {
+        setTrainers(prev => prev.map(t => t.id === id ? { ...t, status: 'active', role: 'Member' } : t));
+        showAdminToast('Trainer unbanned & reinstated in Database.', 'success');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const changeTrainerRole = async (id, newRole) => {
+    try {
+      // If role is Admin, we might save it as 'admin' in db
+      const dbRole = newRole.toLowerCase();
+      const { error } = await supabase.from('users').update({ role: dbRole }).eq('id', id);
+      if (!error) {
+        setTrainers(prev => prev.map(t => t.id === id ? { ...t, role: newRole } : t));
+        showAdminToast(`Role updated to ${newRole} in Database.`, 'success');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const filteredTrainers = trainers.filter((t) =>
     t.name.toLowerCase().includes(searchTrainer.toLowerCase()) ||
@@ -60,11 +137,14 @@ export default function UserManagementTab() {
           </div>
 
           <button
-            onClick={() => showAdminToast(`Filter: ${filteredTrainers.length} trainers found`, 'info')}
+            onClick={() => {
+              fetchTrainers();
+              showAdminToast(`Filter: ${filteredTrainers.length} trainers found`, 'info');
+            }}
             className="py-2 px-3 bg-white hover:bg-gray-100 text-black border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer"
           >
             <Filter className="w-3.5 h-3.5" />
-            <span>Filter</span>
+            <span>Sync DB</span>
           </button>
         </div>
       </div>
@@ -92,7 +172,19 @@ export default function UserManagementTab() {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-gray-100 font-bold">
-                {filteredTrainers.map((trainer) => {
+                {loading ? (
+                  <tr>
+                    <td colSpan="4" className="text-center py-8 text-gray-500 text-xs">
+                      Loading data from database...
+                    </td>
+                  </tr>
+                ) : filteredTrainers.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="text-center py-8 text-gray-500 text-xs">
+                      No trainers found.
+                    </td>
+                  </tr>
+                ) : filteredTrainers.map((trainer) => {
                   const isBanned = trainer.status === 'banned' || trainer.role === 'Banned';
                   return (
                     <tr key={trainer.id} className="hover:bg-amber-50/50 transition-colors">
@@ -211,8 +303,8 @@ export default function UserManagementTab() {
               </div>
 
               <div className="flex items-baseline justify-between border-t border-white/20 pt-3">
-                <span className="text-xs font-bold uppercase text-white/80">Global Storage</span>
-                <span className="text-2xl sm:text-3xl font-black">78%</span>
+                <span className="text-xs font-bold uppercase text-white/80">Active Connections</span>
+                <span className="text-2xl sm:text-3xl font-black">Live</span>
               </div>
             </div>
 
