@@ -30,6 +30,7 @@ export default function MapEditor({ onBack }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
+  const [contextMenuElementId, setContextMenuElementId] = useState(null);
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
 
@@ -52,9 +53,9 @@ export default function MapEditor({ onBack }) {
         const maxTop = 600 - element.height;
 
         if (dragging.mode === 'resize') {
-          const width = Math.max(40, Math.min(800 - element.left, dragging.startWidth + deltaX));
-          const height = Math.max(40, Math.min(600 - element.top, dragging.startHeight + deltaY));
-          return { ...previous, [dragging.id]: { ...element, width, height } };
+          const nextWidth = Math.max(40, Math.min(800 - element.left, dragging.startWidth + deltaX));
+          const nextHeight = Math.max(40, Math.min(600 - element.top, dragging.startHeight + deltaY));
+          return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight } };
         }
 
         return {
@@ -168,6 +169,46 @@ export default function MapEditor({ onBack }) {
       reordered.splice(nextIndex, 0, item);
       return reordered;
     });
+  };
+
+  const duplicateSelectedElement = () => {
+    if (!selectedElement) return;
+    const source = elements.find((element) => element.id === selectedElement);
+    if (!source) return;
+
+    const duplicateId = `${source.type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const position = elementPositions[selectedElement] ?? { left: 0, top: 0, width: 100, height: 100 };
+
+    setElements((previous) => [...previous, { ...source, id: duplicateId, label: `${source.label} Copy` }]);
+    setElementPositions((previous) => ({
+      ...previous,
+      [duplicateId]: {
+        left: Math.min(position.left + 24, 760),
+        top: Math.min(position.top + 24, 540),
+        width: position.width,
+        height: position.height
+      }
+    }));
+    setSelectedElement(duplicateId);
+  };
+
+  const deleteSelectedElement = () => {
+    if (!selectedElement) return;
+    pushHistory();
+    setElements((previous) => previous.filter((element) => element.id !== selectedElement));
+    setElementPositions((previous) => {
+      const next = { ...previous };
+      delete next[selectedElement];
+      return next;
+    });
+    setSelectedElement(null);
+  };
+
+  const toggleLockSelectedElement = () => {
+    if (!selectedElement) return;
+    setElements((previous) => previous.map((element) =>
+      element.id === selectedElement ? { ...element, locked: !element.locked } : element
+    ));
   };
 
   const saveDraft = () => {
@@ -301,6 +342,12 @@ export default function MapEditor({ onBack }) {
 
   const selectedData = elements.find((element) => element.id === selectedElement);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
+  const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
+  const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
+  const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
+    top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
+    left: Math.max(20, Math.min(contextMenuPosition.left, 650))
+  } : {};
   const mapTemplates = [
     {
       id: 'tropical',
@@ -514,13 +561,51 @@ export default function MapEditor({ onBack }) {
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
                 {activeTemplate.label}
               </div>
+
+              {contextMenuElement && contextMenuPosition && (
+                <div className="absolute z-30 w-56 rounded-xl border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={quickActionMenuStyle}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[8px] font-black uppercase tracking-wide text-gray-500">Actions</span>
+                    <button onClick={() => setContextMenuElementId(null)} className="flex h-5 w-5 items-center justify-center rounded-full border border-black bg-gray-100 text-[10px] font-black">×</button>
+                  </div>
+                  <div className="space-y-1.5">
+                    <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⧉</span>Duplicate</span>
+                    </button>
+                    <button onClick={() => { moveLayer('front'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇡</span>Bring to front</span>
+                    </button>
+                    <button onClick={() => { moveLayer('back'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇣</span>Send to back</span>
+                    </button>
+                    <button onClick={() => { toggleLockSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">{selectedData?.locked ? '🔓' : '🔒'}</span>{selectedData?.locked ? 'Unlock' : 'Lock'}</span>
+                    </button>
+                    <button onClick={() => { deleteSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-red-50 text-red-600">
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">🗑</span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {elements.map((element) => {
                 const position = elementPositions[element.id];
                 const isSelected = selectedElement === element.id;
                 const isEditingText = editingTextId === element.id && element.type === 'text';
 
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined }} onPointerDown={(event) => startDragging(element.id, event)} onDoubleClick={(event) => {
+                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-red-500 bg-red-500/10' : 'hover:outline hover:outline-2 hover:outline-blue-400'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}55` : undefined, opacity: 1 }} onContextMenu={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setSelectedElement(element.id);
+                    setContextMenuElementId(element.id);
+                  }} onPointerDown={(event) => {
+                    if (!element.locked) startDragging(element.id, event);
+                    else {
+                      event.stopPropagation();
+                      setSelectedElement(element.id);
+                    }
+                  }} onDoubleClick={(event) => {
                     if (element.type === 'text') {
                       event.stopPropagation();
                       setSelectedElement(element.id);
@@ -546,14 +631,14 @@ export default function MapEditor({ onBack }) {
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 text-center" style={{ fontSize: `${element.fontSize ?? 28}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{element.content}</span>
+                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full" style={{ fontSize: `${Math.max(12, Math.min(120, Math.round(Math.min(position.width, position.height) * 0.7)))}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>{element.content}</span>
                       )
                     )}
                     {isSelected && !isEditingText && <>
-                      <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500"></div>
-                      <div onPointerDown={(event) => startDragging(element.id, event, 'resize')} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-red-500 cursor-nwse-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nwse-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-red-500 cursor-nesw-resize"></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-red-500 cursor-nwse-resize"></div>
                     </>}
                   </div>
                 );
@@ -647,7 +732,7 @@ export default function MapEditor({ onBack }) {
 
               {/* Delete Button */}
               <div className="pt-4 border-t-2 border-black border-dashed">
-                <button onClick={() => { pushHistory(); setElements((previous) => previous.filter((element) => element.id !== selectedElement)); setElementPositions((previous) => { const next = { ...previous }; delete next[selectedElement]; return next; }); setSelectedElement(null); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                <button onClick={deleteSelectedElement} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                   <Trash2 className="w-4 h-4" /> DELETE ELEMENT
                 </button>
               </div>
