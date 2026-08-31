@@ -9,6 +9,7 @@ import MyMapsPage from './pages/MyMapsPage';
 import ProfilePage from './pages/ProfilePage';
 import AuthPage from './pages/AuthPage';
 import MapEditor from './pages/MapEditor';
+import AdminDashboard from './pages/AdminDashboard';
 
 function AppContent() {
   const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo } = useApp();
@@ -30,14 +31,17 @@ function AppContent() {
     );
   }
 
-  // Redirect to auth if not logged in and page requires auth
-  if (!isLoggedIn && !['auth', 'home', 'community', 'mymaps', 'details'].includes(currentPage)) {
+  // Redirect to auth if not logged in and page requires auth (admin is accessible directly or for testing)
+  if (!isLoggedIn && !['auth', 'home', 'community', 'mymaps', 'details', 'admin'].includes(currentPage)) {
     return <AuthPage />;
   }
 
-
   if (currentPage === 'auth') {
     return <AuthPage />;
+  }
+
+  if (currentPage === 'admin') {
+    return <AdminDashboard />;
   }
 
   if (currentPage === 'editor') {

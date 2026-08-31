@@ -210,8 +210,186 @@ const initialCommunityDiscoveries = [
   }
 ];
 
+const initialBaseMaps = [
+  {
+    id: 'base-1',
+    name: 'Verdant Plains',
+    theme: 'Plains & Forest',
+    badge: 'BASE',
+    image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80',
+    description: 'Lush green valleys, tranquil shrines, and winding riverbanks.',
+    region: 'Kanto Valley',
+    pinsCount: 14,
+    rating: 4.9
+  },
+  {
+    id: 'base-2',
+    name: 'Scorched Wastes',
+    theme: 'Desert & Volcano',
+    badge: 'BASE',
+    image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80',
+    description: 'Arid desert expanses, ancient sandstone ruins, and magma fissures.',
+    region: 'Cinnabar Badlands',
+    pinsCount: 8,
+    rating: 4.7
+  },
+  {
+    id: 'base-3',
+    name: 'Azure Coast',
+    theme: 'Ocean & Isles',
+    badge: 'BASE',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    description: 'Sparkling tropical shoreline, hidden coral grottos, and lighthouses.',
+    region: 'Vermilion Archipelago',
+    pinsCount: 11,
+    rating: 4.8
+  },
+  {
+    id: 'base-4',
+    name: 'Obsidian Peaks',
+    theme: 'Mountains & Peaks',
+    badge: 'BASE',
+    image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
+    description: 'High volcanic summits shrouded in thunderstorms and ancient glyphs.',
+    region: 'Indigo Plateau',
+    pinsCount: 9,
+    rating: 4.9
+  }
+];
+
+const initialTrainers = [
+  {
+    id: 'tr-1',
+    name: 'Ash K.',
+    avatar: '🧢',
+    email: 'ash.ketchum@pallet.town',
+    role: 'Member',
+    status: 'active',
+    joined: '1998-02-27',
+    mapsCreated: 8,
+    strikes: 0,
+    online: true,
+    maps: ['PALLET ADVENTURE', 'VIRIDIAN GYM ROUTE', 'INDIGO PLATEAU EXTREME']
+  },
+  {
+    id: 'tr-2',
+    name: 'Misty S.',
+    avatar: '🌊',
+    email: 'misty.water@cerulean.gym',
+    role: 'Novice',
+    status: 'active',
+    joined: '1997-04-01',
+    mapsCreated: 4,
+    strikes: 0,
+    online: true,
+    maps: ['CERULEAN CAPE', 'SEAFOAM ISLANDS']
+  },
+  {
+    id: 'tr-3',
+    name: 'Grunt #42',
+    avatar: '👤',
+    email: 'grunt42@rocket.corp',
+    role: 'Banned',
+    status: 'banned',
+    joined: '2024-01-15',
+    mapsCreated: 12,
+    strikes: 24,
+    online: false,
+    maps: ['TEAM ROCKET HIDEOUT', 'SLIPH CO LABS']
+  },
+  {
+    id: 'tr-4',
+    name: 'Brock S.',
+    avatar: '🪨',
+    email: 'brock.stone@pewter.gym',
+    role: 'Member',
+    status: 'active',
+    joined: '1998-05-10',
+    mapsCreated: 15,
+    strikes: 0,
+    online: true,
+    maps: ['MT MOON EXPEDITION', 'PEWTER ROCK TRAILS']
+  },
+  {
+    id: 'tr-5',
+    name: 'Trainer Blue',
+    avatar: '⚡',
+    email: 'gary.oak@champion.league',
+    role: 'Novice',
+    status: 'active',
+    joined: '1998-03-01',
+    mapsCreated: 9,
+    strikes: 2,
+    online: false,
+    maps: ['CHAMPION HIGH ROAD', 'SECRET POWER SPOT']
+  },
+  {
+    id: 'tr-6',
+    name: 'MissingNo',
+    avatar: '👾',
+    email: 'missingno@glitch.net',
+    role: 'Member',
+    status: 'active',
+    joined: '1996-02-27',
+    mapsCreated: 1,
+    strikes: 5,
+    online: false,
+    maps: ['GLITCH CITY WATERFRONT']
+  }
+];
+
+const initialReportedLocations = [
+  {
+    id: 'rep-1',
+    locationName: 'Team Rocket Secret Base',
+    creator: 'Grunt #42',
+    category: 'SPAM',
+    categoryColor: 'bg-red-100 text-red-700 border-red-400',
+    count: 158,
+    status: 'pending',
+    isHidden: false,
+    reason: 'Commercial spam and illicit game casino advertisements.',
+    reportedAt: '2 hours ago'
+  },
+  {
+    id: 'rep-2',
+    locationName: 'Invisible Bridge',
+    creator: 'Trainer Blue',
+    category: 'FAKE LOCATION',
+    categoryColor: 'bg-amber-100 text-amber-700 border-amber-400',
+    count: 42,
+    status: 'pending',
+    isHidden: false,
+    reason: 'Coords lead to inaccessible open water tile with no collision.',
+    reportedAt: '5 hours ago'
+  },
+  {
+    id: 'rep-3',
+    locationName: 'Glitch City',
+    creator: 'MissingNo',
+    category: 'INAPPROPRIATE',
+    categoryColor: 'bg-blue-100 text-blue-700 border-blue-400',
+    count: 12,
+    status: 'resolved',
+    isHidden: true,
+    reason: 'Corrupted sprite tile glitching viewer clients.',
+    reportedAt: '1 day ago'
+  }
+];
+
+const initialGlobalSettings = {
+  maxPinsPerMap: 50,
+  autoApproveCommunity: false,
+  maintenanceMode: false,
+  allowFastTravel: true,
+  coinMultiplier: 1.5,
+  autoBanStrikeThreshold: 5,
+  serverRegion: 'AP-East (Tokyo)',
+  radarRadiusKm: 25
+};
+
 export const AppProvider = ({ children }) => {
-  // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth'
+  // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth', 'admin'
   const [currentPage, setCurrentPage] = useState('home');
   const [authMode, setAuthMode] = useState('login');
   
@@ -318,6 +496,21 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
+  // Admin Dashboard States & Persistence
+  const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
+  const [baseMaps, setBaseMaps] = useState(() => loadStored('adminBaseMaps', initialBaseMaps));
+  const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
+  const [reportedLocations, setReportedLocations] = useState(() => loadStored('adminReports', initialReportedLocations));
+  const [globalSettings, setGlobalSettings] = useState(() => loadStored('adminSettings', initialGlobalSettings));
+  const [adminToast, setAdminToast] = useState(null);
+
+  const showAdminToast = (message, type = 'success') => {
+    setAdminToast({ message, type });
+    setTimeout(() => {
+      setAdminToast(null);
+    }, 3500);
+  };
+
   // Sync to LocalStorage on State Changes (Only non-auth data)
   useEffect(() => {
     try {
@@ -325,10 +518,14 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
       localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
       localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(communityMaps));
+      localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
+      localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
+      localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
+      localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings]);
 
   // Selected Location for Details Page
   const [selectedLocation, setSelectedLocation] = useState({
@@ -460,6 +657,92 @@ export const AppProvider = ({ children }) => {
     )));
   };
 
+  // --- Admin Action Handlers ---
+  const resolveReport = (reportId) => {
+    setReportedLocations((prev) =>
+      prev.map((rep) =>
+        rep.id === reportId ? { ...rep, status: 'resolved' } : rep
+      )
+    );
+    showAdminToast('Report marked as RESOLVED.', 'success');
+  };
+
+  const hideReportedLocation = (reportId) => {
+    setReportedLocations((prev) =>
+      prev.map((rep) =>
+        rep.id === reportId ? { ...rep, isHidden: !rep.isHidden } : rep
+      )
+    );
+    showAdminToast('Location visibility toggled.', 'info');
+  };
+
+  const deleteReportedLocation = (reportId) => {
+    setReportedLocations((prev) => prev.filter((rep) => rep.id !== reportId));
+    showAdminToast('Reported location deleted from registry.', 'error');
+  };
+
+  const warnTrainer = (trainerIdentifier) => {
+    setTrainers((prev) =>
+      prev.map((tr) =>
+        tr.id === trainerIdentifier || tr.name === trainerIdentifier
+          ? { ...tr, strikes: (tr.strikes || 0) + 1 }
+          : tr
+      )
+    );
+    showAdminToast(`Warning & strike issued to ${trainerIdentifier}.`, 'warning');
+  };
+
+  const banTrainer = (trainerIdentifier) => {
+    setTrainers((prev) =>
+      prev.map((tr) =>
+        tr.id === trainerIdentifier || tr.name === trainerIdentifier
+          ? { ...tr, status: 'banned', role: 'Banned' }
+          : tr
+      )
+    );
+    showAdminToast(`Trainer ${trainerIdentifier} has been BANNED.`, 'error');
+  };
+
+  const unbanTrainer = (trainerId) => {
+    setTrainers((prev) =>
+      prev.map((tr) =>
+        tr.id === trainerId ? { ...tr, status: 'active', role: 'Member', strikes: 0 } : tr
+      )
+    );
+    showAdminToast('Trainer unbanned & reinstated.', 'success');
+  };
+
+  const changeTrainerRole = (trainerId, newRole) => {
+    setTrainers((prev) =>
+      prev.map((tr) =>
+        tr.id === trainerId ? { ...tr, role: newRole } : tr
+      )
+    );
+    showAdminToast(`Role updated to ${newRole}.`, 'success');
+  };
+
+  const addBaseMap = (newMap) => {
+    const mapWithId = {
+      id: `base-${Date.now()}`,
+      badge: 'BASE',
+      pinsCount: 0,
+      rating: 5.0,
+      ...newMap
+    };
+    setBaseMaps((prev) => [...prev, mapWithId]);
+    showAdminToast(`Base Map "${newMap.name}" created!`, 'success');
+  };
+
+  const deleteBaseMap = (mapId) => {
+    setBaseMaps((prev) => prev.filter((m) => m.id !== mapId));
+    showAdminToast('Base map deleted.', 'info');
+  };
+
+  const updateGlobalSettings = (newSettings) => {
+    setGlobalSettings((prev) => ({ ...prev, ...newSettings }));
+    showAdminToast('Global Map Settings updated successfully!', 'success');
+  };
+
   const login = (e) => {
     if (e) e.preventDefault();
     setIsLoggedIn(true);
@@ -517,7 +800,30 @@ export const AppProvider = ({ children }) => {
         login,
         logout,
         navigateTo,
-        isAuthLoading
+        isAuthLoading,
+        // Admin exports
+        adminActiveTab,
+        setAdminActiveTab,
+        baseMaps,
+        setBaseMaps,
+        trainers,
+        setTrainers,
+        reportedLocations,
+        setReportedLocations,
+        globalSettings,
+        setGlobalSettings,
+        adminToast,
+        showAdminToast,
+        resolveReport,
+        hideReportedLocation,
+        deleteReportedLocation,
+        warnTrainer,
+        banTrainer,
+        unbanTrainer,
+        changeTrainerRole,
+        addBaseMap,
+        deleteBaseMap,
+        updateGlobalSettings
       }}
     >
       {children}
