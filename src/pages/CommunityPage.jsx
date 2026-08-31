@@ -120,22 +120,6 @@ export default function CommunityPage() {
                   </span>
                 </div>
 
-                {/* Popularity Level Bar */}
-                <div className="bg-gray-50 border-2 border-black p-2 rounded-lg mb-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="flex justify-between text-[11px] font-black mb-1">
-                    <span>Popularity:</span>
-                    <span>Lv. {mapItem.popularityLv}</span>
-                  </div>
-                  <div className="h-3 w-full border-2 border-black bg-white rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${
-                        mapItem.popularityLv > 90 ? 'bg-emerald-500' :
-                        mapItem.popularityLv > 80 ? 'bg-sky-500' : 'bg-purple-500'
-                      } border-r-2 border-black`}
-                      style={{ width: `${mapItem.popularityLv}%` }}
-                    ></div>
-                  </div>
-                </div>
               </div>
 
               {/* Action Buttons */}
