@@ -30,6 +30,7 @@ export default function MapEditor({ onBack }) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
+  const [showToolPanel, setShowToolPanel] = useState(false);
   const fileInputRef = useRef(null);
   const nextElementId = useRef(0);
 
@@ -342,6 +343,16 @@ export default function MapEditor({ onBack }) {
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
 
+  const toolButtons = [
+    ['select', MousePointer2, 'Select'],
+    ['pen', Pencil, 'Pen'],
+    ['highlight', Minus, 'Highlight'],
+    ['rectangle', Square, 'Rect'],
+    ['circle', Circle, 'Circle'],
+    ['grid', Grid3X3, 'Grid'],
+    ['eraser', Eraser, 'Erase']
+  ];
+
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
       
@@ -409,22 +420,49 @@ export default function MapEditor({ onBack }) {
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT MENU STRIP */}
-        <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-2 z-10 shrink-0">
-          {[
-            { id: 'TEMPLATES', icon: LayoutGrid, label: 'TEMPLATES' },
-            { id: 'ELEMENTS', icon: Shapes, label: 'ELEMENTS' },
-            { id: 'TEXT', icon: Type, label: 'TEXT' },
-            { id: 'UPLOADS', icon: Upload, label: 'UPLOADS' },
-          ].map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
+        <div className="w-24 bg-white border-r-4 border-black flex flex-col items-center py-3 gap-3 z-10 shrink-0">
+          <button onClick={onBack} className="flex h-10 w-10 items-center justify-center rounded-lg border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100" title="Back">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          <div className="w-full px-2 space-y-2">
+            {[
+              { id: 'TEMPLATES', icon: LayoutGrid, label: 'TEMPLATES' },
+              { id: 'ELEMENTS', icon: Shapes, label: 'ELEMENTS' },
+              { id: 'TEXT', icon: Type, label: 'TEXT' },
+              { id: 'UPLOADS', icon: Upload, label: 'UPLOADS' },
+            ].map((tab) => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center justify-center w-full h-16 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
+              >
+                <tab.icon className={`w-5 h-5 mb-1 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
+                <span className="text-[8px] font-black leading-none">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="w-full px-2 pt-2 border-t-2 border-black">
+            <button
+              type="button"
+              onClick={() => setShowToolPanel((previous) => !previous)}
+              className={`flex w-full items-center justify-center rounded-lg border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] py-2 font-black text-[8px] uppercase tracking-wide ${showToolPanel ? 'bg-violet-100 text-violet-700' : 'text-black hover:bg-gray-100'}`}
             >
-              <tab.icon className={`w-6 h-6 mb-1 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
-              <span className="text-[8px] font-black">{tab.label}</span>
+              {showToolPanel ? 'Hide' : 'Tools'}
             </button>
-          ))}
+
+            {showToolPanel && (
+              <div className="mt-2 grid grid-cols-2 gap-2 overflow-hidden animate-[fadeIn_0.15s_ease-out]">
+                {toolButtons.map(([tool, Icon, label]) => (
+                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); setShowToolPanel(false); }} title={label} className={`flex h-11 flex-col items-center justify-center rounded-lg border-2 ${activeTool === tool ? 'border-black bg-violet-100 text-violet-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent bg-gray-50 text-gray-700 hover:bg-gray-100 hover:border-black'}`}>
+                    <Icon className="w-4 h-4" />
+                    <span className="text-[7px] font-black uppercase leading-none mt-1">{tool === 'select' ? 'move' : tool === 'eraser' ? 'erase' : label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* LEFT PANEL CONTENT */}
@@ -482,21 +520,6 @@ export default function MapEditor({ onBack }) {
           style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}
           onClick={() => setSelectedElement(null)}
         >
-          <div className="absolute top-4 left-4 z-20 bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
-            {[
-              ['select', MousePointer2, 'Select and move'],
-              ['pen', Pencil, 'Draw line'],
-              ['highlight', Minus, 'Add highlight'],
-              ['rectangle', Square, 'Add rectangle'],
-              ['circle', Circle, 'Add circle'],
-              ['grid', Grid3X3, 'Add grid'],
-              ['eraser', Eraser, 'Delete selected']
-            ].map(([tool, Icon, label]) => (
-              <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={label} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-                <Icon className="w-5 h-5" />
-              </button>
-            ))}
-          </div>
           {/* Zoom Control */}
           <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setZoom(Math.max(50, zoom - 10)); }}>-</button>
