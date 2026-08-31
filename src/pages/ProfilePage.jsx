@@ -1,13 +1,14 @@
 
 
-import { useState } from 'react';
-import { Map, LogOut, Check, Sparkles, User as UserIcon } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function ProfilePage() {
   const { userProfile, setUserProfile, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
   const [selectedRole, setSelectedRole] = useState(userProfile?.role || 'Novice Traveler');
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
+  const fileInputRef = useRef(null);
 
   const availableRoles = [
     { name: 'Novice Traveler', badge: '🟢', color: 'bg-emerald-100 text-emerald-800' },
@@ -19,6 +20,24 @@ export default function ProfilePage() {
     setUserProfile((prev) => ({ ...prev, role: newRole }));
     setRoleUpdatedMsg(true);
     setTimeout(() => setRoleUpdatedMsg(false), 3000);
+  };
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const nextAvatar = reader.result;
+      setUserProfile((prev) => ({ ...prev, avatar: nextAvatar }));
+      try {
+        localStorage.setItem('pocket_odyssey_profile_avatar', JSON.stringify(nextAvatar));
+      } catch (error) {
+        console.warn('Unable to save avatar to localStorage', error);
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
   };
 
   // Count maps published by this user
@@ -56,12 +75,23 @@ export default function ProfilePage() {
 
         {/* Avatar Column */}
         <div className="flex flex-col items-center justify-center border-b-4 md:border-b-0 md:border-r-4 border-black pb-6 md:pb-0 md:pr-6">
-          <div className="w-24 h-24 bg-amber-400 border-4 border-black rounded-full flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-3 overflow-hidden">
-            {userProfile.avatar && userProfile.avatar.startsWith('data:image') ? (
-              <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              userProfile.avatar || '🏃'
-            )}
+          <div className="relative mb-3">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative w-24 h-24 bg-amber-400 border-4 border-black rounded-full flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden transition-transform hover:scale-105"
+              title="Change profile image"
+            >
+              {userProfile.avatar && userProfile.avatar.startsWith('data:image') ? (
+                <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                userProfile.avatar || '🏃'
+              )}
+              <span className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white" />
+              </span>
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
           <h2 className="text-xl font-black">{userProfile.name}</h2>
           <p className="text-xs text-gray-500 font-bold mb-2">{userProfile.email}</p>
