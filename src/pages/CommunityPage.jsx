@@ -7,6 +7,11 @@ export default function CommunityPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const canDeleteMap = (mapItem) => Boolean(userProfile && (
+    mapItem.ownerId
+      ? mapItem.ownerId === userProfile.id
+      : mapItem.discoveredBy === userProfile.name
+  ));
 
   const categories = [
     { id: 'ALL', label: 'ALL', icon: null },
@@ -15,9 +20,11 @@ export default function CommunityPage() {
     { id: 'urban', label: 'URBAN', icon: Building2 }
   ];
 
-  const filteredMaps = communityMaps.filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.discoveredBy.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredMaps = (communityMaps || []).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
+    const title = item.title || 'Untitled Map';
+    const author = item.discoveredBy || 'Traveler';
+    const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
     return matchesSearch && matchesCategory;
   });
@@ -85,11 +92,20 @@ export default function CommunityPage() {
               className="h-56 bg-sky-200 border-b-4 border-black relative overflow-hidden flex items-center justify-center cursor-pointer group"
               title="Click to Track on World Map"
             >
-              <img 
-                src={mapItem.imageUrl} 
-                alt={mapItem.title} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-              />
+              {mapItem.previewBackground ? (
+                <div
+                  role="img"
+                  aria-label={`${mapItem.title} map preview`}
+                  className="w-full h-full group-hover:scale-105 transition-transform duration-300"
+                  style={mapItem.previewBackground}
+                />
+              ) : (
+                <img
+                  src={mapItem.imageUrl}
+                  alt={mapItem.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              )}
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                 <span className="bg-amber-400 border-2 border-black px-3 py-1 text-xs font-black text-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   🎯 Track on World Map
@@ -138,7 +154,7 @@ export default function CommunityPage() {
                   <Target className="w-4 h-4 text-black" /> TRACK ON MAP
                 </button>
 
-                {userProfile?.name && mapItem.discoveredBy === userProfile.name && (
+                {canDeleteMap(mapItem) && (
                   <button
                     onClick={() => {
                       if (window.confirm(`Delete "${mapItem.title}"?`)) deleteCommunityMap(mapItem.id);

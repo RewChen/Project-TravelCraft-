@@ -238,6 +238,9 @@ export default function MapEditor({ onBack }) {
       title: mapTitle.trim() || 'Untitled Map',
       region: `${activeTemplate.label} Realm`,
       description: publishDescription.trim() || `A custom map created with the ${activeTemplate.label} template.`,
+      imageUrl: null,
+      previewBackground: activeTemplate.canvas,
+      isEditorMap: true,
       hours: editorSetup?.hours || '24/7',
       fee: editorSetup?.fee || 'Free Exploration',
       bestTime: editorSetup?.bestTime || 'Anytime',
@@ -256,6 +259,7 @@ export default function MapEditor({ onBack }) {
     }
 
     publishMapToCommunity(mapData);
+    setSaveStatus('Map published to Community');
     setShowPublishModal(false);
   };
 

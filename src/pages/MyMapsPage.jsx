@@ -7,7 +7,7 @@ export default function MyMapsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mapForm, setMapForm] = useState({
     title: 'Untitled Map',
-    description: '',
+    description: 'A custom map created by a Pocket Odyssey traveler.',
     hours: '09:30 - 23:45 (Daily)',
     fee: 'Free',
     bestTime: 'Anytime',
@@ -90,8 +90,8 @@ export default function MyMapsPage() {
         </button>
       </div>
 
-      {showCreateModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
-        <form onSubmit={startDesigning} onClick={(event) => event.stopPropagation()} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+      {showCreateModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <form onSubmit={startDesigning} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
           <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center justify-between sticky top-0 z-10">
             <h2 className="font-black uppercase tracking-wide">Create New Map</h2>
             <button type="button" onClick={() => setShowCreateModal(false)} title="Close" className="w-8 h-8 bg-white text-black border-2 border-black rounded flex items-center justify-center"><X className="w-5 h-5" /></button>
@@ -103,7 +103,7 @@ export default function MyMapsPage() {
             </div>
             <div>
               <label htmlFor="map-description" className="block text-[10px] font-black uppercase mb-1.5">Description</label>
-              <textarea id="map-description" required rows="3" value={mapForm.description} onChange={(event) => updateForm('description', event.target.value)} placeholder="Describe this destination or route..." className="w-full border-2 border-black p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+              <textarea id="map-description" rows="3" value={mapForm.description} onChange={(event) => updateForm('description', event.target.value)} placeholder="Describe this destination or route..." className="w-full border-2 border-black p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
             </div>
 
             <div className="flex items-center gap-2 text-[10px] font-black uppercase"><span>▣</span> Lore &amp; Data</div>

@@ -410,6 +410,7 @@ export const AppProvider = ({ children }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const createFallbackProfile = (authUser) => ({
+    id: authUser.id,
     name: authUser.user_metadata?.username || 'Traveler',
     email: authUser.email || '',
     avatar: authUser.user_metadata?.avatar || '🏃',
@@ -432,6 +433,7 @@ export const AppProvider = ({ children }) => {
       if (adminData && adminData.is_active) {
         setIsAdminLoggedIn(true);
         setUserProfile({
+          id: userId,
           name: adminData.username || 'Admin_01',
           email: adminData.email,
           avatar: '🛡️',
@@ -469,6 +471,7 @@ export const AppProvider = ({ children }) => {
         const isAdmin = data.role?.toLowerCase() === 'admin';
         setIsAdminLoggedIn(isAdmin);
         setUserProfile({
+          id: userId,
           name: data.username,
           email: data.email,
           avatar: data.avatar || '🏃',
@@ -500,6 +503,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching profile:', err);
       // Fallback
       setUserProfile({
+        id: userId,
         name: 'Traveler',
         email: 'trainer@pallet.town',
         avatar: '🏃',
@@ -684,22 +688,27 @@ export const AppProvider = ({ children }) => {
 
   // Publish a custom user map to Community Discoveries!
   const publishMapToCommunity = (newCommunityMap) => {
-    const mapSlug = newCommunityMap.title ? newCommunityMap.title.replace(/\s+/g, '-').toLowerCase() : 'user-map';
-    const uniqueId = `comm-user-${mapSlug}-${newCommunityMap.id || mapSlug}`;
+    const title = newCommunityMap.title?.trim() || 'Untitled Map';
+    const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
+    const mapSlug = title.replace(/\s+/g, '-').toLowerCase();
+    const uniqueId = `comm-user-${mapSlug}-${newCommunityMap.id || Date.now()}`;
     const publishedItem = {
       id: uniqueId,
-      title: newCommunityMap.title.toUpperCase(),
-      discoveredBy: userProfile.name,
-      authorRole: userProfile.role || 'Cartographer',
+      ownerId: author.id || null,
+      title: title.toUpperCase(),
+      discoveredBy: author.name,
+      authorRole: author.role || 'Cartographer',
       authorBadgeColor: 'bg-[#cc0000]',
       popularityLv: 85,
       rarity: 'Epic',
       rarityColor: 'bg-indigo-500 text-white',
       category: newCommunityMap.category || 'landmarks',
       imageUrl: newCommunityMap.imageUrl || 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80',
+      previewBackground: newCommunityMap.previewBackground || null,
+      isEditorMap: Boolean(newCommunityMap.isEditorMap),
       bgThemeUrl: mapBackgroundImage || newCommunityMap.bgThemeUrl,
       details: {
-        title: newCommunityMap.title,
+        title,
         region: newCommunityMap.region || 'Custom Traveler Realm',
         type: 'Community Map',
         tag: 'Custom',
@@ -721,13 +730,17 @@ export const AppProvider = ({ children }) => {
     };
 
     setCommunityMaps((prev) => [publishedItem, ...prev]);
-    setUserProfile((prev) => ({ ...prev, coins: prev.coins + 150 }));
+    setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
     navigateTo('community');
   };
 
   const deleteCommunityMap = (mapId) => {
     setCommunityMaps((previous) => previous.filter((map) => (
-      !(map.id === mapId && map.discoveredBy === userProfile?.name)
+      !(map.id === mapId && (
+        map.ownerId
+          ? map.ownerId === userProfile?.id
+          : map.discoveredBy === userProfile?.name
+      ))
     )));
   };
 
@@ -884,6 +897,7 @@ export const AppProvider = ({ children }) => {
     setIsLoggedIn(true);
     setIsAdminLoggedIn(true);
     const profile = {
+      id: customAdmin?.id || 'admin-local',
       name: customAdmin?.name || 'Admin_01',
       email: customAdmin?.email || 'admin@odyssey.net',
       avatar: customAdmin?.avatar || '🛡️',
@@ -915,6 +929,7 @@ export const AppProvider = ({ children }) => {
     setIsLoggedIn(true);
     setIsAdminLoggedIn(false);
     setUserProfile({
+      id: customTrainer?.id || 'trainer-local',
       name: customTrainer?.name || 'Ash K.',
       email: customTrainer?.email || 'trainer@pallet.town',
       avatar: customTrainer?.avatar || '🧢',
