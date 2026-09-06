@@ -27,6 +27,92 @@ const getYouTubeEmbedUrl = (value) => {
   }
 };
 
+const editorTabs = [
+  { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates' },
+  { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements' },
+  { id: 'TEXT', icon: Type, labelKey: 'editor.text' },
+  { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads' }
+];
+
+const tabLabelKeys = {
+  TEMPLATES: 'editor.templates',
+  ELEMENTS: 'editor.elements',
+  TEXT: 'editor.text',
+  UPLOADS: 'editor.uploads'
+};
+
+const mapTemplates = [
+  {
+    id: 'tropical',
+    labelKey: 'editor.templateTropical',
+    preview: 'linear-gradient(#48b4ed 0 24%, #f8d58b 24% 58%, #42b8d7 58%)',
+    canvas: {
+      backgroundColor: '#f8d58b',
+      backgroundImage: 'linear-gradient(180deg, transparent 0 44%, #d9a866 44% 45%, #f8d58b 45% 66%, #42b8d7 66% 67%, #278fc8 67%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px)'
+    }
+  },
+  {
+    id: 'island',
+    labelKey: 'editor.templateGreen',
+    preview: 'linear-gradient(135deg, #58b74d 0 30%, #96df4e 30% 70%, #58b74d 70%)',
+    canvas: {
+      backgroundColor: '#85d64d',
+      backgroundImage: 'radial-gradient(ellipse at center, #a0e65c 0 45%, transparent 46%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px)'
+    }
+  },
+  {
+    id: 'river',
+    labelKey: 'editor.templateRiver',
+    preview: 'linear-gradient(135deg, #77cf3d 0 45%, #398ac1 45% 58%, #77cf3d 58%)',
+    canvas: {
+      backgroundColor: '#78ce3d',
+      backgroundImage: 'linear-gradient(90deg, transparent 0 42%, #328ec4 43% 48%, #78ce3d 49%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px)'
+    }
+  },
+  {
+    id: 'boardwalk',
+    labelKey: 'editor.templateBeach',
+    preview: 'linear-gradient(#f5cf7b 0 40%, #98613d 40% 53%, #35afd2 53%)',
+    canvas: {
+      backgroundColor: '#f5cf7b',
+      backgroundImage: 'linear-gradient(180deg, transparent 0 39%, #98613d 40% 52%, #f5cf7b 53% 62%, #35afd2 63%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px)'
+    }
+  }
+];
+
+const privacyOptions = [
+  { value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' },
+  { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' },
+  { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }
+];
+
+const elementOptions = [
+  { content: '🌲', labelKey: 'editor.elemTree' },
+  { content: '🏔️', labelKey: 'editor.elemMountain' },
+  { content: '🏠', labelKey: 'editor.elemHouse' },
+  { content: '📍', labelKey: 'editor.elemPin' },
+  { content: '☀️', labelKey: 'editor.elemSun' },
+  { content: '🌊', labelKey: 'editor.elemWater' },
+  { content: '🔥', labelKey: 'editor.elemCampfire' },
+  { content: '⭐', labelKey: 'editor.elemStar' }
+];
+
+const textPresets = [
+  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 32, fontWeight: 900 },
+  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 22, fontWeight: 700 },
+  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 16, fontWeight: 400 }
+];
+
+const drawingTools = [
+  ['select', MousePointer2, 'editor.toolSelect'],
+  ['pen', Pencil, 'editor.toolLine'],
+  ['highlight', Minus, 'editor.toolHighlight'],
+  ['rectangle', Square, 'editor.toolRect'],
+  ['circle', Circle, 'editor.toolCircle'],
+  ['grid', Grid3X3, 'editor.toolGrid'],
+  ['eraser', Eraser, 'editor.toolDelete']
+];
+
 export default function MapEditor({ onBack }) {
   const { t, publishMapToCommunity, editorSetup } = useApp();
   const [activeTab, setActiveTab] = useState('TEMPLATES');
@@ -483,52 +569,8 @@ export default function MapEditor({ onBack }) {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
     left: Math.max(20, Math.min(contextMenuPosition.left, 650))
   } : {};
-  const mapTemplates = [
-    {
-      id: 'tropical',
-      labelKey: 'editor.templateTropical',
-      preview: 'linear-gradient(#48b4ed 0 24%, #f8d58b 24% 58%, #42b8d7 58%)',
-      canvas: {
-        backgroundColor: '#f8d58b',
-        backgroundImage: 'linear-gradient(180deg, transparent 0 44%, #d9a866 44% 45%, #f8d58b 45% 66%, #42b8d7 66% 67%, #278fc8 67%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px)'
-      }
-    },
-    {
-      id: 'island',
-      labelKey: 'editor.templateGreen',
-      preview: 'linear-gradient(135deg, #58b74d 0 30%, #96df4e 30% 70%, #58b74d 70%)',
-      canvas: {
-        backgroundColor: '#85d64d',
-        backgroundImage: 'radial-gradient(ellipse at center, #a0e65c 0 45%, transparent 46%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px)'
-      }
-    },
-    {
-      id: 'river',
-      labelKey: 'editor.templateRiver',
-      preview: 'linear-gradient(135deg, #77cf3d 0 45%, #398ac1 45% 58%, #77cf3d 58%)',
-      canvas: {
-        backgroundColor: '#78ce3d',
-        backgroundImage: 'linear-gradient(90deg, transparent 0 42%, #328ec4 43% 48%, #78ce3d 49%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px)'
-      }
-    },
-    {
-      id: 'boardwalk',
-      labelKey: 'editor.templateBeach',
-      preview: 'linear-gradient(#f5cf7b 0 40%, #98613d 40% 53%, #35afd2 53%)',
-      canvas: {
-        backgroundColor: '#f5cf7b',
-        backgroundImage: 'linear-gradient(180deg, transparent 0 39%, #98613d 40% 52%, #f5cf7b 53% 62%, #35afd2 63%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px)'
-      }
-    }
-  ];
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
-  const tabLabelKeys = {
-    TEMPLATES: 'editor.templates',
-    ELEMENTS: 'editor.elements',
-    TEXT: 'editor.text',
-    UPLOADS: 'editor.uploads'
-  };
 
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
@@ -637,7 +679,7 @@ export default function MapEditor({ onBack }) {
             <fieldset>
               <legend className="block text-xs font-black uppercase mb-2">{t('editor.privacy')}</legend>
               <div className="grid grid-cols-3 gap-2">
-                {[{ value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' }, { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' }, { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }].map((option) => (
+                {privacyOptions.map((option) => (
                   <label key={option.value} className={`border-2 border-black rounded p-2 cursor-pointer ${publishPrivacy === option.value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
                     <input type="radio" name="privacy" value={option.value} checked={publishPrivacy === option.value} onChange={(event) => setPublishPrivacy(event.target.value)} className="sr-only" />
                     <span className="block text-xs font-black uppercase">{t(option.labelKey)}</span>
@@ -659,19 +701,15 @@ export default function MapEditor({ onBack }) {
         
         {/* LEFT MENU STRIP */}
         <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-2 z-10 shrink-0">
-          {{[
-            { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates' },
-            { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements' },
-            { id: 'TEXT', icon: Type, labelKey: 'editor.text' },
-            { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads' },
-          ].map((tab) => (
+          {editorTabs.map((tab) => (
             <button 
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
+              title={t(tab.labelKey)}
+              aria-label={t(tab.labelKey)}
+              className={`flex items-center justify-center w-14 h-14 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
             >
-              <tab.icon className={`w-6 h-6 mb-1 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
-              <span className="text-[8px] font-black">{t(tab.labelKey)}</span>
+              <tab.icon className={`w-7 h-7 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
             </button>
           ))}
         </div>
@@ -697,29 +735,26 @@ export default function MapEditor({ onBack }) {
             )}
             {activeTab === 'ELEMENTS' && (
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  ['🌲', 'Tree'], ['🏔️', 'Mountain'], ['🏠', 'House'], ['📍', 'Pin'],
-                  ['☀️', 'Sun'], ['🌊', 'Water'], ['🔥', 'Campfire'], ['⭐', 'Star']
-                ].map(([content, label]) => (
-                  <button key={label} onClick={() => addElement({ type: 'emoji', label, content })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
-                    <span className="text-3xl">{content}</span>
-                    <span className="text-[9px] font-black mt-1 uppercase">{label}</span>
+                {elementOptions.map((item) => (
+                  <button key={item.labelKey} onClick={() => addElement({ type: 'emoji', labelKey: item.labelKey, content: item.content })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                    <span className="text-3xl">{item.content}</span>
+                    <span className="text-[9px] font-black mt-1 uppercase">{t(item.labelKey)}</span>
                   </button>
                 ))}
               </div>
             )}
             {activeTab === 'TEXT' && (
               <div className="space-y-3">
-                <button onClick={() => addElement({ type: 'text', label: 'Heading', content: 'เพิ่มหัวเรื่อง', fontSize: 32, fontWeight: 900 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '32px', fontWeight: 900 }}>เพิ่มหัวเรื่อง</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Subheading', content: 'เพิ่มหัวเรื่องย่อย', fontSize: 22, fontWeight: 700 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '22px', fontWeight: 700 }}>เพิ่มหัวเรื่องย่อย</button>
-                <button onClick={() => addElement({ type: 'text', label: 'Body', content: 'เพิ่มข้อความในสไตล์ของคุณ', fontSize: 16, fontWeight: 400 })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: '16px', fontWeight: 400 }}>เพิ่มข้อความ</button>
+                {textPresets.map((preset) => (
+                  <button key={preset.labelKey} onClick={() => addElement({ type: 'text', labelKey: preset.labelKey, content: t(preset.contentKey), fontSize: preset.fontSize, fontWeight: preset.fontWeight })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: `${preset.fontSize}px`, fontWeight: preset.fontWeight }}>{t(preset.contentKey)}</button>
+                ))}
               </div>
             )}
             {activeTab === 'UPLOADS' && (
               <div className="space-y-3">
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} className="w-full border-2 border-black bg-[#4895ef] text-white p-3 font-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-blue-600">อัปโหลดไฟล์</button>
-                <p className="text-[10px] text-gray-500 font-bold">เลือกรูปภาพจากเครื่องของคุณ แล้วลากหรือย่อขยายบน canvas ได้ทันที</p>
+                <button onClick={() => fileInputRef.current?.click()} className="w-full border-2 border-black bg-[#4895ef] text-white p-3 font-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-blue-600">{t('editor.uploadFile')}</button>
+                <p className="text-[10px] text-gray-500 font-bold">{t('editor.uploadInstruction')}</p>
               </div>
             )}
           </div>
@@ -734,25 +769,17 @@ export default function MapEditor({ onBack }) {
           <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
             <div className="flex items-center gap-2">
               <div className="bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
-                {[
-                  ['select', MousePointer2, 'Select and move'],
-                  ['pen', Pencil, 'Draw line'],
-                  ['highlight', Minus, 'Add highlight'],
-                  ['rectangle', Square, 'Add rectangle'],
-                  ['circle', Circle, 'Add circle'],
-                  ['grid', Grid3X3, 'Add grid'],
-                  ['eraser', Eraser, 'Delete selected']
-                ].map(([tool, Icon, label]) => (
-                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={label} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
+                {drawingTools.map(([tool, Icon, labelKey]) => (
+                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={t(labelKey)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
                     <Icon className="w-5 h-5" />
                   </button>
                 ))}
               </div>
 
               <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
-                <span className="text-[8px] font-black uppercase text-gray-700">Color</span>
+                <span className="text-[8px] font-black uppercase text-gray-700">{t('editor.color')}</span>
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-black overflow-hidden bg-white">
-                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title="Choose drawing color" />
+                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title={t('editor.chooseColor')} />
                 </span>
               </label>
             </div>
@@ -772,21 +799,21 @@ export default function MapEditor({ onBack }) {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
-                {activeTemplate.label}
+                {t(activeTemplate.labelKey)}
               </div>
 
               {selectedElement && selectedData && selectedPosition && (
                 <div className="absolute z-40 flex items-center gap-1 rounded-full border-2 border-black bg-white px-1.5 py-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
-                  <button type="button" title="Move" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
+                  <button type="button" title={t('editor.move')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
                     <MousePointer2 className="w-3.5 h-3.5" />
                   </button>
-                  <button type="button" title={selectedData.locked ? 'Unlock' : 'Lock'} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
+                  <button type="button" title={t(selectedData.locked ? 'editor.unlock' : 'editor.lock')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
                     {selectedData.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                   </button>
-                  <button type="button" title="Duplicate" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
+                  <button type="button" title={t('editor.duplicate')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
                     <Copy className="w-3.5 h-3.5" />
                   </button>
-                  <button type="button" title="Delete" className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
+                  <button type="button" title={t('editor.deleteSelected')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -795,24 +822,24 @@ export default function MapEditor({ onBack }) {
               {contextMenuElement && contextMenuPosition && (
                 <div className="absolute z-30 w-56 rounded-xl border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={quickActionMenuStyle}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[8px] font-black uppercase tracking-wide text-gray-500">Actions</span>
+                    <span className="text-[8px] font-black uppercase tracking-wide text-gray-500">{t('editor.actions')}</span>
                     <button onClick={() => setContextMenuElementId(null)} className="flex h-5 w-5 items-center justify-center rounded-full border border-black bg-gray-100 text-[10px] font-black">×</button>
                   </div>
                   <div className="space-y-1.5">
                     <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⧉</span>Duplicate</span>
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⧉</span>{t('editor.duplicate')}</span>
                     </button>
                     <button onClick={() => { moveLayer('front'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇡</span>Bring to front</span>
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇡</span>{t('editor.bringFront')}</span>
                     </button>
                     <button onClick={() => { moveLayer('back'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇣</span>Send to back</span>
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇣</span>{t('editor.sendBack')}</span>
                     </button>
                     <button onClick={() => { toggleLockSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">{selectedData?.locked ? '🔓' : '🔒'}</span>{selectedData?.locked ? 'Unlock' : 'Lock'}</span>
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">{selectedData?.locked ? '🔓' : '🔒'}</span>{t(selectedData?.locked ? 'editor.unlock' : 'editor.lock')}</span>
                     </button>
                     <button onClick={() => { deleteSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-red-50 text-red-600">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">🗑</span>Delete</span>
+                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">🗑</span>{t('editor.delete')}</span>
                     </button>
                   </div>
                 </div>
@@ -842,7 +869,7 @@ export default function MapEditor({ onBack }) {
                       setEditingTextId(element.id);
                     }
                   }}>
-                    {element.type === 'image' ? <img src={element.content} alt={element.label} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
+                    {element.type === 'image' ? <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
                       isEditingText ? (
                         <textarea
                           autoFocus
@@ -870,7 +897,7 @@ export default function MapEditor({ onBack }) {
                       <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
                       <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
                       <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize"></div>
-                      <button type="button" title="Rotate selected element" onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-7 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50">
+                      <button type="button" title={t('editor.rotate')} onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-7 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50">
                         <RotateCw className="w-3 h-3 text-violet-600" />
                       </button>
                     </>}
@@ -885,7 +912,7 @@ export default function MapEditor({ onBack }) {
         <div className="w-72 bg-white border-l-4 border-black flex flex-col z-10 shadow-[-4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden xl:flex">
           <div className="p-4 border-b-2 border-black flex items-center gap-2">
             <Settings className="w-4 h-4" />
-            <h2 className="font-black text-sm uppercase">PROPERTIES</h2>
+            <h2 className="font-black text-sm uppercase">{t('editor.properties')}</h2>
           </div>
           
           {selectedElement ? (
@@ -893,27 +920,27 @@ export default function MapEditor({ onBack }) {
               
               {/* Selected Element Overview */}
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">SELECTED ELEMENT</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.selectedElement')}</label>
                 <div className="flex items-center gap-3 bg-gray-100 border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <div className="w-10 h-10 bg-white border border-black rounded flex items-center justify-center text-xl overflow-hidden">
                     {selectedData.type === 'image' ? <img src={selectedData.content} alt="" className="w-full h-full object-contain" /> : selectedData.content}
                   </div>
-                  <span className="font-black text-sm truncate">{selectedData.label}</span>
+                  <span className="font-black text-sm truncate">{getElementLabel(selectedData)}</span>
                 </div>
               </div>
 
               {selectedData.type === 'text' && (
                 <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">TEXT</label>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.text')}</label>
                   <div className="space-y-3">
                     <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
                     <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                       <div>
-                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Font Size</label>
+                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">{t('editor.fontSize')}</label>
                         <input type="number" min="8" max="120" value={selectedData.fontSize ?? 28} onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(120, Number(event.target.value) || 8)) })} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                       </div>
                       <button type="button" onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight ?? 900) > 400 ? 400 : 900 })} className={`px-3 py-2 border-2 border-black rounded font-black text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedData.fontWeight && selectedData.fontWeight > 400 ? 'bg-gray-900 text-white' : 'bg-yellow-200 text-black'}`}>
-                        {selectedData.fontWeight && selectedData.fontWeight > 400 ? 'Normal' : 'Bold'}
+                        {selectedData.fontWeight && selectedData.fontWeight > 400 ? t('editor.normal') : t('editor.bold')}
                       </button>
                     </div>
                   </div>
@@ -922,22 +949,22 @@ export default function MapEditor({ onBack }) {
 
               {/* Transform */}
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">TRANSFORM</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.transform')}</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-bold block mb-1">X Pos</label>
+                    <label className="text-xs font-bold block mb-1">{t('editor.xPos')}</label>
                     <input type="number" min="0" max="800" value={Math.round(selectedPosition.left)} onChange={(event) => updateSelectedPosition('left', event.target.value)} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold block mb-1">Y Pos</label>
+                    <label className="text-xs font-bold block mb-1">{t('editor.yPos')}</label>
                     <input type="number" min="0" max="600" value={Math.round(selectedPosition.top)} onChange={(event) => updateSelectedPosition('top', event.target.value)} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold block mb-1">Width</label>
+                    <label className="text-xs font-bold block mb-1">{t('editor.width')}</label>
                     <input type="number" min="40" max="800" value={Math.round(selectedPosition.width)} onChange={(event) => updateSelectedPosition('width', event.target.value)} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold block mb-1">Height</label>
+                    <label className="text-xs font-bold block mb-1">{t('editor.height')}</label>
                     <input type="number" min="40" max="600" value={Math.round(selectedPosition.height)} onChange={(event) => updateSelectedPosition('height', event.target.value)} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                   </div>
                 </div>
@@ -945,12 +972,12 @@ export default function MapEditor({ onBack }) {
 
               {/* Arrangement */}
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">ARRANGEMENT</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.arrangement')}</label>
                 <div className="flex gap-2">
-                  <button onClick={() => moveLayer('front')} title="Bring to front" className="flex-1 flex items-center justify-center gap-1 border-2 border-black bg-gray-50 hover:bg-gray-200 py-2 rounded font-bold text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                  <button onClick={() => moveLayer('front')} title={t('editor.bringFront')} className="flex-1 flex items-center justify-center gap-1 border-2 border-black bg-gray-50 hover:bg-gray-200 py-2 rounded font-bold text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                     <BringToFront className="w-4 h-4" /> 
                   </button>
-                  <button onClick={() => moveLayer('back')} title="Send to back" className="flex-1 flex items-center justify-center gap-1 border-2 border-black bg-gray-50 hover:bg-gray-200 py-2 rounded font-bold text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                  <button onClick={() => moveLayer('back')} title={t('editor.sendBack')} className="flex-1 flex items-center justify-center gap-1 border-2 border-black bg-gray-50 hover:bg-gray-200 py-2 rounded font-bold text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                     <SendToBack className="w-4 h-4" /> 
                   </button>
                 </div>
@@ -958,16 +985,16 @@ export default function MapEditor({ onBack }) {
 
               {/* Color Overlay */}
               <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">COLOR OVERLAY</label>
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.colorOverlay')}</label>
                 <div className="flex gap-2">
-                  {['#ffffff', '#ef4444', '#3b82f6', '#10b981', '#fbbf24'].map((color) => <button key={color} onClick={() => setOverlay(color)} title={`Overlay ${color}`} className="w-6 h-6 rounded-full border-2 border-black cursor-pointer hover:scale-110" style={{ backgroundColor: color }} />)}
+                  {['#ffffff', '#ef4444', '#3b82f6', '#10b981', '#fbbf24'].map((color) => <button key={color} onClick={() => setOverlay(color)} title={t('editor.overlayColor', { color })} className="w-6 h-6 rounded-full border-2 border-black cursor-pointer hover:scale-110" style={{ backgroundColor: color }} />)}
                 </div>
               </div>
 
               {/* Delete Button */}
               <div className="pt-4 border-t-2 border-black border-dashed">
                 <button onClick={deleteSelectedElement} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
-                  <Trash2 className="w-4 h-4" /> DELETE ELEMENT
+                  <Trash2 className="w-4 h-4" /> {t('editor.deleteElement')}
                 </button>
               </div>
 
@@ -975,7 +1002,7 @@ export default function MapEditor({ onBack }) {
           ) : (
             <div className="flex-1 flex items-center justify-center p-6 text-center">
               <p className="text-xs text-gray-400 font-bold border-2 border-dashed border-gray-300 p-4 rounded">
-                Click an element on the canvas to edit its properties.
+                {t('editor.clickElementHint')}
               </p>
             </div>
           )}

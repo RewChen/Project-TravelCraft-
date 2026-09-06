@@ -75,12 +75,6 @@ export default function Header() {
           {t('nav.profile')}
         </button>
 
-        <button 
-          onClick={() => navigateTo('settings')}
-          className={`${currentPage === 'settings' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
-        >
-          {t('nav.settings')}
-        </button>
       </nav>
 
       <div className="flex items-center gap-3">
@@ -100,6 +94,8 @@ export default function Header() {
         {isLoggedIn && (
           <button 
             onClick={() => navigateTo('settings')}
+            title={t('nav.settings')}
+            aria-label={t('nav.settings')}
             className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none hidden sm:flex cursor-pointer"
           >
             <Settings className="w-4 h-4 text-black dark:text-slate-200" />
