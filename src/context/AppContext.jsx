@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
+import { fetchAllMaps, upsertMap, deleteMapRow } from '../lib/supabaseMaps';
 
 const AppContext = createContext();
 
@@ -598,6 +599,56 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
+  // Persist a map to Supabase when a real session exists (guest/offline stays local).
+  const persistMapToDb = async (item) => {
+    if (!item?.id) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await upsertMap(item);
+    } catch (err) {
+      console.warn('Supabase map sync skipped:', err);
+    }
+  };
+
+  // Delete a map row from Supabase when a real session exists.
+  const deleteMapFromDb = async (mapId) => {
+    if (!mapId) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await deleteMapRow(mapId);
+    } catch (err) {
+      console.warn('Supabase map delete skipped:', err);
+    }
+  };
+
+  // Once auth is resolved, hydrate community maps from the database (fallback stays local).
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    const hydrateMapsFromDb = async () => {
+      try {
+        const dbMaps = await fetchAllMaps();
+        if (cancelled || !dbMaps?.length) return;
+        setCommunityMaps((previous) => {
+          const merged = [...dbMaps];
+          const seen = new Set(dbMaps.map((map) => map.id));
+          for (const localItem of previous) {
+            if (!seen.has(localItem.id)) merged.push(localItem);
+          }
+          return merged;
+        });
+      } catch (err) {
+        console.warn('Community maps fallback to local storage:', err);
+      }
+    };
+    hydrateMapsFromDb();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthLoading]);
+
   // Admin Dashboard States & Persistence
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
@@ -756,6 +807,7 @@ export const AppProvider = ({ children }) => {
         updatedAt: Date.now()
       };
       setCommunityMaps((previous) => previous.map((item) => (item.id === mapId ? updatedItem : item)));
+      persistMapToDb(updatedItem);
     }
   };
 
@@ -802,6 +854,7 @@ export const AppProvider = ({ children }) => {
       if (exists) return previous;
       return [draftItem, ...previous];
     });
+    persistMapToDb(draftItem);
   };
 
   // Publish a custom user map to Community Discoveries!
@@ -863,6 +916,7 @@ export const AppProvider = ({ children }) => {
       return [publishedItem, ...prev];
     });
     setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
+    persistMapToDb(publishedItem);
     navigateTo('community');
   };
 
@@ -874,6 +928,7 @@ export const AppProvider = ({ children }) => {
           : map.discoveredBy === userProfile?.name
       ))
     )));
+    deleteMapFromDb(mapId);
   };
 
   // --- Admin Action Handlers ---
