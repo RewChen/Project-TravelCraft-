@@ -4,8 +4,28 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video
 } from 'lucide-react';
+
+const getYouTubeEmbedUrl = (value) => {
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.replace('www.', '').toLowerCase();
+    let videoId = '';
+
+    if (hostname === 'youtu.be') {
+      videoId = url.pathname.slice(1);
+    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+      if (url.pathname === '/watch') videoId = url.searchParams.get('v') || '';
+      if (url.pathname.startsWith('/shorts/')) videoId = url.pathname.split('/')[2] || '';
+      if (url.pathname.startsWith('/embed/')) videoId = url.pathname.split('/')[2] || '';
+    }
+
+    return /^[a-zA-Z0-9_-]{11}$/.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : '';
+  } catch {
+    return '';
+  }
+};
 
 export default function MapEditor({ onBack }) {
   const { publishMapToCommunity, editorSetup } = useApp();
@@ -32,11 +52,14 @@ export default function MapEditor({ onBack }) {
   const [publishDescription, setPublishDescription] = useState(() => editorSetup?.description || '');
   const [publishTags, setPublishTags] = useState(() => editorSetup?.tags?.join(', ') || '');
   const [publishPrivacy, setPublishPrivacy] = useState(() => editorSetup?.privacy || 'public');
+  const [publishVideoUrl, setPublishVideoUrl] = useState(() => editorSetup?.videoUrl || '');
+  const [publishVideoError, setPublishVideoError] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
   const [contextMenuElementId, setContextMenuElementId] = useState(null);
   const fileInputRef = useRef(null);
+  const videoInputRef = useRef(null);
   const nextElementId = useRef(0);
 
   const pushHistory = () => {
@@ -229,6 +252,15 @@ export default function MapEditor({ onBack }) {
   };
 
   const publishMap = () => {
+    const videoUrl = publishVideoUrl.trim();
+    if (videoUrl && !videoUrl.startsWith('data:video/')) {
+      const youtubeUrl = getYouTubeEmbedUrl(videoUrl);
+      if (!youtubeUrl) {
+        setPublishVideoError('กรุณาใส่ลิงก์ YouTube ที่ถูกต้อง หรืออัปโหลดไฟล์วิดีโอ');
+        return;
+      }
+    }
+
     const publishedPins = elements.map((element) => {
       const position = elementPositions[element.id];
       return {
@@ -247,6 +279,7 @@ export default function MapEditor({ onBack }) {
       region: `${activeTemplate.label} Realm`,
       description: publishDescription.trim() || `A custom map created with the ${activeTemplate.label} template.`,
       imageUrl: null,
+      videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
       isEditorMap: true,
       hours: editorSetup?.hours || '24/7',
@@ -376,6 +409,29 @@ export default function MapEditor({ onBack }) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => addElement({ type: 'image', label: file.name, content: reader.result });
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleVideoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      setPublishVideoError('กรุณาเลือกไฟล์วิดีโอเท่านั้น');
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      setPublishVideoError('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 25 MB');
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPublishVideoUrl(reader.result);
+      setPublishVideoError('');
+    };
     reader.readAsDataURL(file);
     event.target.value = '';
   };
@@ -548,6 +604,27 @@ export default function MapEditor({ onBack }) {
               <label htmlFor="publish-tags" className="block text-xs font-black uppercase mb-1.5">Tags</label>
               <input id="publish-tags" value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder="landmark, scenic, adventure" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
               <p className="mt-1 text-[10px] text-gray-500 font-bold">Separate tags with commas.</p>
+            </div>
+            <div>
+              <label htmlFor="publish-video-url" className="block text-xs font-black uppercase mb-1.5">Map Video</label>
+              <div className="flex gap-2">
+                <input
+                  id="publish-video-url"
+                  type="url"
+                  value={publishVideoUrl.startsWith('data:') ? '' : publishVideoUrl}
+                  onChange={(event) => { setPublishVideoUrl(event.target.value); setPublishVideoError(''); }}
+                  placeholder="วางลิงก์ YouTube เช่น https://youtu.be/..."
+                  className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
+                />
+                <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                <button type="button" onClick={() => videoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Video className="w-4 h-4 mx-auto" />
+                  <span className="sr-only">อัปโหลดวิดีโอ</span>
+                </button>
+              </div>
+              {publishVideoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">เลือกไฟล์วิดีโอแล้ว</p>}
+              {publishVideoError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishVideoError}</p>}
+              <p className="mt-1 text-[10px] text-gray-500 font-bold">เลือกได้อย่างใดอย่างหนึ่ง: ลิงก์ YouTube หรือไฟล์วิดีโอไม่เกิน 25 MB</p>
             </div>
             <fieldset>
               <legend className="block text-xs font-black uppercase mb-2">Privacy</legend>

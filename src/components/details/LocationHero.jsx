@@ -33,6 +33,21 @@ export default function LocationHero() {
           </span>
         </div>
       </div>
+      {selectedLocation.videoUrl && (
+        <div className="border-t-4 border-black bg-black p-4">
+          {selectedLocation.videoUrl.startsWith('data:video/') ? (
+            <video src={selectedLocation.videoUrl} controls className="w-full max-h-105 bg-black" />
+          ) : (
+            <iframe
+              src={selectedLocation.videoUrl}
+              title={`${selectedLocation.title} video`}
+              className="w-full aspect-video border-2 border-white"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
