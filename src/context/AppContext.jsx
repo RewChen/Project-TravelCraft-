@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchAllMaps, upsertMap, deleteMapRow } from '../lib/supabaseMaps';
+import { deleteMapAssets } from '../lib/supabaseUploads';
 
 const AppContext = createContext();
 
@@ -388,6 +389,15 @@ const initialGlobalSettings = {
   autoBanStrikeThreshold: 5,
   serverRegion: 'AP-East (Tokyo)',
   radarRadiusKm: 25
+};
+
+const rarityColorForTier = (tier) => {
+  switch (tier) {
+    case 'rare': return 'bg-sky-500 text-white';
+    case 'epic': return 'bg-indigo-500 text-white';
+    case 'legendary': return 'bg-[#cc0000] text-white';
+    default: return 'bg-gray-400 text-white';
+  }
 };
 
 export const AppProvider = ({ children }) => {
@@ -814,6 +824,7 @@ export const AppProvider = ({ children }) => {
   // Register a fresh editor map as an openable private draft.
   const registerEditorDraft = (draft) => {
     const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
+    const rarity = draft.rarity || 'common';
     const draftItem = {
       id: draft.id,
       ownerId: author.id || null,
@@ -822,8 +833,9 @@ export const AppProvider = ({ children }) => {
       authorRole: author.role || 'Cartographer',
       authorBadgeColor: 'bg-[#cc0000]',
       popularityLv: 0,
-      rarity: 'Epic',
-      rarityColor: 'bg-indigo-500 text-white',
+      imageUrl: draft.imageUrl || '',
+      rarity,
+      rarityColor: rarityColorForTier(rarity),
       category: 'landmarks',
       isEditorMap: true,
       privacy: 'private',
@@ -831,7 +843,7 @@ export const AppProvider = ({ children }) => {
       tags: draft.tags || [],
       details: {
         title: draft.title || 'Untitled Map',
-        region: 'Custom Traveler Realm',
+        region: draft.locationCity || 'Custom Traveler Realm',
         type: 'Community Map',
         tag: 'Custom',
         lore: draft.description || 'A custom map still being designed.',
@@ -841,7 +853,7 @@ export const AppProvider = ({ children }) => {
         travel: draft.travel || 'Community Gateway',
         popularity: 0,
         visitors: '0',
-        rarity: 'Epic',
+        rarity,
         logs: draft.logs || [],
         tags: draft.tags || [],
         privacy: 'private'
@@ -866,6 +878,7 @@ export const AppProvider = ({ children }) => {
     const uniqueId = rawId
       ? (String(rawId).startsWith('comm-user-') ? rawId : `comm-user-${mapSlug}-${rawId}`)
       : `comm-user-${mapSlug}`;
+    const rarity = newCommunityMap.rarity || 'common';
     const publishedItem = {
       id: uniqueId,
       ownerId: author.id || null,
@@ -874,8 +887,8 @@ export const AppProvider = ({ children }) => {
       authorRole: author.role || 'Cartographer',
       authorBadgeColor: 'bg-[#cc0000]',
       popularityLv: 85,
-      rarity: 'Epic',
-      rarityColor: 'bg-indigo-500 text-white',
+      rarity,
+      rarityColor: rarityColorForTier(rarity),
       category: newCommunityMap.category || 'landmarks',
       imageUrl: newCommunityMap.imageUrl || 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80',
       videoUrl: newCommunityMap.videoUrl || null,
@@ -895,7 +908,7 @@ export const AppProvider = ({ children }) => {
         travel: newCommunityMap.travel || 'Community Gateway',
         popularity: 85,
         visitors: 'Community Discoveries',
-        rarity: 'Epic',
+        rarity,
         logs: newCommunityMap.logs || [],
         tags: newCommunityMap.tags || [],
         privacy: newCommunityMap.privacy || 'public'
@@ -929,6 +942,7 @@ export const AppProvider = ({ children }) => {
       ))
     )));
     deleteMapFromDb(mapId);
+    deleteMapAssets(mapId);
   };
 
   // --- Admin Action Handlers ---

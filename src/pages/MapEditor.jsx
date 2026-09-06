@@ -283,6 +283,9 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       bestTime: editorSetup?.bestTime,
       travel: editorSetup?.travel,
       logs: editorSetup?.logs || [],
+      imageUrl: editorSetup?.imageUrl || '',
+      rarity: editorSetup?.rarity || 'common',
+      locationCity: editorSetup?.locationCity || editorSetup?.region || '',
       editorState: savedEditorState || null
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -455,12 +458,12 @@ persistEditorStateToStore(mapId, editorDraftState);
     const mapData = {
 id: mapId,
       title: mapTitle.trim() || t('editor.untitledMap'),
-      region: t('editor.realm', { name: t(activeTemplate.labelKey) }),
+      region: editorSetup?.locationCity || editorSetup?.region || t('editor.realm', { name: t(activeTemplate.labelKey) }),
       description: publishDescription.trim() || t('editor.generatingDesc', {
         user: userProfile?.name || 'a TravelCraft traveler',
         name: t(activeTemplate.labelKey)
       }),
-      imageUrl: null,
+      imageUrl: editorSetup?.imageUrl || null,
       videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
       isEditorMap: true,
@@ -469,6 +472,7 @@ id: mapId,
       bestTime: editorSetup?.bestTime || t('editor.anytime'),
       travel: editorSetup?.travel || t('editor.communityGateway'),
       logs: editorSetup?.logs || [],
+      rarity: editorSetup?.rarity || 'common',
       tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
       privacy: publishPrivacy,
       pins: publishedPins,

@@ -102,3 +102,24 @@ CREATE POLICY "Owners can update their own maps"
 -- Only the authenticated owner may delete their own maps.
 CREATE POLICY "Owners can delete their own maps"
     ON public.maps FOR DELETE USING (auth.uid() = owner_id);
+
+-- =========================================
+-- STORAGE BUCKET: MEDIA (unified, folder per map)
+-- Bucket name: media
+-- Folder structure: maps/<mapId>/cover | pins | video
+-- Create the bucket (idempotent), then the storage policies below.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+-- =========================================
+CREATE POLICY "Media files are publicly viewable"
+    ON storage.objects FOR SELECT USING (bucket_id = 'media');
+
+CREATE POLICY "Authenticated users can upload media"
+    ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Owners can update their media"
+    ON storage.objects FOR UPDATE USING (bucket_id = 'media' AND auth.uid() = owner_id);
+
+CREATE POLICY "Owners can delete their media"
+    ON storage.objects FOR DELETE USING (bucket_id = 'media' AND auth.uid() = owner_id);
