@@ -7,7 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function DetailsPage() {
-  const { navigateTo } = useApp();
+  const { navigateTo, t } = useApp();
 
   return (
     <div className="max-w-5xl mx-auto px-4 pb-12 space-y-6">
@@ -15,7 +15,7 @@ export default function DetailsPage() {
         onClick={() => navigateTo('map')}
         className="text-xs font-black bg-white hover:bg-gray-100 border-2 border-black rounded-lg px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer"
       >
-        <ArrowLeft className="w-4 h-4" /> Back to World Map
+        <ArrowLeft className="w-4 h-4" /> {t('details.backToMap')}
       </button>
 
       {/* Top Hero Banner */}

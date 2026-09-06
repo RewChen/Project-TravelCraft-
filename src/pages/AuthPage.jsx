@@ -6,7 +6,7 @@ import RestoredForm from '../components/auth/RestoredForm';
 import { useApp } from '../context/AppContext';
 
 export default function AuthPage() {
-  const { authMode, navigateTo } = useApp();
+  const { authMode, navigateTo, t } = useApp();
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-mono">
@@ -14,7 +14,7 @@ export default function AuthPage() {
         onClick={() => navigateTo('home')}
         className="mb-4 text-white text-xs font-bold bg-gray-800 hover:bg-gray-700 px-4 py-2 border-2 border-white rounded-lg flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] cursor-pointer"
       >
-        ← Back to Main Page
+        {t('auth.back')}
       </button>
 
       <div className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-[36px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] relative">
@@ -23,10 +23,10 @@ export default function AuthPage() {
 
             {/* Red Header Banner */}
             <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
-              <span>{authMode === 'login' && 'TravelCraft'}</span>
-              <span>{authMode === 'register' && 'TRAINER REGISTRATION'}</span>
-              <span>{authMode === 'forgot' && 'SYSTEM RECOVERY'}</span>
-              <span>{authMode === 'restored' && 'SYSTEM RESTORED'}</span>
+              <span>{authMode === 'login' && t('auth.loginHeader')}</span>
+              <span>{authMode === 'register' && t('auth.registerHeader')}</span>
+              <span>{authMode === 'forgot' && t('auth.recoveryHeader')}</span>
+              <span>{authMode === 'restored' && t('auth.restoredHeader')}</span>
             </div>
 
             <div className="p-4 sm:p-5">
@@ -56,11 +56,11 @@ export default function AuthPage() {
 
       <footer className="text-center text-xs text-white/60 mt-6 space-y-1 font-sans">
         <div className="flex justify-center gap-4 font-bold underline">
-          <button className="hover:text-white">Legal</button>
-          <button className="hover:text-white">Support</button>
-          <button className="hover:text-white">Trainer Club</button>
+          <button className="hover:text-white">{t('footer.legal')}</button>
+          <button className="hover:text-white">{t('footer.support')}</button>
+          <button className="hover:text-white">{t('footer.trainerClub')}</button>
         </div>
-        <p className="text-[10px]">© 2026 TravelCraft - Gotta Explore 'Em All</p>
+        <p className="text-[10px]">{t('footer.copyright')}</p>
       </footer>
     </div>
   );

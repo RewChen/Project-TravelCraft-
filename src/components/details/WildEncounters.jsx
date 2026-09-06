@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function WildEncounters() {
-  const { navigateTo } = useApp();
+  const { navigateTo, t } = useApp();
 
   const encounters = [
     {
@@ -40,7 +40,7 @@ export default function WildEncounters() {
   return (
     <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <h3 className="text-base font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-black">
-        🗺️ Wild Encounters
+        {t('details.wildEncounters')}
       </h3>
       <div className="space-y-3">
         {encounters.map((item, index) => (

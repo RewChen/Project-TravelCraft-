@@ -3,13 +3,13 @@ import { BarChart2, User, Heart, Share2, X, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function LocationStats() {
-  const { selectedLocation, favorites, toggleFavorite } = useApp();
+  const { selectedLocation, favorites, toggleFavorite, t } = useApp();
   const [showShare, setShowShare] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const isFav = favorites.includes(selectedLocation.title);
   const shareUrl = window.location.href;
-  const shareText = `Check out ${selectedLocation.title} on TravelCraft`;
+  const shareText = t('details.shareText', { title: selectedLocation.title });
   const copyLink = async () => {
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareUrl);
@@ -33,7 +33,7 @@ export default function LocationStats() {
   return (
     <div className="bg-[#e8ecef] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-amber-700">
-        <BarChart2 className="w-5 h-5" /> Location Stats
+        <BarChart2 className="w-5 h-5" /> {t('details.statsTitle')}
       </h3>
       
       <div className="mb-4">
@@ -48,12 +48,12 @@ export default function LocationStats() {
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
-          <div className="text-[9px] font-bold text-gray-500 uppercase">Visitors</div>
+          <div className="text-[9px] font-bold text-gray-500 uppercase">{t('details.visitors')}</div>
           <div className="text-xs font-black">{selectedLocation.visitors}</div>
         </div>
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <span className="text-amber-500 text-sm block mb-1">🎖️</span>
-          <div className="text-[9px] font-bold text-gray-500 uppercase">Rarity</div>
+          <div className="text-[9px] font-bold text-gray-500 uppercase">{t('details.rarity')}</div>
           <div className="text-xs font-black">{selectedLocation.rarity}</div>
         </div>
       </div>
@@ -65,29 +65,29 @@ export default function LocationStats() {
         } font-bold py-2.5 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 mb-3 flex items-center justify-center gap-2 text-sm transition-all`}
       >
         <Heart className={`w-4 h-4 ${isFav ? 'fill-black' : 'fill-white'}`} />
-        {isFav ? 'In Favorites' : 'Add to Favorites'}
+        {isFav ? t('details.inFavorites') : t('details.addToFavorites')}
       </button>
 
       <button onClick={() => setShowShare(true)} className="w-full bg-white hover:bg-gray-50 text-black font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 flex items-center justify-center gap-2 text-xs transition-all">
-        <Share2 className="w-4 h-4" /> Share Location
+        <Share2 className="w-4 h-4" /> {t('details.shareLocation')}
       </button>
 
       {showShare && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShare(false)}>
         <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-center justify-between border-b border-white/20 pb-3">
-            <h2 className="font-black text-lg">แชร์สถานที่</h2>
-            <button onClick={() => setShowShare(false)} title="Close" className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+            <h2 className="font-black text-lg">{t('details.shareTitle')}</h2>
+            <button onClick={() => setShowShare(false)} title={t('common.close')} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
           </div>
           <p className="text-sm text-gray-300 mt-4 mb-5">{shareText}</p>
           <div className="grid grid-cols-4 gap-3 mb-5">
-            <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center text-2xl font-black">f</span>Facebook</button>
-            <button onClick={() => window.open(`sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-white text-blue-600 flex items-center justify-center"><Share2 className="w-6 h-6" /></span>Messages</button>
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Share2 className="w-6 h-6" /></span>WhatsApp</button>
-            <button onClick={copyLink} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span>{copied ? 'Copied' : 'Copy link'}</button>
+            <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center text-2xl font-black">f</span>{t('details.facebook')}</button>
+            <button onClick={() => window.open(`sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-white text-blue-600 flex items-center justify-center"><Share2 className="w-6 h-6" /></span>{t('details.messages')}</button>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Share2 className="w-6 h-6" /></span>{t('details.whatsapp')}</button>
+            <button onClick={copyLink} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span>{copied ? t('details.copied') : t('details.copyLink')}</button>
           </div>
           <div className="flex gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
             <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
-            <button onClick={copyLink} className="border border-white/40 rounded-full px-3 py-1 text-xs font-bold">{copied ? 'Copied' : 'Copy'}</button>
+            <button onClick={copyLink} className="border border-white/40 rounded-full px-3 py-1 text-xs font-bold">{copied ? t('common.copied') : t('common.copy')}</button>
           </div>
         </div>
       </div>}

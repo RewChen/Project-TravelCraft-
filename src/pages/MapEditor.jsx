@@ -28,14 +28,14 @@ const getYouTubeEmbedUrl = (value) => {
 };
 
 export default function MapEditor({ onBack }) {
-  const { publishMapToCommunity, editorSetup } = useApp();
+  const { t, publishMapToCommunity, editorSetup } = useApp();
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
   const [zoom, setZoom] = useState(100);
   const [selectedTemplate, setSelectedTemplate] = useState('tropical');
   const [elements, setElements] = useState([
-    { id: 'tree', type: 'emoji', label: 'Ancient Tree', content: '🌳' },
-    { id: 'chest', type: 'emoji', label: 'Wooden Chest', content: '🧰' }
+    { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
+    { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
   ]);
   const [elementPositions, setElementPositions] = useState({
     tree: { left: 200, top: 150, width: 128, height: 128 },
@@ -47,7 +47,7 @@ export default function MapEditor({ onBack }) {
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
   const [drawingColor, setDrawingColor] = useState('#111111');
-  const [mapTitle, setMapTitle] = useState(() => editorSetup?.title || 'Untitled Map');
+  const [mapTitle, setMapTitle] = useState(() => editorSetup?.title || t('editor.untitledMap'));
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishDescription, setPublishDescription] = useState(() => editorSetup?.description || '');
   const [publishTags, setPublishTags] = useState(() => editorSetup?.tags?.join(', ') || '');
@@ -61,6 +61,8 @@ export default function MapEditor({ onBack }) {
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const nextElementId = useRef(0);
+
+  const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
 
   const pushHistory = () => {
     setHistory((previous) => [...previous, { elements, elementPositions }]);
@@ -207,7 +209,7 @@ export default function MapEditor({ onBack }) {
     const duplicateId = `${source.type}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const position = elementPositions[selectedElement] ?? { left: 0, top: 0, width: 100, height: 100 };
 
-    setElements((previous) => [...previous, { ...source, id: duplicateId, label: `${source.label} Copy` }]);
+    setElements((previous) => [...previous, { ...source, id: duplicateId, label: `${getElementLabel(source)} ${t('editor.copySuffix')}`, labelKey: undefined }]);
     setElementPositions((previous) => ({
       ...previous,
       [duplicateId]: {
@@ -248,7 +250,7 @@ export default function MapEditor({ onBack }) {
 
   const saveDraft = () => {
     localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate }));
-    setSaveStatus('Draft saved');
+    setSaveStatus(t('editor.statusDraftSaved'));
   };
 
   const publishMap = () => {
@@ -256,7 +258,7 @@ export default function MapEditor({ onBack }) {
     if (videoUrl && !videoUrl.startsWith('data:video/')) {
       const youtubeUrl = getYouTubeEmbedUrl(videoUrl);
       if (!youtubeUrl) {
-        setPublishVideoError('กรุณาใส่ลิงก์ YouTube ที่ถูกต้อง หรืออัปโหลดไฟล์วิดีโอ');
+        setPublishVideoError(t('editor.ytInvalid'));
         return;
       }
     }
@@ -265,27 +267,27 @@ export default function MapEditor({ onBack }) {
       const position = elementPositions[element.id];
       return {
         id: `editor-${element.id}`,
-        title: element.label,
+        title: getElementLabel(element),
         top: `${Math.round(((position.top + position.height / 2) / 600) * 100)}%`,
         left: `${Math.round(((position.left + position.width / 2) / 800) * 100)}%`,
         icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
         category: 'landmarks',
-        lore: element.type === 'text' ? element.content : `${element.label} added to this custom map.`
+        lore: element.type === 'text' ? element.content : t('editor.addedLore', { name: getElementLabel(element) })
       };
     });
 
     const mapData = {
-      title: mapTitle.trim() || 'Untitled Map',
-      region: `${activeTemplate.label} Realm`,
-      description: publishDescription.trim() || `A custom map created with the ${activeTemplate.label} template.`,
+      title: mapTitle.trim() || t('editor.untitledMap'),
+      region: t('editor.realm', { name: t(activeTemplate.labelKey) }),
+      description: publishDescription.trim() || t('editor.generatingDesc', { name: t(activeTemplate.labelKey) }),
       imageUrl: null,
       videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
       isEditorMap: true,
       hours: editorSetup?.hours || '24/7',
-      fee: editorSetup?.fee || 'Free Exploration',
-      bestTime: editorSetup?.bestTime || 'Anytime',
-      travel: editorSetup?.travel || 'Community Gateway',
+      fee: editorSetup?.fee || t('editor.freeExploration'),
+      bestTime: editorSetup?.bestTime || t('editor.anytime'),
+      travel: editorSetup?.travel || t('editor.communityGateway'),
       logs: editorSetup?.logs || [],
       tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
       privacy: publishPrivacy,
@@ -294,21 +296,21 @@ export default function MapEditor({ onBack }) {
 
     if (publishPrivacy === 'private') {
       localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
-      setSaveStatus('Private draft saved');
+      setSaveStatus(t('editor.statusPrivateSaved'));
       setShowPublishModal(false);
       return;
     }
 
     publishMapToCommunity(mapData);
-    setSaveStatus('Map published to Community');
+    setSaveStatus(t('editor.statusPublished'));
     setShowPublishModal(false);
   };
 
   const shareUrl = window.location.href;
-  const shareTitle = 'My TravelCraft Map';
+  const shareTitle = t('editor.shareTitle');
   const openShareLink = (url) => {
     const shareWindow = window.open(url, '_blank');
-    if (!shareWindow) setSaveStatus('อนุญาต popup เพื่อเปิดช่องทางแชร์');
+    if (!shareWindow) setSaveStatus(t('editor.sharePopupRequired'));
   };
   const copyShareLink = async () => {
     try {
@@ -326,16 +328,16 @@ export default function MapEditor({ onBack }) {
         helper.remove();
       }
       setCopied(true);
-      setSaveStatus('คัดลอกลิงก์แล้ว');
+      setSaveStatus(t('editor.linkCopied'));
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      setSaveStatus('คัดลอกไม่สำเร็จ กรุณาคัดลอกลิงก์ด้วยตัวเอง');
+      setSaveStatus(t('editor.linkCopyFailed'));
     }
   };
   const nativeShare = async () => {
     try {
       if (navigator.share) {
-        await navigator.share({ title: shareTitle, text: 'Check out my travel map!', url: shareUrl });
+        await navigator.share({ title: shareTitle, text: t('editor.nativeShareText'), url: shareUrl });
       } else {
         await copyShareLink();
       }
@@ -390,11 +392,11 @@ export default function MapEditor({ onBack }) {
       return;
     }
     const toolElements = {
-      pen: { type: 'shape', shape: 'line', label: 'Draw Line', content: '', color: drawingColor },
-      highlight: { type: 'shape', shape: 'highlight', label: 'Highlight', content: '', color: drawingColor },
-      rectangle: { type: 'shape', shape: 'rectangle', label: 'Rectangle', content: '', color: drawingColor },
-      circle: { type: 'shape', shape: 'circle', label: 'Circle', content: '', color: drawingColor },
-      grid: { type: 'shape', shape: 'grid', label: 'Grid', content: '', color: drawingColor }
+      pen: { type: 'shape', shape: 'line', labelKey: 'editor.drawLine', content: '', color: drawingColor },
+      highlight: { type: 'shape', shape: 'highlight', labelKey: 'editor.highlight', content: '', color: drawingColor },
+      rectangle: { type: 'shape', shape: 'rectangle', labelKey: 'editor.rectangle', content: '', color: drawingColor },
+      circle: { type: 'shape', shape: 'circle', labelKey: 'editor.circle', content: '', color: drawingColor },
+      grid: { type: 'shape', shape: 'grid', labelKey: 'editor.grid', content: '', color: drawingColor }
     };
     if (toolElements[tool]) {
       setActiveTool(tool);
@@ -417,12 +419,12 @@ export default function MapEditor({ onBack }) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('video/')) {
-      setPublishVideoError('กรุณาเลือกไฟล์วิดีโอเท่านั้น');
+      setPublishVideoError(t('editor.onlyVideo'));
       event.target.value = '';
       return;
     }
     if (file.size > 25 * 1024 * 1024) {
-      setPublishVideoError('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 25 MB');
+      setPublishVideoError(t('editor.videoTooLarge'));
       event.target.value = '';
       return;
     }
@@ -484,7 +486,7 @@ export default function MapEditor({ onBack }) {
   const mapTemplates = [
     {
       id: 'tropical',
-      label: 'Tropical Coast',
+      labelKey: 'editor.templateTropical',
       preview: 'linear-gradient(#48b4ed 0 24%, #f8d58b 24% 58%, #42b8d7 58%)',
       canvas: {
         backgroundColor: '#f8d58b',
@@ -493,7 +495,7 @@ export default function MapEditor({ onBack }) {
     },
     {
       id: 'island',
-      label: 'Green Island',
+      labelKey: 'editor.templateGreen',
       preview: 'linear-gradient(135deg, #58b74d 0 30%, #96df4e 30% 70%, #58b74d 70%)',
       canvas: {
         backgroundColor: '#85d64d',
@@ -502,7 +504,7 @@ export default function MapEditor({ onBack }) {
     },
     {
       id: 'river',
-      label: 'River Valley',
+      labelKey: 'editor.templateRiver',
       preview: 'linear-gradient(135deg, #77cf3d 0 45%, #398ac1 45% 58%, #77cf3d 58%)',
       canvas: {
         backgroundColor: '#78ce3d',
@@ -511,7 +513,7 @@ export default function MapEditor({ onBack }) {
     },
     {
       id: 'boardwalk',
-      label: 'Beach Boardwalk',
+      labelKey: 'editor.templateBeach',
       preview: 'linear-gradient(#f5cf7b 0 40%, #98613d 40% 53%, #35afd2 53%)',
       canvas: {
         backgroundColor: '#f5cf7b',
@@ -521,6 +523,12 @@ export default function MapEditor({ onBack }) {
   ];
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
+  const tabLabelKeys = {
+    TEMPLATES: 'editor.templates',
+    ELEMENTS: 'editor.elements',
+    TEXT: 'editor.text',
+    UPLOADS: 'editor.uploads'
+  };
 
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
@@ -528,7 +536,7 @@ export default function MapEditor({ onBack }) {
       {/* TOP NAVBAR */}
       <header className="h-14 bg-white border-b-4 border-black flex items-center justify-between px-4 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] z-20 relative">
         <div className="flex items-center gap-4 h-full">
-          <button onClick={onBack} className="hover:bg-gray-200 p-1 rounded transition-colors" title="Back to My Maps">
+          <button onClick={onBack} className="hover:bg-gray-200 p-1 rounded transition-colors" title={t('editor.backToMyMaps')}>
             <ArrowLeft className="w-5 h-5 font-black" />
           </button>
           <div className="flex items-center gap-2 text-[#cc0000] font-black uppercase tracking-wider">
@@ -546,18 +554,18 @@ export default function MapEditor({ onBack }) {
 
         <div className="flex items-center gap-2 sm:gap-4 h-full">
           <div className="hidden sm:flex items-center gap-2">
-            <button onClick={undo} disabled={!history.length} title="Undo" className="w-8 h-8 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"><Undo2 className="w-4 h-4" /></button>
-            <button onClick={redo} disabled={!future.length} title="Redo" className="w-8 h-8 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"><Redo2 className="w-4 h-4" /></button>
+            <button onClick={undo} disabled={!history.length} title={t('editor.undo')} className="w-8 h-8 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"><Undo2 className="w-4 h-4" /></button>
+            <button onClick={redo} disabled={!future.length} title={t('editor.redo')} className="w-8 h-8 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"><Redo2 className="w-4 h-4" /></button>
           </div>
           <div className="h-6 w-1 bg-black rounded-full mx-1 hidden sm:block"></div>
           <button onClick={saveDraft} className="bg-[#4895ef] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase">
-            SAVE <span className="hidden sm:inline">DRAFT</span>
+            {t('editor.saveDraft')}
           </button>
           <button onClick={() => setShowPublishModal(true)} className="bg-[#cc0000] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
-            <Compass className="w-3 h-3 hidden sm:block" /> PUBLISH
+            <Compass className="w-3 h-3 hidden sm:block" /> {t('editor.publish')}
           </button>
-          <button onClick={() => setShowShareModal(true)} title="Share map" className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
-            <Share2 className="w-3 h-3" /> SHARE
+          <button onClick={() => setShowShareModal(true)} title={t('editor.shareTooltip')} className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
+            <Share2 className="w-3 h-3" /> {t('editor.share')}
           </button>
         </div>
       </header>
@@ -566,21 +574,21 @@ export default function MapEditor({ onBack }) {
       {showShareModal && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
         <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg shadow-2xl p-5" onClick={(event) => event.stopPropagation()}>
           <div className="flex items-center justify-between border-b border-white/20 pb-3">
-            <h2 className="font-black text-lg">Share map</h2>
-            <button onClick={() => setShowShareModal(false)} title="Close" className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+            <h2 className="font-black text-lg">{t('editor.shareModalTitle')}</h2>
+            <button onClick={() => setShowShareModal(false)} title={t('editor.close')} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
           </div>
-          <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">Share</button>
-          <p className="text-center text-sm text-gray-300 mb-5">Share this map with your friends</p>
+          <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">{t('editor.shareBtn')}</button>
+          <p className="text-center text-sm text-gray-300 mb-5">{t('editor.shareModalDesc')}</p>
           <div className="grid grid-cols-5 gap-3 mb-6">
-            <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title="Facebook" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">Facebook</span></button>
-            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="Messages" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">Messages</span></button>
-            <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title="WhatsApp" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Smartphone className="w-6 h-6" /></span><span className="text-[10px]">WhatsApp</span></button>
-            <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title="X" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">X</span></button>
-            <button onClick={copyShareLink} title="Copy link" className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? 'Copied' : 'Copy'}</span></button>
+            <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title={t('editor.facebook')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">{t('editor.facebook')}</span></button>
+            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.messages')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">{t('editor.messages')}</span></button>
+            <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.whatsapp')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Smartphone className="w-6 h-6" /></span><span className="text-[10px]">{t('editor.whatsapp')}</span></button>
+            <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title={t('editor.x')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">{t('editor.x')}</span></button>
+            <button onClick={copyShareLink} title={t('editor.copyLink')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? t('editor.copied') : t('editor.copy')}</span></button>
           </div>
           <div className="flex items-center gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
             <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
-            <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? 'Copied' : 'Copy'}</button>
+            <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? t('editor.copied') : t('editor.copy')}</button>
           </div>
         </div>
       </div>}
@@ -588,59 +596,59 @@ export default function MapEditor({ onBack }) {
       {showPublishModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowPublishModal(false)}>
         <form onSubmit={(event) => { event.preventDefault(); publishMap(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
-            <h2 className="font-black uppercase tracking-wide">Publish Map</h2>
-            <button type="button" onClick={() => setShowPublishModal(false)} title="Close" className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
+            <h2 className="font-black uppercase tracking-wide">{t('editor.publishTitle')}</h2>
+            <button type="button" onClick={() => setShowPublishModal(false)} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
           </div>
           <div className="p-5 space-y-4">
             <div>
-              <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">Map Title</label>
+              <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapTitle')}</label>
               <input id="publish-title" value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
             </div>
             <div>
-              <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">Description</label>
-              <textarea id="publish-description" rows="3" value={publishDescription} onChange={(event) => setPublishDescription(event.target.value)} placeholder="Tell travelers what makes this map special" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+              <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">{t('editor.description')}</label>
+              <textarea id="publish-description" rows="3" value={publishDescription} onChange={(event) => setPublishDescription(event.target.value)} placeholder={t('editor.descriptionPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
             </div>
             <div>
-              <label htmlFor="publish-tags" className="block text-xs font-black uppercase mb-1.5">Tags</label>
-              <input id="publish-tags" value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder="landmark, scenic, adventure" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
-              <p className="mt-1 text-[10px] text-gray-500 font-bold">Separate tags with commas.</p>
+              <label htmlFor="publish-tags" className="block text-xs font-black uppercase mb-1.5">{t('editor.tags')}</label>
+              <input id="publish-tags" value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder={t('editor.tagsPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+              <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.tagsHelp')}</p>
             </div>
             <div>
-              <label htmlFor="publish-video-url" className="block text-xs font-black uppercase mb-1.5">Map Video</label>
+              <label htmlFor="publish-video-url" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapVideo')}</label>
               <div className="flex gap-2">
                 <input
                   id="publish-video-url"
                   type="url"
                   value={publishVideoUrl.startsWith('data:') ? '' : publishVideoUrl}
                   onChange={(event) => { setPublishVideoUrl(event.target.value); setPublishVideoError(''); }}
-                  placeholder="วางลิงก์ YouTube เช่น https://youtu.be/..."
+                  placeholder={t('editor.videoYtPh')}
                   className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
                 />
                 <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
                 <button type="button" onClick={() => videoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   <Video className="w-4 h-4 mx-auto" />
-                  <span className="sr-only">อัปโหลดวิดีโอ</span>
+                  <span className="sr-only">{t('editor.uploadVideo')}</span>
                 </button>
               </div>
-              {publishVideoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">เลือกไฟล์วิดีโอแล้ว</p>}
+              {publishVideoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">{t('editor.videoSelected')}</p>}
               {publishVideoError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishVideoError}</p>}
-              <p className="mt-1 text-[10px] text-gray-500 font-bold">เลือกได้อย่างใดอย่างหนึ่ง: ลิงก์ YouTube หรือไฟล์วิดีโอไม่เกิน 25 MB</p>
+              <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
             </div>
             <fieldset>
-              <legend className="block text-xs font-black uppercase mb-2">Privacy</legend>
+              <legend className="block text-xs font-black uppercase mb-2">{t('editor.privacy')}</legend>
               <div className="grid grid-cols-3 gap-2">
-                {[['public', 'Public', 'Visible in Community'], ['unlisted', 'Unlisted', 'Only with a link'], ['private', 'Private', 'Keep as a draft']].map(([value, label, description]) => (
-                  <label key={value} className={`border-2 border-black rounded p-2 cursor-pointer ${publishPrivacy === value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                    <input type="radio" name="privacy" value={value} checked={publishPrivacy === value} onChange={(event) => setPublishPrivacy(event.target.value)} className="sr-only" />
-                    <span className="block text-xs font-black uppercase">{label}</span>
-                    <span className="block mt-1 text-[9px] leading-tight font-bold text-gray-600">{description}</span>
+                {[{ value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' }, { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' }, { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }].map((option) => (
+                  <label key={option.value} className={`border-2 border-black rounded p-2 cursor-pointer ${publishPrivacy === option.value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                    <input type="radio" name="privacy" value={option.value} checked={publishPrivacy === option.value} onChange={(event) => setPublishPrivacy(event.target.value)} className="sr-only" />
+                    <span className="block text-xs font-black uppercase">{t(option.labelKey)}</span>
+                    <span className="block mt-1 text-[9px] leading-tight font-bold text-gray-600">{t(option.descKey)}</span>
                   </label>
                 ))}
               </div>
             </fieldset>
             <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
-              <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">Cancel</button>
-              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">Publish Map</button>
+              <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
+              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{t('editor.publishMap')}</button>
             </div>
           </div>
         </form>
@@ -651,11 +659,11 @@ export default function MapEditor({ onBack }) {
         
         {/* LEFT MENU STRIP */}
         <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-2 z-10 shrink-0">
-          {[
-            { id: 'TEMPLATES', icon: LayoutGrid, label: 'TEMPLATES' },
-            { id: 'ELEMENTS', icon: Shapes, label: 'ELEMENTS' },
-            { id: 'TEXT', icon: Type, label: 'TEXT' },
-            { id: 'UPLOADS', icon: Upload, label: 'UPLOADS' },
+          {{[
+            { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates' },
+            { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements' },
+            { id: 'TEXT', icon: Type, labelKey: 'editor.text' },
+            { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads' },
           ].map((tab) => (
             <button 
               key={tab.id}
@@ -663,7 +671,7 @@ export default function MapEditor({ onBack }) {
               className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
             >
               <tab.icon className={`w-6 h-6 mb-1 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
-              <span className="text-[8px] font-black">{tab.label}</span>
+              <span className="text-[8px] font-black">{t(tab.labelKey)}</span>
             </button>
           ))}
         </div>
@@ -671,7 +679,7 @@ export default function MapEditor({ onBack }) {
         {/* LEFT PANEL CONTENT */}
         <div className="w-64 bg-white border-r-4 border-black flex flex-col z-10 shadow-[4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden md:flex">
           <div className="p-4 border-b-2 border-black">
-            <h2 className="font-black text-sm uppercase">{activeTab}</h2>
+            <h2 className="font-black text-sm uppercase">{t(tabLabelKeys[activeTab])}</h2>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
@@ -682,7 +690,7 @@ export default function MapEditor({ onBack }) {
                     <div className="absolute inset-0" style={{ background: template.preview }}></div>
                     <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
                     {selectedTemplate === template.id && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
-                    <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{template.label}</span>
+                    <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
                   </button>
                 ))}
               </div>

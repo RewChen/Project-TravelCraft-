@@ -2,7 +2,7 @@ import { X, Heart, Trash2, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function LocationPopupModal({ pin, onClose }) {
-  const { navigateTo, favorites, toggleFavorite, deleteCustomPin } = useApp();
+  const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin } = useApp();
 
   if (!pin) return null;
 
@@ -46,14 +46,14 @@ export default function LocationPopupModal({ pin, onClose }) {
             className="w-full h-32 object-cover"
           />
           <div className="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[9px] px-2 py-0.5 rounded border border-white/40 flex items-center gap-1 font-sans">
-            <Camera className="w-3 h-3" /> Traveler Upload
+            <Camera className="w-3 h-3" /> {t('map.travelerUpload')}
           </div>
         </div>
       ) : null}
 
       {/* Lore / Description */}
       <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-4 border border-black p-2 bg-gray-50 rounded">
-        {pin.lore || 'A unique destination discovered on the world map.'}
+        {pin.lore || t('map.defaultLore')}
       </p>
 
       {/* Actions */}
@@ -62,9 +62,9 @@ export default function LocationPopupModal({ pin, onClose }) {
           <button 
             onClick={handleDelete}
             className="bg-red-100 hover:bg-red-200 text-red-700 text-[10px] font-black px-2.5 py-1.5 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1 cursor-pointer"
-            title="Delete custom pin"
+            title={t('map.deletePin')}
           >
-            <Trash2 className="w-3 h-3" /> Delete
+            <Trash2 className="w-3 h-3" /> {t('common.delete')}
           </button>
         ) : (
           <div />
@@ -77,13 +77,13 @@ export default function LocationPopupModal({ pin, onClose }) {
               isFav ? 'bg-red-600 text-white' : 'bg-amber-500 text-white hover:bg-amber-600'
             } text-[10px] font-black px-2.5 py-1.5 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1 transition-all cursor-pointer`}
           >
-            <Heart className={`w-3 h-3 ${isFav ? 'fill-white' : ''}`} /> {isFav ? 'Fav' : '+Fav'}
+            <Heart className={`w-3 h-3 ${isFav ? 'fill-white' : ''}`} /> {isFav ? t('map.fav') : t('map.unfav')}
           </button>
           <button 
             onClick={() => navigateTo('details', pin)}
             className="bg-[#cc0000] hover:bg-red-700 text-white text-[10px] font-black px-2.5 py-1.5 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center gap-1 cursor-pointer"
           >
-            Details →
+            {t('common.details')} →
           </button>
         </div>
       </div>

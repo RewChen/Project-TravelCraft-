@@ -7,6 +7,7 @@ import WorldMapPage from './pages/WorldMapPage';
 import DetailsPage from './pages/DetailsPage';
 import MyMapsPage from './pages/MyMapsPage';
 import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import MapEditor from './pages/MapEditor';
 import AdminDashboard from './pages/AdminDashboard';
@@ -66,7 +67,8 @@ function AppContent() {
           {currentPage === 'details' && <DetailsPage />}
           {currentPage === 'mymaps' && <MyMapsPage />}
           {currentPage === 'profile' && <ProfilePage />}
-          {!['home', 'community', 'map', 'details', 'mymaps', 'profile'].includes(currentPage) && <HomePage />}
+          {currentPage === 'settings' && <SettingsPage />}
+          {!['home', 'community', 'map', 'details', 'mymaps', 'profile', 'settings'].includes(currentPage) && <HomePage />}
         </main>
       </div>
 

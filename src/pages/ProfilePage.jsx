@@ -5,14 +5,14 @@ import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera } from 'lucide-r
 import { useApp } from '../context/AppContext';
 
 export default function ProfilePage() {
-  const { userProfile, setUserProfile, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
-  const [selectedRole, setSelectedRole] = useState(userProfile?.role || 'Novice Traveler');
+  const { t, userProfile, setUserProfile, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
+  const [selectedRole, setSelectedRole] = useState(userProfile?.role || t('auth.roleNovice'));
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
   const fileInputRef = useRef(null);
 
   const availableRoles = [
-    { name: 'Novice Traveler', badge: '🟢', color: 'bg-emerald-100 text-emerald-800' },
-    { name: 'Cartographer',   badge: '📜', color: 'bg-amber-100 text-amber-900' },
+    { name: 'auth.roleNovice', badge: '🟢', color: 'bg-emerald-100 text-emerald-800' },
+    { name: 'auth.roleCartographer',   badge: '📜', color: 'bg-amber-100 text-amber-900' },
   ];
 
   const handleRoleChange = (newRole) => {
@@ -52,15 +52,15 @@ export default function ProfilePage() {
           <div className="w-16 h-16 bg-red-100 border-4 border-black rounded-full mx-auto flex items-center justify-center text-3xl">
             🔒
           </div>
-          <h2 className="text-xl font-black uppercase">Trainer Profile Locked</h2>
+          <h2 className="text-xl font-black uppercase">{t('profile.lockedTitle')}</h2>
           <p className="text-xs text-gray-600 font-sans">
-            Please log into your Trainer Account to view your profile.
+            {t('profile.lockedDesc')}
           </p>
           <button
             onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
             className="w-full bg-[#cc0000] text-white font-black py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer hover:bg-red-700"
           >
-            Log In Now
+            {t('profile.loginNow')}
           </button>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="group relative w-24 h-24 bg-amber-400 border-4 border-black rounded-full flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden transition-transform hover:scale-105"
-              title="Change profile image"
+              title={t('profile.changeImage')}
             >
               {userProfile.avatar && userProfile.avatar.startsWith('data:image') ? (
                 <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
@@ -98,7 +98,7 @@ export default function ProfilePage() {
 
           {/* Active Trainer Role Badge */}
           <span className="bg-[#cc0000] text-white text-[10px] font-black px-3 py-1 border-2 border-black rounded-full uppercase flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            <Sparkles className="w-3 h-3 fill-white" /> {userProfile.role || 'Novice Traveler'}
+            <Sparkles className="w-3 h-3 fill-white" /> {userProfile.role || t('auth.roleNovice')}
           </span>
         </div>
 
@@ -108,16 +108,18 @@ export default function ProfilePage() {
           {/* Maps Created Stat */}
           <div>
             <h3 className="text-base font-black uppercase mb-3 flex items-center gap-2">
-              <Map className="w-5 h-5 text-indigo-600" /> My Created Maps
+              <Map className="w-5 h-5 text-indigo-600" /> {t('profile.myCreatedMaps')}
             </h3>
             <div className="bg-indigo-50 border-2 border-black rounded-xl p-4 flex items-center gap-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <div className="text-4xl font-black text-indigo-700">{myPublishedMaps.length}</div>
               <div>
-                <div className="text-xs font-bold text-gray-500 uppercase">Maps Published</div>
+                <div className="text-xs font-bold text-gray-500 uppercase">{t('profile.mapsPublished')}</div>
                 <div className="text-[11px] text-gray-600 font-sans mt-0.5">
                   {myPublishedMaps.length === 0
-                    ? 'You haven\'t published any maps yet.'
-                    : `You've shared ${myPublishedMaps.length} map${myPublishedMaps.length > 1 ? 's' : ''} with the community!`}
+                    ? t('profile.noPublishedMaps')
+                    : myPublishedMaps.length > 1
+                      ? t('profile.publishedCountPlural', { count: myPublishedMaps.length })
+                      : t('profile.publishedCount', { count: myPublishedMaps.length })}
                 </div>
               </div>
             </div>
@@ -139,11 +141,11 @@ export default function ProfilePage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <h4 className="text-xs font-black uppercase flex items-center gap-1">
-                <UserIcon className="w-3.5 h-3.5" /> Change Trainer Role
+                <UserIcon className="w-3.5 h-3.5" /> {t('profile.changeRole')}
               </h4>
               {roleUpdatedMsg && (
                 <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
-                  <Check className="w-3 h-3 stroke-[3]" /> Role Updated!
+                  <Check className="w-3 h-3 stroke-[3]" /> {t('profile.roleUpdated')}
                 </span>
               )}
             </div>
@@ -160,7 +162,7 @@ export default function ProfilePage() {
                   }`}
                 >
                   <span className="text-xs">{r.badge}</span>
-                  <span className="truncate">{r.name}</span>
+                  <span className="truncate">{t(r.name)}</span>
                 </button>
               ))}
             </div>
@@ -173,7 +175,7 @@ export default function ProfilePage() {
                 onClick={() => navigateTo('admin')}
                 className="bg-amber-400 hover:bg-amber-300 text-black font-black px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer uppercase"
               >
-                🛡️ Open Command Center (Admin)
+                {t('profile.openCommandCenter')}
               </button>
             )}
 
@@ -181,7 +183,7 @@ export default function ProfilePage() {
               onClick={logout}
               className="bg-gray-100 hover:bg-red-50 text-red-600 font-bold px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" /> Log Out Trainer Session
+              <LogOut className="w-4 h-4" /> {t('profile.logoutSession')}
             </button>
           </div>
 

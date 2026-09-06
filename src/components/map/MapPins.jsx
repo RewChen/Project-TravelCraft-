@@ -2,7 +2,7 @@ import { User, Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function MapPins() {
-  const { mapPins, selectedPin, setSelectedPin, mapFilters } = useApp();
+  const { t, mapPins, selectedPin, setSelectedPin, mapFilters } = useApp();
 
   return (
     <>
@@ -11,7 +11,7 @@ export default function MapPins() {
         <div className="w-8 h-10 bg-[#cc0000] border-2 border-black rounded-t-full flex items-center justify-center shadow-lg relative z-10">
           <User className="w-5 h-5 text-white" />
         </div>
-        <div className="w-8 bg-white border border-black text-[8px] font-black text-center py-0.5 mt-[-2px] shadow-sm z-20">YOU</div>
+        <div className="w-8 bg-white border border-black text-[8px] font-black text-center py-0.5 mt-[-2px] shadow-sm z-20">{t('map.you')}</div>
       </div>
 
       {/* Render Map Pins */}

@@ -3,28 +3,28 @@ import { X, Upload, Map, RotateCcw, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function MapBackgroundModal({ onClose }) {
-  const { mapBackgroundImage, setMapBackgroundImage, resetMapBackgroundImage } = useApp();
+  const { t, mapBackgroundImage, setMapBackgroundImage, resetMapBackgroundImage } = useApp();
 
   const [previewImage, setPreviewImage] = useState(mapBackgroundImage);
 
   const presets = [
     {
-      name: 'Kyoto Default Canvas',
+      name: t('map.kyotoPreset'),
       value: null,
       color: 'bg-[#e2f0d9]'
     },
     {
-      name: 'RPG Fantasy World',
+      name: t('map.rpgPreset'),
       value: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&q=80',
       color: 'bg-[#4895ef]'
     },
     {
-      name: 'Vintage Parchment',
+      name: t('map.parchmentPreset'),
       value: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=1200&q=80',
       color: 'bg-amber-100'
     },
     {
-      name: 'Cyberpunk Neon',
+      name: t('map.cyberpunkPreset'),
       value: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&q=80',
       color: 'bg-slate-900'
     }
@@ -61,7 +61,7 @@ export default function MapBackgroundModal({ onClose }) {
           <div className="flex items-center gap-2">
             <Map className="w-5 h-5" />
             <h3 className="font-black text-sm uppercase tracking-wider">
-              Upload Whole World Map Background (ทั้งแมพ)
+              {t('map.uploadTitle')}
             </h3>
           </div>
           <button 
@@ -77,7 +77,7 @@ export default function MapBackgroundModal({ onClose }) {
           {/* File Upload Box */}
           <div>
             <label className="block text-xs font-black uppercase mb-1.5">
-              1. Choose Map Image File from Device
+              {t('map.chooseFile')}
             </label>
             <div className="relative border-4 border-dashed border-black rounded-xl p-4 text-center bg-gray-50 hover:bg-amber-50 transition-colors">
               {previewImage ? (
@@ -88,7 +88,7 @@ export default function MapBackgroundModal({ onClose }) {
                     className="h-48 w-full object-cover rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" 
                   />
                   <label className="absolute inset-0 bg-black/60 text-white font-black text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer rounded-lg transition-opacity">
-                    Change Map Image File 🗺️
+                    {t('map.changeImage')}
                     <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                   </label>
                 </div>
@@ -97,9 +97,9 @@ export default function MapBackgroundModal({ onClose }) {
                   <div className="w-14 h-14 bg-red-600 text-white border-2 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                     <Upload className="w-7 h-7" />
                   </div>
-                  <span className="text-xs font-black uppercase">Upload Custom Map Background Image</span>
+                  <span className="text-xs font-black uppercase">{t('map.uploadText')}</span>
                   <span className="text-[11px] text-gray-600 font-sans">
-                    Supports JPG, PNG, WEBP, SVG maps & floorplans
+                    {t('map.supportsNote')}
                   </span>
                   <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
                 </label>
@@ -110,7 +110,7 @@ export default function MapBackgroundModal({ onClose }) {
           {/* Theme Presets */}
           <div>
             <label className="block text-xs font-black uppercase mb-2">
-              2. Or Select Map Theme Preset
+              {t('map.orPreset')}
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {presets.map((preset, index) => (
@@ -138,7 +138,7 @@ export default function MapBackgroundModal({ onClose }) {
               onClick={handleReset}
               className="px-3 py-2 bg-gray-100 hover:bg-red-50 text-red-600 border-2 border-black rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Reset Default Map
+              <RotateCcw className="w-3.5 h-3.5" /> {t('map.resetDefault')}
             </button>
 
             <div className="flex gap-2">
@@ -147,14 +147,14 @@ export default function MapBackgroundModal({ onClose }) {
                 onClick={onClose}
                 className="px-4 py-2 border-2 border-black rounded-xl text-xs font-bold hover:bg-gray-100 cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleApply}
                 className="px-5 py-2 bg-[#cc0000] text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-red-700 text-xs uppercase flex items-center gap-1.5 cursor-pointer"
               >
-                <Check className="w-4 h-4" /> Apply to Whole Map
+                <Check className="w-4 h-4" /> {t('map.applyToMap')}
               </button>
             </div>
           </div>

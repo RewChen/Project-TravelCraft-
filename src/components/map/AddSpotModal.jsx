@@ -3,7 +3,7 @@ import { X, Upload, Camera, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function AddSpotModal({ onClose, defaultCoords }) {
-  const { addCustomPin } = useApp();
+  const { t, addCustomPin } = useApp();
 
   const [title, setTitle] = useState('');
   const [lore, setLore] = useState('');
@@ -54,7 +54,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5" />
             <h3 className="font-black text-sm uppercase tracking-wider">
-              Upload Photo & Add Spot to Map
+              {t('map.addSpotTitle')}
             </h3>
           </div>
           <button 
@@ -70,7 +70,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           {/* Image Upload Area */}
           <div>
             <label className="block text-xs font-black uppercase mb-1">
-              Select Photo Image
+              {t('map.selectPhoto')}
             </label>
             <div className="relative border-4 border-dashed border-black rounded-xl p-4 text-center bg-gray-50 hover:bg-amber-50 transition-colors">
               {imagePreview ? (
@@ -81,7 +81,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
                     className="h-44 w-full object-cover rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" 
                   />
                   <label className="absolute inset-0 bg-black/50 text-white font-black text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer rounded-lg transition-opacity">
-                    Change Image 📷
+                    {t('map.changeImageIcon')}
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </label>
                 </div>
@@ -90,8 +90,8 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
                   <div className="w-12 h-12 bg-amber-400 border-2 border-black rounded-full flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <Upload className="w-6 h-6 text-black" />
                   </div>
-                  <span className="text-xs font-bold">Click to choose image file</span>
-                  <span className="text-[10px] text-gray-500 font-sans">PNG, JPG, WEBP supported</span>
+                  <span className="text-xs font-bold">{t('map.clickChoose')}</span>
+                  <span className="text-[10px] text-gray-500 font-sans">{t('map.formatNote')}</span>
                   <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 </label>
               )}
@@ -101,13 +101,13 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           {/* Spot Title */}
           <div>
             <label className="block text-xs font-black uppercase mb-1">
-              Spot / Photo Title *
+              {t('map.spotTitle')}
             </label>
             <input 
               type="text" 
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Sunset over Bamboo Forest" 
+              placeholder={t('map.spotTitlePh')} 
               required
               className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-bold bg-gray-50 focus:outline-none focus:bg-white focus:border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
@@ -116,25 +116,25 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           {/* Category & Tag */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-black uppercase mb-1">Category</label>
+              <label className="block text-xs font-black uppercase mb-1">{t('map.category')}</label>
               <select 
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-bold bg-gray-50 focus:outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
-                <option value="photos">📷 Photo Spot</option>
-                <option value="temples">⛩️ Temple / Shrine</option>
-                <option value="cafes">☕ Cafe / Food</option>
-                <option value="viewpoints">⛰️ Viewpoint</option>
+                <option value="photos">{t('map.catPhoto')}</option>
+                <option value="temples">{t('map.catTemple')}</option>
+                <option value="cafes">{t('map.catCafe')}</option>
+                <option value="viewpoints">{t('map.catViewpoint')}</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-black uppercase mb-1">Badge Tag</label>
+              <label className="block text-xs font-black uppercase mb-1">{t('map.badgeTag')}</label>
               <input 
                 type="text" 
                 value={tag}
                 onChange={(e) => setTag(e.target.value)}
-                placeholder="e.g. Secret Gem"
+                placeholder={t('map.badgeTagPh')}
                 className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-bold bg-gray-50 focus:outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               />
             </div>
@@ -143,12 +143,12 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           {/* Lore / Description */}
           <div>
             <label className="block text-xs font-black uppercase mb-1">
-              Traveler Notes & Lore
+              {t('map.notes')}
             </label>
             <textarea 
               value={lore}
               onChange={(e) => setLore(e.target.value)}
-              placeholder="Share what makes this spot special..."
+              placeholder={t('map.notesPh')}
               rows={3}
               className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-sans font-medium bg-gray-50 focus:outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             ></textarea>
@@ -157,8 +157,8 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           {/* Position Selector Presets */}
           <div>
             <label className="block text-xs font-black uppercase mb-1 flex items-center justify-between">
-              <span>Map Position Preset</span>
-              <span className="text-[10px] text-gray-500">Top: {topPos} | Left: {leftPos}</span>
+              <span>{t('map.mapPosition')}</span>
+              <span className="text-[10px] text-gray-500">{t('map.positionLabel', { top: topPos, left: leftPos })}</span>
             </label>
             <div className="grid grid-cols-4 gap-2 text-[10px] font-extrabold">
               <button
@@ -166,28 +166,28 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
                 onClick={() => { setTopPos('30%'); setLeftPos('35%'); }}
                 className={`py-1.5 border-2 border-black rounded ${topPos === '30%' ? 'bg-amber-400' : 'bg-gray-100'}`}
               >
-                North West
+                {t('map.posNW')}
               </button>
               <button
                 type="button"
                 onClick={() => { setTopPos('25%'); setLeftPos('65%'); }}
                 className={`py-1.5 border-2 border-black rounded ${topPos === '25%' ? 'bg-amber-400' : 'bg-gray-100'}`}
               >
-                North East
+                {t('map.posNE')}
               </button>
               <button
                 type="button"
                 onClick={() => { setTopPos('55%'); setLeftPos('50%'); }}
                 className={`py-1.5 border-2 border-black rounded ${topPos === '55%' ? 'bg-amber-400' : 'bg-gray-100'}`}
               >
-                Center
+                {t('map.posCenter')}
               </button>
               <button
                 type="button"
                 onClick={() => { setTopPos('70%'); setLeftPos('30%'); }}
                 className={`py-1.5 border-2 border-black rounded ${topPos === '70%' ? 'bg-amber-400' : 'bg-gray-100'}`}
               >
-                South West
+                {t('map.posSW')}
               </button>
             </div>
           </div>
@@ -199,13 +199,13 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
               onClick={onClose}
               className="px-4 py-2 border-2 border-black rounded-xl text-xs font-bold hover:bg-gray-100"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               className="px-5 py-2 bg-[#cc0000] text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-red-700 text-xs uppercase flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 fill-white" /> Place Photo Pin (+50 Coins)
+              <Sparkles className="w-4 h-4 fill-white" /> {t('map.placePin')}
             </button>
           </div>
 

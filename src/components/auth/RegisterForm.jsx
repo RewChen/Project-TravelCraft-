@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function RegisterForm() {
-  const { login, setAuthMode } = useApp();
+  const { login, setAuthMode, t } = useApp();
   
   const [selectedSprite, setSelectedSprite] = useState(0);
   const [customSprite, setCustomSprite] = useState(null);
@@ -21,7 +21,12 @@ export default function RegisterForm() {
   const fileInputRef = useRef(null);
 
   const defaultSprites = ['🏃', '🧙', '🤠', '🥷'];
-  const roles = ['Novice Traveler', 'Cartographer', 'Gym Leader', 'Game Master'];
+  const roles = [
+    { id: 'Novice Traveler', labelKey: 'auth.roleNovice' },
+    { id: 'Cartographer', labelKey: 'auth.roleCartographer' },
+    { id: 'Gym Leader', labelKey: 'auth.roleGymLeader' },
+    { id: 'Game Master', labelKey: 'auth.roleGameMaster' }
+  ];
 
   const handleCustomSpriteUpload = (e) => {
     const file = e.target.files[0];
@@ -41,12 +46,12 @@ export default function RegisterForm() {
     setSuccessMsg('');
 
     if (password.length < 6) {
-      setErrorMsg('Secret Key must be at least 6 characters long.');
+      setErrorMsg(t('auth.passTooShort'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMsg('Secret Key and Confirm Secret Key do not match!');
+      setErrorMsg(t('auth.passMismatch'));
       return;
     }
 
@@ -61,7 +66,7 @@ export default function RegisterForm() {
         password,
         options: {
           data: {
-            username: trainerName.trim() || 'Trainer',
+            username: trainerName.trim() || t('auth.trainer'),
             avatar: chosenAvatar,
             role: selectedRole
           }
@@ -71,11 +76,11 @@ export default function RegisterForm() {
       if (error) {
         // Supabase may return 403 if signups are disabled
         if (error.status === 403 || error.message.includes('Signups not allowed')) {
-          setErrorMsg('Sign‑ups are currently disabled for this Supabase project. Please enable "Email sign‑ups" in the Auth settings of your Supabase dashboard, then try again.');
+          setErrorMsg(t('auth.signupsDisabled'));
         } else if (error.status === 429) {
-          setErrorMsg('Too many sign‑up attempts! Supabase rate limit reached. Please wait a few minutes and try again.');
+          setErrorMsg(t('auth.rateLimit'));
         } else if (error.message.includes('already registered')) {
-          setErrorMsg('This email is already registered. Please log in instead.');
+          setErrorMsg(t('auth.emailTaken'));
         } else {
           setErrorMsg(error.message);
         }
@@ -83,7 +88,7 @@ export default function RegisterForm() {
         login(); // Context login function sets isLoggedIn and moves to home
       }
     } catch (err) {
-      setErrorMsg('Failed to register. Please try again.');
+      setErrorMsg(t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -92,7 +97,7 @@ export default function RegisterForm() {
   return (
     <form onSubmit={handleRegisterSubmit} className="space-y-2.5 font-mono">
       <p className="text-[10px] text-gray-600 leading-tight">
-        Create your trainer profile, select your role, set your Secret Key password, and pick your sprite avatar.
+        {t('auth.registerDesc')}
       </p>
 
       {/* Error Alert */}
@@ -111,8 +116,8 @@ export default function RegisterForm() {
       {/* Choose / Upload Your Sprite */}
       <div>
         <label className="block text-xs font-black text-black mb-1 uppercase flex justify-between items-center">
-          <span>Choose Sprite</span>
-          <span className="text-[9px] text-gray-500 font-sans">Click + to upload</span>
+          <span>{t('auth.chooseSprite')}</span>
+          <span className="text-[9px] text-gray-500 font-sans">{t('auth.clickUpload')}</span>
         </label>
         
         <div className="grid grid-cols-5 gap-1.5">
@@ -124,7 +129,7 @@ export default function RegisterForm() {
               className={`h-10 border-2 border-black rounded-lg flex items-center justify-center text-lg bg-gray-50 transition-all cursor-pointer relative ${
                 selectedSprite === idx ? 'bg-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] font-black scale-105' : 'hover:bg-gray-100'
               }`}
-              title={`Preset Sprite ${idx + 1}`}
+              title={`${t('auth.presetSprite')} ${idx + 1}`}
             >
               {sprite}
               {selectedSprite === idx && (
@@ -145,10 +150,10 @@ export default function RegisterForm() {
             className={`h-10 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 transition-all cursor-pointer relative overflow-hidden ${
               selectedSprite === defaultSprites.length ? 'bg-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105' : 'hover:bg-amber-100'
             }`}
-            title="Upload Custom Sprite Image"
+            title={t('auth.uploadCustomSprite')}
           >
             {customSprite ? (
-              <img src={customSprite} alt="Custom Sprite" className="w-full h-full object-cover" />
+              <img src={customSprite} alt={t('auth.uploadCustomSprite')} className="w-full h-full object-cover" />
             ) : (
               <div className="flex flex-col items-center justify-center text-black">
                 <Plus className="w-5 h-5 stroke-[3]" />
@@ -175,7 +180,7 @@ export default function RegisterForm() {
       {/* Select Trainer Role */}
       <div>
         <label className="block text-xs font-black text-black mb-0.5 uppercase flex items-center gap-1">
-          <Shield className="w-3.5 h-3.5" /> Select Trainer Role
+          <Shield className="w-3.5 h-3.5" /> {t('auth.selectRole')}
         </label>
         <select 
           value={selectedRole}
@@ -183,21 +188,21 @@ export default function RegisterForm() {
           className="w-full px-2 py-1 border-2 border-black rounded bg-gray-50 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:bg-white focus:outline-none"
         >
           {roles.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r.id} value={r.id}>{t(r.labelKey)}</option>
           ))}
         </select>
       </div>
 
       {/* Trainer Name */}
       <div>
-        <label className="block text-xs font-black text-black mb-0.5 uppercase">Trainer Name</label>
+        <label className="block text-xs font-black text-black mb-0.5 uppercase">{t('auth.trainerName')}</label>
         <div className="relative">
           <UserIcon className="w-3.5 h-3.5 absolute left-2 top-2 text-gray-600" />
           <input 
             type="text" 
             value={trainerName}
             onChange={(e) => setTrainerName(e.target.value)}
-            placeholder="e.g. Ash K." 
+            placeholder={t('auth.trainerNamePh')} 
             required
             className="w-full pl-7 pr-2 py-1 border-2 border-black rounded bg-gray-50 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:bg-white focus:outline-none" 
           />
@@ -206,14 +211,14 @@ export default function RegisterForm() {
 
       {/* Email */}
       <div>
-        <label className="block text-xs font-black text-black mb-0.5 uppercase">Trainer Email</label>
+        <label className="block text-xs font-black text-black mb-0.5 uppercase">{t('auth.trainerEmail')}</label>
         <div className="relative">
           <Mail className="w-3.5 h-3.5 absolute left-2 top-2 text-gray-600" />
           <input 
             type="email" 
             value={trainerEmail}
             onChange={(e) => setTrainerEmail(e.target.value)}
-            placeholder="trainer@pallettown.com" 
+            placeholder={t('auth.trainerEmailPh')} 
             required
             className="w-full pl-7 pr-2 py-1 border-2 border-black rounded bg-gray-50 text-xs font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:bg-white focus:outline-none" 
           />
@@ -222,7 +227,7 @@ export default function RegisterForm() {
 
       {/* Secret Key Password */}
       <div>
-        <label className="block text-xs font-black text-black mb-0.5 uppercase">Secret Key (Password)</label>
+        <label className="block text-xs font-black text-black mb-0.5 uppercase">{t('auth.secretKey')}</label>
         <div className="relative">
           <Key className="w-3.5 h-3.5 absolute left-2 top-2 text-gray-600" />
           <input 
@@ -238,7 +243,7 @@ export default function RegisterForm() {
 
       {/* Confirm Secret Key Password */}
       <div>
-        <label className="block text-xs font-black text-black mb-0.5 uppercase">Confirm Secret Key</label>
+        <label className="block text-xs font-black text-black mb-0.5 uppercase">{t('auth.confirmSecret')}</label>
         <div className="relative">
           <Key className="w-3.5 h-3.5 absolute left-2 top-2 text-gray-600" />
           <input 
@@ -258,7 +263,7 @@ export default function RegisterForm() {
         disabled={loading}
         className="w-full bg-[#cc0000] text-white font-black py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase mt-2 cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Registering...' : 'START ADVENTURE'}
+        {loading ? t('auth.registering') : t('auth.startAdventure')}
       </button>
 
       <div className="text-center pt-0.5">
@@ -267,7 +272,7 @@ export default function RegisterForm() {
           onClick={() => setAuthMode('login')} 
           className="text-xs font-bold underline text-black cursor-pointer"
         >
-          Already registered? Log In →
+          {t('auth.alreadyRegistered')}
         </button>
       </div>
     </form>

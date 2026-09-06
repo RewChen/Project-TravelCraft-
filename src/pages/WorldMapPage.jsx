@@ -8,7 +8,7 @@ import { Camera, MapPin as MapPinIcon, Map as MapIcon, Image as ImageIcon, ZoomI
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { selectedPin, setSelectedPin, mapBackgroundImage, activeCommunityMap } = useApp();
+  const { t, selectedPin, setSelectedPin, mapBackgroundImage, activeCommunityMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
   const [clickCoords, setClickCoords] = useState(null);
@@ -54,15 +54,15 @@ export default function WorldMapPage() {
           </div>
           <div>
             <h2 className="text-base font-black uppercase flex items-center gap-2">
-              {activeCommunityMap ? activeCommunityMap.title : 'Kyoto World Map'} 
+              {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
               {mapBackgroundImage && (
                 <span className="text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full">
-                  Custom Map Active
+                  {t('worldMap.customMapActive')}
                 </span>
               )}
             </h2>
             <p className="text-[11px] text-gray-600 font-sans">
-              Click anywhere on the map to add photo spots, zoom, or upload a new map image!
+              {t('worldMap.helperText')}
             </p>
           </div>
         </div>
@@ -72,7 +72,7 @@ export default function WorldMapPage() {
             onClick={() => setShowBgModal(true)}
             className="bg-amber-400 hover:bg-amber-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
-            <MapIcon className="w-4 h-4" /> 🗺️ Change Map Image
+            <MapIcon className="w-4 h-4" /> {t('worldMap.changeMapImage')}
           </button>
 
           <button
@@ -82,7 +82,7 @@ export default function WorldMapPage() {
             }}
             className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
-            <Camera className="w-4 h-4" /> 📷 Photo Pin (+50 Coins)
+            <Camera className="w-4 h-4" /> {t('worldMap.photoPin')}
           </button>
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function WorldMapPage() {
           {mapBackgroundImage ? (
             <img 
               src={mapBackgroundImage} 
-              alt="Custom World Map Background" 
+              alt={t('worldMap.bgAlt')} 
               className="absolute inset-0 w-full h-full object-cover z-0" 
             />
           ) : (
@@ -113,8 +113,8 @@ export default function WorldMapPage() {
               <div className="absolute left-1/3 top-0 h-full w-4 bg-blue-200/60 border-x border-black/20 pointer-events-none z-0"></div>
               
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center opacity-25 pointer-events-none select-none z-0">
-                <div className="text-8xl font-black tracking-tighter">Kyoto</div>
-                <div className="text-4xl font-bold">京都市</div>
+                <div className="text-8xl font-black tracking-tighter">{t('worldMap.kyoto')}</div>
+                <div className="text-4xl font-bold">{t('worldMap.kyotoKanji')}</div>
               </div>
             </>
           )}
@@ -147,7 +147,7 @@ export default function WorldMapPage() {
                 onClick={() => setShowAddModal(true)}
                 className="mt-1 bg-black text-white text-[9px] font-black px-2 py-0.5 rounded border border-white uppercase shadow-md hover:bg-red-600 cursor-pointer whitespace-nowrap"
               >
-                + Add Photo Spot Here
+                + {t('worldMap.addSpotHere')}
               </button>
             </div>
           )}
@@ -169,7 +169,7 @@ export default function WorldMapPage() {
           <button 
             onClick={handleZoomIn}
             className="w-8 h-8 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg flex items-center justify-center font-black shadow-sm cursor-pointer"
-            title="Zoom In"
+            title={t('worldMap.zoomIn')}
           >
             <ZoomIn className="w-4 h-4 text-black" />
           </button>
@@ -177,14 +177,14 @@ export default function WorldMapPage() {
           <button 
             onClick={handleZoomOut}
             className="w-8 h-8 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg flex items-center justify-center font-black shadow-sm cursor-pointer"
-            title="Zoom Out"
+            title={t('worldMap.zoomOut')}
           >
             <ZoomOut className="w-4 h-4 text-black" />
           </button>
           <button 
             onClick={handleResetZoom}
             className="w-8 h-8 bg-gray-100 hover:bg-gray-200 border-2 border-black rounded-lg flex items-center justify-center font-black shadow-sm cursor-pointer"
-            title="Reset Zoom"
+            title={t('worldMap.resetZoom')}
           >
             <RotateCcw className="w-3.5 h-3.5 text-black" />
           </button>
@@ -193,7 +193,7 @@ export default function WorldMapPage() {
         {/* Badge in Bottom Right */}
         <div className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur border-2 border-black rounded-lg px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs font-bold">
           <ImageIcon className="w-4 h-4 text-red-600" />
-          <span>{mapBackgroundImage ? 'Custom Map Active' : 'Kyoto Canvas'}</span>
+          <span>{mapBackgroundImage ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>
 
       </div>

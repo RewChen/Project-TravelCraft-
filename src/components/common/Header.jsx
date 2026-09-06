@@ -2,7 +2,7 @@ import { Compass, Bell, Settings, User, Moon, Sun } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, logout, setAuthMode, activeCommunityMap, userProfile, themeMode, toggleTheme } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, activeCommunityMap, userProfile, themeMode, toggleTheme, t } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const isDark = themeMode === 'dark';
 
@@ -25,14 +25,14 @@ export default function Header() {
           onClick={() => navigateTo('home')}
           className={`${currentPage === 'home' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
-          Home
+          {t('nav.home')}
         </button>
 
         <button 
           onClick={() => navigateTo('community')}
           className={`${currentPage === 'community' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
-          Community Discoveries
+          {t('nav.community')}
         </button>
 
         {/* World Map — shown when a map is being tracked */}
@@ -41,7 +41,7 @@ export default function Header() {
             onClick={() => navigateTo('map')}
             className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
           >
-            🗺️ World Map
+            {t('nav.worldMap')}
           </button>
         )}
 
@@ -49,7 +49,7 @@ export default function Header() {
           onClick={() => navigateTo('mymaps')}
           className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
-          My Maps
+          {t('nav.myMaps')}
         </button>
 
         {/* Admin Command Center — only visible when logged in with an Admin account */}
@@ -62,7 +62,7 @@ export default function Header() {
                 : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border-2 border-black px-2 py-0.5 rounded-lg shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
             } flex items-center gap-1.5`}
           >
-            <span>🛡️ Admin</span>
+            <span>{t('nav.admin')}</span>
             <span className="w-2 h-2 rounded-full bg-emerald-500 border border-black animate-pulse"></span>
           </button>
         )}
@@ -72,7 +72,14 @@ export default function Header() {
           onClick={() => navigateTo('profile')}
           className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
-          Profile
+          {t('nav.profile')}
+        </button>
+
+        <button 
+          onClick={() => navigateTo('settings')}
+          className={`${currentPage === 'settings' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+        >
+          {t('nav.settings')}
         </button>
       </nav>
 
@@ -80,8 +87,8 @@ export default function Header() {
         <button
           type="button"
           onClick={toggleTheme}
-          aria-label="Toggle theme"
-          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={t('nav.toggleTheme')}
+          title={isDark ? t('theme.lightMode') : t('theme.darkMode')}
           className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none cursor-pointer transition-colors"
         >
           {isDark ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-black" />}
@@ -89,10 +96,10 @@ export default function Header() {
         <button className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none cursor-pointer">
           <Bell className="w-4 h-4 text-black dark:text-slate-200" />
         </button>
-        {/* Settings (Profile shortcut) — only for logged-in users */}
+        {/* Settings — only for logged-in users */}
         {isLoggedIn && (
           <button 
-            onClick={() => navigateTo('profile')}
+            onClick={() => navigateTo('settings')}
             className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none hidden sm:flex cursor-pointer"
           >
             <Settings className="w-4 h-4 text-black dark:text-slate-200" />
@@ -102,7 +109,7 @@ export default function Header() {
           <div 
             onClick={() => navigateTo('profile')} 
             className="w-9 h-9 bg-amber-400 border border-black rounded-full flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-none overflow-hidden" 
-            title="Go to Profile"
+            title={t('nav.goToProfile')}
           >
             {avatar.startsWith('data:image') ? (
               <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />

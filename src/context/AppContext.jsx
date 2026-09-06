@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { translations, languages } from '../i18n';
 
 const AppContext = createContext();
 
@@ -401,6 +402,40 @@ export const AppProvider = ({ children }) => {
       return 'light';
     }
   });
+
+  const [language, setLanguageState] = useState(() => {
+    try {
+      const storedLang = localStorage.getItem('pocket_odyssey_language');
+      return storedLang || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const t = useCallback((key, args) => {
+    const keys = key.split('.');
+    let result = translations[language];
+    for (const k of keys) {
+      result = result?.[k];
+    }
+    let str = result || key;
+    if (args && typeof str === 'string') {
+      Object.entries(args).forEach(([k, v]) => {
+        str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+      });
+    }
+    return str;
+  }, [language]);
+
+  const setLanguage = (code) => {
+    if (translations[code]) {
+      setLanguageState(code);
+    }
+  };
+
+  const toggleLanguage = () => {
+    setLanguageState((prev) => (prev === 'en' ? 'th' : 'en'));
+  };
   
   // LocalStorage Helper Read
   const loadStored = (key, fallback) => {
@@ -604,10 +639,11 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
       localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
       localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
+      localStorage.setItem('pocket_odyssey_language', language);
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
@@ -1014,6 +1050,11 @@ export const AppProvider = ({ children }) => {
         themeMode,
         setThemeMode,
         toggleTheme,
+        language,
+        setLanguage,
+        toggleLanguage,
+        languages,
+        t,
         isLoggedIn,
         setIsLoggedIn,
         userProfile,

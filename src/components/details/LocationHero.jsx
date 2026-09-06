@@ -2,7 +2,7 @@ import { MapPin, ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function LocationHero() {
-  const { selectedLocation } = useApp();
+  const { selectedLocation, t } = useApp();
   const fallbackImage = selectedLocation.title?.toLowerCase().includes('kyoto')
     ? 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1400&q=85'
     : selectedLocation.title?.toLowerCase().includes('grand canyon')
@@ -40,7 +40,7 @@ export default function LocationHero() {
           ) : (
             <iframe
               src={selectedLocation.videoUrl}
-              title={`${selectedLocation.title} video`}
+              title={t('details.videoTitle', { title: selectedLocation.title })}
               className="w-full aspect-video border-2 border-white"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen

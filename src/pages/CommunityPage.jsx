@@ -3,7 +3,7 @@ import { Search, Mountain, Trees, Building2, Target, Trash2 } from 'lucide-react
 import { useApp } from '../context/AppContext';
 
 export default function CommunityPage() {
-  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile } = useApp();
+  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, t } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
@@ -14,15 +14,15 @@ export default function CommunityPage() {
   ));
 
   const categories = [
-    { id: 'ALL', label: 'ALL', icon: null },
-    { id: 'landmarks', label: 'LANDMARKS', icon: Mountain },
-    { id: 'nature', label: 'NATURE', icon: Trees },
-    { id: 'urban', label: 'URBAN', icon: Building2 }
+    { id: 'ALL', label: 'community.all', icon: null },
+    { id: 'landmarks', label: 'community.landmarks', icon: Mountain },
+    { id: 'nature', label: 'community.nature', icon: Trees },
+    { id: 'urban', label: 'community.urban', icon: Building2 }
   ];
 
   const filteredMaps = (communityMaps || []).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
-    const title = item.title || 'Untitled Map';
-    const author = item.discoveredBy || 'Traveler';
+    const title = item.title || t('common.untitledMap');
+    const author = item.discoveredBy || t('common.traveler');
     const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           author.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
@@ -35,10 +35,10 @@ export default function CommunityPage() {
       {/* Main Title Section */}
       <div className="text-center my-8 space-y-2">
         <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
-          COMMUNITY DISCOVERIES
+          {t('community.title')}
         </h1>
         <p className="text-sm font-sans font-bold text-gray-700 underline decoration-2 underline-offset-4">
-          Explore what other trainers have found
+          {t('community.subtitle')}
         </p>
       </div>
 
@@ -50,7 +50,7 @@ export default function CommunityPage() {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="SEARCH DESTINATIONS..." 
+            placeholder={t('community.searchPh')} 
             className="w-full pl-12 pr-4 py-3 border-4 border-black rounded-lg text-sm font-black tracking-wider bg-white focus:outline-none focus:bg-amber-50 uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           />
         </div>
@@ -73,7 +73,7 @@ export default function CommunityPage() {
               }`}
             >
               {Icon && <Icon className="w-3.5 h-3.5" />}
-              <span>{cat.label}</span>
+              <span>{t(cat.label)}</span>
             </button>
           );
         })}
@@ -90,12 +90,12 @@ export default function CommunityPage() {
             <div 
               onClick={() => trackMapOnWorldMap(mapItem)}
               className="h-56 bg-sky-200 border-b-4 border-black relative overflow-hidden flex items-center justify-center cursor-pointer group"
-              title="Click to Track on World Map"
+              title={t('community.trackTooltip')}
             >
               {mapItem.previewBackground ? (
                 <div
                   role="img"
-                  aria-label={`${mapItem.title} map preview`}
+                  aria-label={t('community.mapPreviewAlt', { title: mapItem.title })}
                   className="w-full h-full group-hover:scale-105 transition-transform duration-300"
                   style={mapItem.previewBackground}
                 />
@@ -108,7 +108,7 @@ export default function CommunityPage() {
               )}
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                 <span className="bg-amber-400 border-2 border-black px-3 py-1 text-xs font-black text-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  🎯 Track on World Map
+                  {t('community.trackOverlay')}
                 </span>
               </div>
               
@@ -129,10 +129,10 @@ export default function CommunityPage() {
                 <div className="flex items-center justify-between text-xs font-bold text-gray-800 mb-4">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 border border-black ${mapItem.authorBadgeColor}`}></div>
-                    <span>Discovered by <strong className="font-black text-black">{mapItem.discoveredBy}</strong></span>
+                    <span>{t('community.discoveredBy')} <strong className="font-black text-black">{mapItem.discoveredBy}</strong></span>
                   </div>
                   <span className="text-[9px] bg-amber-100 border border-black px-1.5 py-0.5 rounded font-black uppercase text-amber-900">
-                    {mapItem.authorRole || 'Cartographer'}
+                    {mapItem.authorRole || t('common.cartographer')}
                   </span>
                 </div>
 
@@ -144,24 +144,24 @@ export default function CommunityPage() {
                   onClick={() => navigateTo('details', mapItem.details)}
                   className="w-full bg-black text-white hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer text-center"
                 >
-                  VIEW DETAILS
+                  {t('community.viewDetails')}
                 </button>
 
                 <button
                   onClick={() => trackMapOnWorldMap(mapItem)}
                   className="w-full bg-white hover:bg-amber-100 text-black font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Target className="w-4 h-4 text-black" /> TRACK ON MAP
+                  <Target className="w-4 h-4 text-black" /> {t('community.trackOnMap')}
                 </button>
 
                 {canDeleteMap(mapItem) && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`Delete "${mapItem.title}"?`)) deleteCommunityMap(mapItem.id);
+                      if (window.confirm(t('community.deleteConfirm', { title: mapItem.title }))) deleteCommunityMap(mapItem.id);
                     }}
                     className="w-full bg-white hover:bg-red-50 text-red-700 font-black py-2.5 px-4 border-2 border-red-700 text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" /> DELETE MY MAP
+                    <Trash2 className="w-4 h-4" /> {t('community.deleteMyMap')}
                   </button>
                 )}
               </div>
