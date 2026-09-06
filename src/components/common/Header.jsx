@@ -16,7 +16,7 @@ export default function Header() {
           <Compass className="w-4 h-4 text-white" />
         </div>
         <span className="font-black text-lg tracking-wider text-[#cc0000] uppercase hidden sm:block">
-          POCKET ODYSSEY
+          TravelCraft
         </span>
       </div>
 

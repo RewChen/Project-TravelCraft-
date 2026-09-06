@@ -7,7 +7,7 @@ export default function MyMapsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mapForm, setMapForm] = useState({
     title: 'Untitled Map',
-    description: 'A custom map created by a Pocket Odyssey traveler.',
+    description: 'A custom map created by a TravelCraft traveler.',
     hours: '09:30 - 23:45 (Daily)',
     fee: 'Free',
     bestTime: 'Anytime',

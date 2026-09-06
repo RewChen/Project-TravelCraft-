@@ -1,3 +1,4 @@
+
 import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
 import ForgotPassForm from '../components/auth/ForgotPassForm';
@@ -22,7 +23,7 @@ export default function AuthPage() {
 
             {/* Red Header Banner */}
             <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
-              <span>{authMode === 'login' && 'POCKET ODYSSEY'}</span>
+              <span>{authMode === 'login' && 'TravelCraft'}</span>
               <span>{authMode === 'register' && 'TRAINER REGISTRATION'}</span>
               <span>{authMode === 'forgot' && 'SYSTEM RECOVERY'}</span>
               <span>{authMode === 'restored' && 'SYSTEM RESTORED'}</span>
@@ -59,7 +60,7 @@ export default function AuthPage() {
           <button className="hover:text-white">Support</button>
           <button className="hover:text-white">Trainer Club</button>
         </div>
-        <p className="text-[10px]">© 2026 Pocket Odyssey - Gotta Explore 'Em All</p>
+        <p className="text-[10px]">© 2026 TravelCraft - Gotta Explore 'Em All</p>
       </footer>
     </div>
   );

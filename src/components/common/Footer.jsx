@@ -6,7 +6,7 @@ export default function Footer() {
         <button className="hover:text-black dark:hover:text-white transition-colors">Support</button>
         <button className="hover:text-black dark:hover:text-white transition-colors">Trainer Club</button>
       </div>
-      <p className="text-[11px] font-medium">© 2026 Pocket Odyssey - Gotta Explore 'Em All</p>
+      <p className="text-[11px] font-medium">© 2026 TravelCraft - Gotta Explore 'Em All</p>
     </footer>
   );
 }

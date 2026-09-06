@@ -9,7 +9,7 @@ export default function LocationStats() {
 
   const isFav = favorites.includes(selectedLocation.title);
   const shareUrl = window.location.href;
-  const shareText = `Check out ${selectedLocation.title} on Pocket Odyssey`;
+  const shareText = `Check out ${selectedLocation.title} on TravelCraft`;
   const copyLink = async () => {
     try {
       if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(shareUrl);

@@ -272,7 +272,7 @@ export default function MapEditor({ onBack }) {
   };
 
   const shareUrl = window.location.href;
-  const shareTitle = 'My Pocket Odyssey Map';
+  const shareTitle = 'My TravelCraft Map';
   const openShareLink = (url) => {
     const shareWindow = window.open(url, '_blank');
     if (!shareWindow) setSaveStatus('อนุญาต popup เพื่อเปิดช่องทางแชร์');
@@ -477,7 +477,7 @@ export default function MapEditor({ onBack }) {
           </button>
           <div className="flex items-center gap-2 text-[#cc0000] font-black uppercase tracking-wider">
             <Compass className="w-5 h-5" />
-            <span className="hidden sm:inline">POCKET ODYSSEY</span>
+            <span className="hidden sm:inline">TravelCraft</span>
           </div>
           <div className="h-6 w-1 bg-black rounded-full mx-2 hidden sm:block"></div>
           <input 
