@@ -1,10 +1,9 @@
-import { Compass, Bell, Settings, User, Moon, Sun } from 'lucide-react';
+import { Compass, Bell, Settings, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, activeCommunityMap, userProfile, themeMode, toggleTheme, t } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, activeCommunityMap, userProfile, t } = useApp();
   const avatar = userProfile?.avatar || '🏃';
-  const isDark = themeMode === 'dark';
 
   return (
     <header className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-full p-3 px-5 mb-6 shadow-none flex items-center justify-between sticky top-4 z-50 transition-colors duration-200 backdrop-blur-sm">
@@ -78,15 +77,6 @@ export default function Header() {
       </nav>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={t('nav.toggleTheme')}
-          title={isDark ? t('theme.lightMode') : t('theme.darkMode')}
-          className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none cursor-pointer transition-colors"
-        >
-          {isDark ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-black" />}
-        </button>
         <button className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none cursor-pointer">
           <Bell className="w-4 h-4 text-black dark:text-slate-200" />
         </button>
