@@ -740,12 +740,79 @@ export const AppProvider = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Persist the latest Map Editor state for a map owned by the current user.
+  const saveEditorMapState = (mapId, editorState) => {
+    if (!mapId || !editorState) return;
+    const currentItem = communityMaps.find((item) => item.id === mapId);
+    if (currentItem) {
+      const details = currentItem.details ? { ...currentItem.details } : {};
+      if (editorState.mapTitle) details.title = editorState.mapTitle;
+      if (editorState.publishDescription) details.lore = editorState.publishDescription;
+      const updatedItem = {
+        ...currentItem,
+        title: editorState.mapTitle ? String(editorState.mapTitle).toUpperCase() : currentItem.title,
+        details,
+        editorState,
+        updatedAt: Date.now()
+      };
+      setCommunityMaps((previous) => previous.map((item) => (item.id === mapId ? updatedItem : item)));
+    }
+  };
+
+  // Register a fresh editor map as an openable private draft.
+  const registerEditorDraft = (draft) => {
+    const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
+    const draftItem = {
+      id: draft.id,
+      ownerId: author.id || null,
+      title: (draft.title || 'Untitled Map').toUpperCase(),
+      discoveredBy: author.name,
+      authorRole: author.role || 'Cartographer',
+      authorBadgeColor: 'bg-[#cc0000]',
+      popularityLv: 0,
+      rarity: 'Epic',
+      rarityColor: 'bg-indigo-500 text-white',
+      category: 'landmarks',
+      isEditorMap: true,
+      privacy: 'private',
+      pins: draft.pins || [],
+      tags: draft.tags || [],
+      details: {
+        title: draft.title || 'Untitled Map',
+        region: 'Custom Traveler Realm',
+        type: 'Community Map',
+        tag: 'Custom',
+        lore: draft.description || 'A custom map still being designed.',
+        hours: draft.hours || '24/7',
+        fee: draft.fee || 'Free Exploration',
+        bestTime: draft.bestTime || 'Anytime',
+        travel: draft.travel || 'Community Gateway',
+        popularity: 0,
+        visitors: '0',
+        rarity: 'Epic',
+        logs: draft.logs || [],
+        tags: draft.tags || [],
+        privacy: 'private'
+      },
+      editorState: draft.editorState || null,
+      updatedAt: Date.now()
+    };
+    setCommunityMaps((previous) => {
+      const exists = previous.some((item) => item.id === draftItem.id && item.ownerId === draftItem.ownerId);
+      if (exists) return previous;
+      return [draftItem, ...previous];
+    });
+  };
+
   // Publish a custom user map to Community Discoveries!
   const publishMapToCommunity = (newCommunityMap) => {
     const title = newCommunityMap.title?.trim() || 'Untitled Map';
     const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
     const mapSlug = title.replace(/\s+/g, '-').toLowerCase();
-    const uniqueId = `comm-user-${mapSlug}-${newCommunityMap.id || Date.now()}`;
+    const rawId = newCommunityMap.id;
+    const uniqueId = rawId
+      ? (String(rawId).startsWith('comm-user-') ? rawId : `comm-user-${mapSlug}-${rawId}`)
+      : `comm-user-${mapSlug}`;
     const publishedItem = {
       id: uniqueId,
       ownerId: author.id || null,
@@ -782,10 +849,19 @@ export const AppProvider = ({ children }) => {
       },
       pins: newCommunityMap.pins || mapPins,
       tags: newCommunityMap.tags || [],
-      privacy: newCommunityMap.privacy || 'public'
+      privacy: newCommunityMap.privacy || 'public',
+      editorState: newCommunityMap.editorState || null
     };
 
-    setCommunityMaps((prev) => [publishedItem, ...prev]);
+    setCommunityMaps((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === uniqueId);
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = { ...next[existingIndex], ...publishedItem };
+        return next;
+      }
+      return [publishedItem, ...prev];
+    });
     setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
     navigateTo('community');
   };
@@ -1074,6 +1150,8 @@ export const AppProvider = ({ children }) => {
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,
+        saveEditorMapState,
+        registerEditorDraft,
         addCustomPin,
         deleteCustomPin,
         favorites,

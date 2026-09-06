@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Map, Plus, Star, MapPin, Globe, Check, X, Clock3, CircleDollarSign, Sun, Train, Rocket, Sparkles, ShieldCheck } from 'lucide-react';
+import { Map, Plus, Star, MapPin, Globe, Check, X, Clock3, CircleDollarSign, Sun, Train, Rocket, Sparkles, ShieldCheck, Trash2, Edit3 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function MyMapsPage() {
-  const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup } = useApp();
+const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, userProfile, deleteCommunityMap } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mapForm, setMapForm] = useState({
     title: t('common.untitledMap'),
-    description: 'A custom map created by a TravelCraft traveler.',
+    description: userProfile?.name ? `A custom map created by ${userProfile.name}.` : 'A custom map created by a TravelCraft traveler.',
     hours: '09:30 - 23:45 (Daily)',
     fee: 'Free',
     bestTime: 'Anytime',
@@ -27,40 +27,46 @@ export default function MyMapsPage() {
   }));
   const startDesigning = (event) => {
     event.preventDefault();
-    setEditorSetup(mapForm);
+    setEditorSetup({
+      ...mapForm,
+      id: `comm-user-draft-${Date.now()}`
+    });
     setShowCreateModal(false);
     navigateTo('editor');
   };
 
-  const myMapsList = [
-    {
-      id: 1,
-      title: t('myMaps.map1Title'),
-      region: t('myMaps.map1Region'),
-      spotsCount: 12,
-      badge: t('myMaps.badgeCompleted'),
-      color: 'bg-amber-100',
-      description: t('myMaps.map1Desc')
-    },
-    {
-      id: 2,
-      title: t('myMaps.map2Title'),
-      region: t('myMaps.map2Region'),
-      spotsCount: 8,
-      badge: t('myMaps.badgeActiveQuest'),
-      color: 'bg-sky-100',
-      description: t('myMaps.map2Desc')
-    },
-    {
-      id: 3,
-      title: t('myMaps.map3Title'),
-      region: t('myMaps.map3Region'),
-      spotsCount: 5,
-      badge: t('myMaps.badgeDraft'),
-      color: 'bg-emerald-100',
-      description: t('myMaps.map3Desc')
-    }
-  ];
+const openMapInEditor = (mapItem) => {
+    setEditorSetup({
+      id: mapItem.id,
+      title: mapItem.details?.title || mapItem.title,
+      description: mapItem.details?.lore || mapItem.description,
+      hours: mapItem.details?.hours || '',
+      fee: mapItem.details?.fee || '',
+      bestTime: mapItem.details?.bestTime || '',
+      travel: mapItem.details?.travel || '',
+      logs: mapItem.details?.logs || [],
+      tags: mapItem.tags || [],
+      privacy: mapItem.privacy || 'public',
+      isExistingMap: true,
+      editorState: mapItem.editorState || null
+    });
+    navigateTo('editor');
+  };
+
+  const myMapsList = (communityMaps || [])
+    .filter(mapItem => 
+      mapItem.ownerId 
+        ? mapItem.ownerId === userProfile?.id 
+        : mapItem.discoveredBy === userProfile?.name
+    )
+    .map(mapItem => ({
+      ...mapItem,
+      spotsCount: mapItem.pins?.length || 0,
+      badge: mapItem.privacy === 'private' ? 'Draft' : 'Published',
+      color: mapItem.privacy === 'private' ? 'bg-emerald-100' : 'bg-sky-100',
+      description: mapItem.details?.lore || 'A custom map.',
+      region: mapItem.details?.region || 'Custom Realm'
+    }));
 
   const handlePublishMap = (mapItem) => {
     publishMapToCommunity(mapItem);
@@ -148,6 +154,75 @@ export default function MyMapsPage() {
         </div>
       )}
 
+      {/* Map List Grid */}
+      {myMapsList.length === 0 ? (
+        <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <p className="text-gray-500 font-bold mb-4">You haven't created any maps yet.</p>
+          <button onClick={() => isLoggedIn ? setShowCreateModal(true) : navigateTo('auth')} className="bg-[#cc0000] text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            Create Your First Map
+          </button>
+        </div>
+      ) : (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {myMapsList.map((map) => (
+          <div 
+            key={map.id}
+            className="bg-white border-4 border-black rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex justify-between items-start mb-3">
+                <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-black rounded ${map.color}`}>
+                  {map.badge}
+                </span>
+                <span className="text-xs font-bold text-gray-500">📍 {map.spotsCount} Spots</span>
+              </div>
+              <h3 className="text-lg font-black mb-1">{map.title}</h3>
+              <p className="text-[11px] text-gray-500 font-bold mb-3">{map.region}</p>
+              <p className="text-xs text-gray-700 font-sans leading-relaxed mb-6">
+                {map.description}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              {map.privacy === 'private' && (
+                <button 
+                  onClick={() => handlePublishMap(map)}
+                  className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
+                >
+                  <Globe className="w-4 h-4" /> Publish to Community (+150 Coins)
+                </button>
+              )}
+
+              <button 
+                onClick={() => navigateTo('map')}
+                className="w-full bg-[#cc0000] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-700 cursor-pointer"
+              >
+                Open Map →
+              </button>
+
+              <button
+                onClick={() => openMapInEditor(map)}
+                className="w-full bg-[#4895ef] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-blue-600 cursor-pointer flex justify-center items-center gap-1.5"
+              >
+                <Edit3 className="w-4 h-4" /> Edit Map
+              </button>
+
+              <button
+                onClick={() => {
+                  if (window.confirm(`Delete "${map.title}"?`)) {
+                    deleteCommunityMap(map.id);
+                  }
+                }}
+                className="w-full bg-white text-red-600 font-bold py-2 rounded-lg border-2 border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-50 cursor-pointer flex justify-center items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Map
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      )}
+
       {/* Favorites Quick Access */}
       <div className="bg-amber-50 border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <h2 className="text-lg font-black uppercase mb-3 flex items-center gap-2 text-amber-900">
@@ -185,47 +260,6 @@ export default function MyMapsPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Map List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {myMapsList.map((map) => (
-          <div 
-            key={map.id}
-            className="bg-white border-4 border-black rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex justify-between items-start mb-3">
-                <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-black rounded ${map.color}`}>
-                  {map.badge}
-                </span>
-                <span className="text-xs font-bold text-gray-500">{t('myMaps.spotsCount', { count: map.spotsCount })}</span>
-              </div>
-              <h3 className="text-lg font-black mb-1">{map.title}</h3>
-              <p className="text-[11px] text-gray-500 font-bold mb-3">{map.region}</p>
-              <p className="text-xs text-gray-700 font-sans leading-relaxed mb-6">
-                {map.description}
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              {/* Publish Map to Community Button (for Cartographers / Creators) */}
-              <button 
-                onClick={() => handlePublishMap(map)}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
-              >
-                <Globe className="w-4 h-4" /> {t('myMaps.publishCommunity')}
-              </button>
-
-              <button 
-                onClick={() => navigateTo('map')}
-                className="w-full bg-[#cc0000] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-700 cursor-pointer"
-              >
-                {t('myMaps.openMap')}
-              </button>
-            </div>
-          </div>
-        ))}
       </div>
 
     </div>

@@ -60,7 +60,7 @@ export default {
     templateRiver: 'หุบเขาแม่น้ำ',
     templateBeach: 'ทางเดินเลียบชายหาด',
     realm: 'อาณาจักร {name}',
-    generatingDesc: 'แผนที่กำหนดเองที่สร้างจากเทมเพลต {name}',
+    generatingDesc: 'แผนที่กำหนดเองที่สร้างโดย {user} จากเทมเพลต {name}',
     elemTree: 'ต้นไม้',
     elemMountain: 'ภูเขา',
     elemHouse: 'บ้าน',

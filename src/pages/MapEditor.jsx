@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
@@ -114,16 +114,27 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-  const { t, publishMapToCommunity, editorSetup } = useApp();
+const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, registerEditorDraft } = useApp();
+  const [mapId] = useState(() => editorSetup?.id || 'comm-user-draft-new');
+  const [savedEditorState] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('pocket_odyssey_editorSaves')) || {};
+      return editorSetup?.editorState || saved[mapId] || null;
+    } catch {
+      return editorSetup?.editorState || null;
+    }
+  });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
   const [zoom, setZoom] = useState(100);
-  const [selectedTemplate, setSelectedTemplate] = useState('tropical');
-  const [elements, setElements] = useState([
-    { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
-    { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
-  ]);
-  const [elementPositions, setElementPositions] = useState({
+  const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'tropical');
+  const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
+    ? savedEditorState.elements
+    : [
+        { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
+        { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
+      ]));
+  const [elementPositions, setElementPositions] = useState(() => savedEditorState?.elementPositions || {
     tree: { left: 200, top: 150, width: 128, height: 128 },
     chest: { left: 500, top: 350, width: 64, height: 64 }
   });
@@ -133,17 +144,21 @@ export default function MapEditor({ onBack }) {
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
   const [drawingColor, setDrawingColor] = useState('#111111');
-  const [mapTitle, setMapTitle] = useState(() => editorSetup?.title || t('editor.untitledMap'));
+const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || editorSetup?.title || t('editor.untitledMap'));
   const [showPublishModal, setShowPublishModal] = useState(false);
-  const [publishDescription, setPublishDescription] = useState(() => editorSetup?.description || '');
-  const [publishTags, setPublishTags] = useState(() => editorSetup?.tags?.join(', ') || '');
-  const [publishPrivacy, setPublishPrivacy] = useState(() => editorSetup?.privacy || 'public');
-  const [publishVideoUrl, setPublishVideoUrl] = useState(() => editorSetup?.videoUrl || '');
+  const [publishDescription, setPublishDescription] = useState(() => {
+    if (typeof savedEditorState?.publishDescription === 'string') return savedEditorState.publishDescription;
+    return editorSetup?.description || '';
+  });
+  const [publishTags, setPublishTags] = useState(() => savedEditorState?.publishTags || editorSetup?.tags?.join(', ') || '');
+  const [publishPrivacy, setPublishPrivacy] = useState(() => savedEditorState?.publishPrivacy || editorSetup?.privacy || 'public');
+  const [publishVideoUrl, setPublishVideoUrl] = useState(() => savedEditorState?.publishVideoUrl || editorSetup?.videoUrl || '');
   const [publishVideoError, setPublishVideoError] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
   const [contextMenuElementId, setContextMenuElementId] = useState(null);
+  const [autosaveStatus, setAutosaveStatus] = useState('');
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const nextElementId = useRef(0);
@@ -154,6 +169,41 @@ export default function MapEditor({ onBack }) {
     setHistory((previous) => [...previous, { elements, elementPositions }]);
     setFuture([]);
   };
+
+  const editorDraftState = {
+    elements,
+    elementPositions,
+    selectedTemplate,
+    mapTitle,
+    publishDescription,
+    publishTags,
+    publishPrivacy,
+    publishVideoUrl
+  };
+
+  const persistEditorStateToStore = useCallback((id, state) => {
+    if (!id) return;
+    const snapshot = { ...state, updatedAt: Date.now() };
+    try {
+      const key = 'pocket_odyssey_editorSaves';
+      let saved = {};
+      try {
+        saved = JSON.parse(localStorage.getItem(key)) || {};
+      } catch {
+        saved = {};
+      }
+      saved[id] = snapshot;
+      localStorage.setItem(key, JSON.stringify(saved));
+    } catch (err) {
+      console.warn('Editor autosave error:', err);
+    }
+    saveEditorMapState(id, state);
+  }, [saveEditorMapState]);
+
+  const persistEditorStateRef = useRef(persistEditorStateToStore);
+  useEffect(() => {
+    persistEditorStateRef.current = persistEditorStateToStore;
+  }, [persistEditorStateToStore]);
 
   useEffect(() => {
     if (!dragging) return undefined;
@@ -215,6 +265,46 @@ export default function MapEditor({ onBack }) {
     window.addEventListener('keydown', handleDeleteKey);
     return () => window.removeEventListener('keydown', handleDeleteKey);
   }, [selectedElement, elements, elementPositions]);
+
+  // Register a fresh map as an openable draft (runs once on open).
+  useEffect(() => {
+    if (editorSetup?.isExistingMap) return;
+    registerEditorDraft({
+      id: mapId,
+      title: savedEditorState?.mapTitle || editorSetup?.title || 'Untitled Map',
+      description: savedEditorState?.publishDescription || editorSetup?.description || '',
+      tags: (savedEditorState?.publishTags || editorSetup?.tags?.join(', ') || '')
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      privacy: savedEditorState?.publishPrivacy || editorSetup?.privacy || 'public',
+      hours: editorSetup?.hours,
+      fee: editorSetup?.fee,
+      bestTime: editorSetup?.bestTime,
+      travel: editorSetup?.travel,
+      logs: editorSetup?.logs || [],
+      editorState: savedEditorState || null
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-save on edit or open (debounced).
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      persistEditorStateRef.current(mapId, {
+        elements,
+        elementPositions,
+        selectedTemplate,
+        mapTitle,
+        publishDescription,
+        publishTags,
+        publishPrivacy,
+        publishVideoUrl
+      });
+      setAutosaveStatus('Saved');
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [elements, elementPositions, selectedTemplate, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, mapId]);
 
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
@@ -335,7 +425,7 @@ export default function MapEditor({ onBack }) {
   };
 
   const saveDraft = () => {
-    localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate }));
+persistEditorStateToStore(mapId, editorDraftState);
     setSaveStatus(t('editor.statusDraftSaved'));
   };
 
@@ -363,9 +453,13 @@ export default function MapEditor({ onBack }) {
     });
 
     const mapData = {
+id: mapId,
       title: mapTitle.trim() || t('editor.untitledMap'),
       region: t('editor.realm', { name: t(activeTemplate.labelKey) }),
-      description: publishDescription.trim() || t('editor.generatingDesc', { name: t(activeTemplate.labelKey) }),
+      description: publishDescription.trim() || t('editor.generatingDesc', {
+        user: userProfile?.name || 'a TravelCraft traveler',
+        name: t(activeTemplate.labelKey)
+      }),
       imageUrl: null,
       videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
@@ -377,10 +471,11 @@ export default function MapEditor({ onBack }) {
       logs: editorSetup?.logs || [],
       tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
       privacy: publishPrivacy,
-      pins: publishedPins
+      pins: publishedPins,
+      editorState: editorDraftState
     };
 
-    if (publishPrivacy === 'private') {
+if (publishPrivacy === 'private') {
       localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
       setSaveStatus(t('editor.statusPrivateSaved'));
       setShowPublishModal(false);
@@ -600,6 +695,7 @@ export default function MapEditor({ onBack }) {
             <button onClick={redo} disabled={!future.length} title={t('editor.redo')} className="w-8 h-8 border-2 border-black rounded flex items-center justify-center hover:bg-gray-100 disabled:opacity-30 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none"><Redo2 className="w-4 h-4" /></button>
           </div>
           <div className="h-6 w-1 bg-black rounded-full mx-1 hidden sm:block"></div>
+          {autosaveStatus && <span className="hidden sm:block text-[10px] font-black text-gray-500 uppercase min-w-16 text-right">{autosaveStatus}</span>}
           <button onClick={saveDraft} className="bg-[#4895ef] text-white font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase">
             {t('editor.saveDraft')}
           </button>

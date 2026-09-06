@@ -60,7 +60,7 @@ export default {
     templateRiver: '강 계곡',
     templateBeach: '해변 산책로',
     realm: '{name} 영역',
-    generatingDesc: '{name} 템플릿으로 만든 사용자 지정 지도.',
+    generatingDesc: '{user}님이 {name} 템플릿으로 만든 사용자 지정 지도.',
     elemTree: '나무',
     elemMountain: '산',
     elemHouse: '집',

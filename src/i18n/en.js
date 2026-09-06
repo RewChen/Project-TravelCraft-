@@ -60,7 +60,7 @@ export default {
     templateRiver: 'River Valley',
     templateBeach: 'Beach Boardwalk',
     realm: '{name} Realm',
-    generatingDesc: 'A custom map created with the {name} template.',
+    generatingDesc: 'A custom map created by {user} with the {name} template.',
     elemTree: 'Tree',
     elemMountain: 'Mountain',
     elemHouse: 'House',

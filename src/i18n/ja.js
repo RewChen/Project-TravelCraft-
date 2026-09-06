@@ -60,7 +60,7 @@ export default {
     templateRiver: 'リバーバレー',
     templateBeach: 'ビーチボードウォーク',
     realm: '{name} の領域',
-    generatingDesc: '{name} テンプレートで作成したカスタムマップ。',
+    generatingDesc: '{user} が {name} テンプレートで作成したカスタムマップ。',
     elemTree: '木',
     elemMountain: '山',
     elemHouse: '家',

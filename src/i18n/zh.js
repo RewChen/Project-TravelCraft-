@@ -60,7 +60,7 @@ export default {
     templateRiver: '河流山谷',
     templateBeach: '海滩步道',
     realm: '{name} 领域',
-    generatingDesc: '使用 {name} 模板创建的自定义地图。',
+    generatingDesc: '{user} 使用 {name} 模板创建的自定义地图。',
     elemTree: '树',
     elemMountain: '山',
     elemHouse: '房子',
