@@ -1330,7 +1330,14 @@ if (publishPrivacy === 'private') {
             return (
               <button 
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (activeTab === tab.id && panelOpen) {
+                    setPanelOpen(false);
+                  } else {
+                    setPanelOpen(true);
+                    setActiveTab(tab.id);
+                  }
+                }}
                 title={t(tab.labelKey) || tab.defaultLabel}
                 className={`flex flex-col items-center justify-center w-16 py-2 rounded-lg border-2 transition-all gap-1 shrink-0 ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
               >
