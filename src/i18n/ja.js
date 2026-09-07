@@ -74,6 +74,7 @@ export default {
     backgroundHelper: '下のテンプレートを使うか、自分の地図画像をアップロードして広大なパン可能な世界を探索してください。',
     panHint: '空きスペースをドラッグでパン · スクロールでズーム',
     fitView: '地図全体を表示',
+    setZoom: 'ズーム倍率を設定',
     realm: '{name} の領域',
     generatingDesc: '{user} が {name} テンプレートで作成したカスタムマップ。',
     elemTree: '木',

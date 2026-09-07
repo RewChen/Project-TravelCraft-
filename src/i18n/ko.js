@@ -74,6 +74,7 @@ export default {
     backgroundHelper: '아래 템플릿을 사용하거나 나만의 지도 이미지를 업로드해 넓은 지도를 자유롭게 둘러보세요.',
     panHint: '빈 지도 드래그로 이동 · 스크롤로 확대/축소',
     fitView: '지도 전체 보기',
+    setZoom: '확대 배율 설정',
     realm: '{name} 영역',
     generatingDesc: '{user}님이 {name} 템플릿으로 만든 사용자 지정 지도.',
     elemTree: '나무',

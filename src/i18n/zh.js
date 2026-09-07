@@ -74,6 +74,7 @@ export default {
     backgroundHelper: '使用下面的模板，或上传自己的地图图片，自由探索广阔的可平移世界。',
     panHint: '拖拽空白处平移地图 · 滚动滚轮缩放',
     fitView: '显示整张地图',
+    setZoom: '设置缩放百分比',
     realm: '{name} 领域',
     generatingDesc: '{user} 使用 {name} 模板创建的自定义地图。',
     elemTree: '树',

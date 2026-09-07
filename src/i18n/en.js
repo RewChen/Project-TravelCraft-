@@ -74,6 +74,7 @@ export default {
     backgroundHelper: 'Use a template below or upload your own map image to explore a large, pannable world.',
     panHint: 'Drag empty map to pan · Scroll to zoom',
     fitView: 'Fit whole map in view',
+    setZoom: 'Set zoom percentage',
     realm: '{name} Realm',
     generatingDesc: 'A custom map created by {user} with the {name} template.',
     elemTree: 'Tree',

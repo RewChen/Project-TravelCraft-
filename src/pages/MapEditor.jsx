@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -145,6 +145,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
     viewportRef,
     viewportSize,
     camera,
+    setCamera,
     zoomIn,
     zoomOut,
     fitView,
@@ -170,6 +171,8 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   const [saveStatus, setSaveStatus] = useState('');
   const [activeTool, setActiveTool] = useState('select');
   const [drawingColor, setDrawingColor] = useState('#111111');
+  const [zoomEditing, setZoomEditing] = useState(false);
+  const [zoomInputValue, setZoomInputValue] = useState('');
 const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || editorSetup?.title || t('editor.untitledMap'));
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [publishDescription, setPublishDescription] = useState(() => {
@@ -855,6 +858,20 @@ if (publishPrivacy === 'private') {
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
 
+  const startZoomEdit = () => {
+    setZoomInputValue(String(Math.round(camera.scale * 100)));
+    setZoomEditing(true);
+  };
+
+  const applyZoomValue = () => {
+    const parsed = parseFloat(zoomInputValue);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      const scale = clampValue(parsed / 100, MIN_ZOOM, MAX_ZOOM);
+      setCamera({ scale });
+    }
+    setZoomEditing(false);
+  };
+
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
       
@@ -1315,7 +1332,32 @@ if (publishPrivacy === 'private') {
           {/* Zoom Control */}
           <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); zoomOut(); }}>-</button>
-            <span className="w-12 text-center">{Math.round(camera.scale * 100)}%</span>
+            {zoomEditing ? (
+              <input
+                autoFocus
+                type="number"
+                min={Math.round(MIN_ZOOM * 100)}
+                max={Math.round(MAX_ZOOM * 100)}
+                value={zoomInputValue}
+                onChange={(event) => setZoomInputValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') applyZoomValue();
+                  if (event.key === 'Escape') setZoomEditing(false);
+                }}
+                onClick={(event) => event.stopPropagation()}
+                onBlur={applyZoomValue}
+                className="w-14 text-center border border-black outline-none rounded-sm px-0.5"
+              />
+            ) : (
+              <button
+                type="button"
+                className="w-12 text-center hover:bg-amber-100 cursor-pointer rounded-sm"
+                onClick={(event) => { event.stopPropagation(); startZoomEdit(); }}
+                title={t('editor.setZoom')}
+              >
+                {Math.round(camera.scale * 100)}%
+              </button>
+            )}
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); zoomIn(); }}>+</button>
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); fitView(); }} title={t('editor.fitView')}>
               <Maximize className="w-3 h-3" />
