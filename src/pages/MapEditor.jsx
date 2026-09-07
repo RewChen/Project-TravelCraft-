@@ -103,10 +103,19 @@ const elementOptions = [
 ];
 
 const textPresets = [
-  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 160, fontWeight: 900 },
-  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 110, fontWeight: 700 },
-  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 80, fontWeight: 400 }
+  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 56, fontWeight: 900 },
+  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 36, fontWeight: 700 },
+  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 26, fontWeight: 400 }
 ];
+
+const MAX_TEXT_FONT_SIZE = 64;
+const normalizeElementFont = (element) => {
+  if (element.type !== 'text' || typeof element.fontSize !== 'number') return element;
+  if (element.fontSize > MAX_TEXT_FONT_SIZE) {
+    return { ...element, fontSize: MAX_TEXT_FONT_SIZE };
+  }
+  return element;
+};
 
 const drawingTools = [
   ['select', MousePointer2, 'editor.toolSelect'],
@@ -145,7 +154,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
   const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
-    ? scaleElementFontSizes(savedEditorState.elements)
+    ? scaleElementFontSizes(savedEditorState.elements).map((element) => normalizeElementFont(element))
     : [
         { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
         { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
@@ -625,14 +634,14 @@ if (publishPrivacy === 'private') {
     const colorValue = element.color ?? drawingColor ?? '#111111';
     const textStyles = element.type === 'text'
       ? {
-          fontSize: element.fontSize ?? 140,
+          fontSize: element.fontSize ?? 32,
           fontWeight: element.fontWeight ?? 900,
           color: colorValue
         }
       : { color: colorValue };
     setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
-    const width = element.type === 'text' ? 1100 : 500;
-    const height = element.type === 'text' ? 350 : 500;
+    const width = element.type === 'text' ? 400 : 500;
+    const height = element.type === 'text' ? 140 : 500;
     const fallbackLeft = CANVAS_WIDTH / 2 - width / 2;
     const fallbackTop = CANVAS_HEIGHT / 2 - height / 2;
     const viewportX = viewportSize.width / 2;
@@ -763,7 +772,9 @@ if (publishPrivacy === 'private') {
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
   const selectionToolbarStyle = selectedPosition ? {
     top: Math.max(10, selectedPosition.top - 50),
-    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2 - 72, CANVAS_WIDTH - 144))
+    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2, CANVAS_WIDTH - 20)),
+    transform: `translateX(-50%) scale(${1 / camera.scale})`,
+    transformOrigin: 'top center'
   } : {};
   const getShapeStyle = (element) => {
     const color = element.color ?? drawingColor ?? '#111111';
@@ -801,7 +812,9 @@ if (publishPrivacy === 'private') {
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
-    left: Math.max(20, Math.min(contextMenuPosition.left, CANVAS_WIDTH - 240))
+    left: Math.max(20, Math.min(contextMenuPosition.left, CANVAS_WIDTH - 240)),
+    transform: `scale(${1 / camera.scale})`,
+    transformOrigin: 'top left'
   } : {};
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
@@ -1037,7 +1050,7 @@ if (publishPrivacy === 'private') {
             {activeTab === 'TEXT' && (
               <div className="space-y-3">
                 {textPresets.map((preset) => (
-                  <button key={preset.labelKey} onClick={() => addElement({ type: 'text', labelKey: preset.labelKey, content: t(preset.contentKey), fontSize: preset.fontSize, fontWeight: preset.fontWeight })} className="w-full border-2 border-black bg-white p-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: `${preset.fontSize}px`, fontWeight: preset.fontWeight }}>{t(preset.contentKey)}</button>
+                  <button key={preset.labelKey} onClick={() => addElement({ type: 'text', labelKey: preset.labelKey, content: t(preset.contentKey), fontSize: preset.fontSize, fontWeight: preset.fontWeight })} className="w-full border-2 border-black bg-white px-3 py-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: `${Math.min(24, preset.fontSize)}px`, fontWeight: preset.fontWeight, lineHeight: 1.3 }}>{t(preset.contentKey)}</button>
                 ))}
               </div>
             )}
@@ -1171,7 +1184,7 @@ if (publishPrivacy === 'private') {
                           onPointerDown={(event) => event.stopPropagation()}
                           className="w-full h-full bg-transparent border-none outline-none resize-none p-2 text-center"
                           style={{
-                            fontSize: `${element.fontSize ?? 140}px`,
+                            fontSize: `${element.fontSize ?? 32}px`,
                             fontWeight: element.fontWeight ?? 900,
                             lineHeight: 1.2,
                             whiteSpace: 'pre-wrap',
@@ -1181,16 +1194,16 @@ if (publishPrivacy === 'private') {
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full" style={{ fontSize: `${Math.max(12, Math.min(120, Math.round(Math.min(position.width, position.height) * 0.7)))}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
+                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full overflow-hidden" style={{ fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 32}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
                       )
                     )}
                     {isSelected && !isEditingText && <>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nwse-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-violet-500 cursor-nesw-resize"></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize"></div>
-                      <button type="button" title={t('editor.rotate')} onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-7 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50">
-                        <RotateCw className="w-3 h-3 text-violet-600" />
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}></div>
+                      <button type="button" title={t('editor.rotate')} onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-9 flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50" style={{ transform: `translateX(-50%) scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}>
+                        <RotateCw className="w-4 h-4 text-violet-600" />
                       </button>
                     </>}
                   </div>
@@ -1260,7 +1273,7 @@ if (publishPrivacy === 'private') {
                 <div>
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.text')}</label>
                   <div className="space-y-3">
-                    <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full min-h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-y" />
+                    <textarea value={selectedData.content} onChange={(event) => setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, content: event.target.value } : element))} className="w-full h-20 px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none resize-none" />
                     <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                       <div>
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">{t('editor.fontSize')}</label>
