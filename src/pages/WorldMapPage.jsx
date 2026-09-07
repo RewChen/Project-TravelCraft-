@@ -129,7 +129,7 @@ export default function WorldMapPage() {
               style={{ top: selectedPin.top || '50%', left: selectedPin.left || '50%' }}
               className="absolute z-40 -translate-x-1/2 translate-y-3"
             >
-              <LocationPopupModal pin={selectedPin} onClose={() => setSelectedPin(null)} />
+              <LocationPopupModal pin={selectedPin} onClose={() => { setSelectedPin(null); window.close(); }} />
             </div>
           )}
 
