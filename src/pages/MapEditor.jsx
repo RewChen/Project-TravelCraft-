@@ -5,7 +5,8 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
+  Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3
 } from 'lucide-react';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
@@ -32,20 +33,44 @@ const getYouTubeEmbedUrl = (value) => {
 };
 
 const editorTabs = [
-  { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates' },
-  { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements' },
-  { id: 'TEXT', icon: Type, labelKey: 'editor.text' },
-  { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads' }
+  { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates', defaultLabel: 'เทมเพลต' },
+  { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements', defaultLabel: 'องค์ประกอบ' },
+  { id: 'TEXT', icon: Type, labelKey: 'editor.text', defaultLabel: 'ข้อความ' },
+  { id: 'BRAND', icon: Crown, labelKey: 'editor.brand', defaultLabel: 'Brand', isPremium: true },
+  { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads', defaultLabel: 'อัพโหลด' },
+  { id: 'TOOLS', icon: PenTool, labelKey: 'editor.tools', defaultLabel: 'เครื่องมือ' },
+  { id: 'PROJECTS', icon: Folder, labelKey: 'editor.projects', defaultLabel: 'โปรเจ็คต์' },
+  { id: 'APPS', icon: LayoutDashboard, labelKey: 'editor.apps', defaultLabel: 'แอพ' },
+  { id: 'DIVIDER', isDivider: true },
+  { id: 'PHOTOS', icon: ImageIcon, labelKey: 'editor.photos', defaultLabel: 'ภาพถ่าย' },
+  { id: 'BACKGROUND', icon: ImagePlus, labelKey: 'editor.background', defaultLabel: 'แบ็คกราวน์' },
+  { id: 'CHARTS', icon: BarChart3, labelKey: 'editor.charts', defaultLabel: 'ชาร์ต' }
 ];
 
 const tabLabelKeys = {
   TEMPLATES: 'editor.templates',
   ELEMENTS: 'editor.elements',
   TEXT: 'editor.text',
-  UPLOADS: 'editor.uploads'
+  BRAND: 'editor.brand',
+  UPLOADS: 'editor.uploads',
+  TOOLS: 'editor.tools',
+  PROJECTS: 'editor.projects',
+  APPS: 'editor.apps',
+  PHOTOS: 'editor.photos',
+  BACKGROUND: 'editor.background',
+  CHARTS: 'editor.charts'
 };
 
 const mapTemplates = [
+  {
+    id: 'blank',
+    labelKey: 'editor.templateBlank',
+    preview: '#ffffff',
+    canvas: {
+      backgroundColor: '#ffffff',
+      backgroundImage: 'none'
+    }
+  },
   {
     id: 'tropical',
     labelKey: 'editor.templateTropical',
@@ -128,7 +153,7 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, registerEditorDraft } = useApp();
+const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, registerEditorDraft, navigateTo } = useApp();
   const [mapId] = useState(() => editorSetup?.id || 'comm-user-draft-new');
   const [savedEditorState] = useState(() => {
     try {
@@ -139,8 +164,8 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
     }
   });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
-  const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
-  const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'tropical');
+  const [selectedElement, setSelectedElement] = useState(null); 
+  const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
   const {
     viewportRef,
     viewportSize,
@@ -157,14 +182,8 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
     ? scaleElementFontSizes(savedEditorState.elements).map((element) => normalizeElementFont(element))
-    : [
-        { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
-        { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
-      ]));
-  const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {
-    tree: { left: 1000, top: 750, width: 640, height: 640 },
-    chest: { left: 2500, top: 1750, width: 320, height: 320 }
-  });
+    : []));
+  const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {});
   const [dragging, setDragging] = useState(null);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
@@ -203,7 +222,17 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
+  const photosInputRef = useRef(null);
   const nextElementId = useRef(0);
+  const [brandFontSize, setBrandFontSize] = useState(32);
+  const [brandFontWeight, setBrandFontWeight] = useState(900);
+  const [photoLibrary, setPhotoLibrary] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('pocket_odyssey_photoLibrary')) || [];
+    } catch {
+      return [];
+    }
+  });
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
 
@@ -420,6 +449,14 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }, 500);
     return () => clearTimeout(timer);
   }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, mapId]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('pocket_odyssey_photoLibrary', JSON.stringify(photoLibrary));
+    } catch {
+      // ignore quota errors
+    }
+  }, [photoLibrary]);
 
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
@@ -678,8 +715,8 @@ if (publishPrivacy === 'private') {
     const colorValue = element.color ?? drawingColor ?? '#111111';
     const textStyles = element.type === 'text'
       ? {
-          fontSize: element.fontSize ?? 32,
-          fontWeight: element.fontWeight ?? 900,
+          fontSize: element.fontSize ?? brandFontSize,
+          fontWeight: element.fontWeight ?? brandFontWeight,
           color: colorValue
         }
       : { color: colorValue };
@@ -800,6 +837,63 @@ if (publishPrivacy === 'private') {
     setSelectedUploads((previous) => previous.filter((item) => item !== id));
   };
 
+  const applyBackgroundColor = (color) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 60;
+    canvas.height = 40;
+    const context = canvas.getContext('2d');
+    context.fillStyle = color;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    setBackgroundImage(canvas.toDataURL('image/png'));
+  };
+
+  const getSavedProjects = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('pocket_odyssey_editorSaves')) || {};
+      return Object.entries(saved)
+        .filter(([, state]) => state && typeof state === 'object')
+        .map(([id, state]) => ({ id, ...state }))
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    } catch {
+      return [];
+    }
+  };
+
+  const loadProject = (state) => {
+    pushHistory();
+    setElements(Array.isArray(state.elements) ? scaleElementFontSizes(state.elements).map((element) => normalizeElementFont(element)) : []);
+    setElementPositions(scaleElementPositions(state.elementPositions) || {});
+    if (typeof state.selectedTemplate === 'string') setSelectedTemplate(state.selectedTemplate);
+    if (typeof state.backgroundImage === 'string') setBackgroundImage(state.backgroundImage);
+    if (typeof state.mapTitle === 'string') setMapTitle(state.mapTitle);
+    if (typeof state.publishDescription === 'string') setPublishDescription(state.publishDescription);
+    if (typeof state.publishTags === 'string') setPublishTags(state.publishTags);
+    if (typeof state.publishPrivacy === 'string') setPublishPrivacy(state.publishPrivacy);
+    if (typeof state.publishVideoUrl === 'string') setPublishVideoUrl(state.publishVideoUrl);
+    if (Array.isArray(state.publishSelfieUrls)) setPublishSelfieUrls(state.publishSelfieUrls);
+    setSelectedElement(null);
+    setContextMenuElementId(null);
+    setSaveStatus(t('editor.statusDraftSaved'));
+  };
+
+  const handlePhotoUpload = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    files.forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPhotoLibrary((previous) => [...previous, { id: `photo-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, label: file.name, content: reader.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const addPhotoToMap = (photo) => addElement({ type: 'image', label: photo.label, content: photo.content });
+
+  const removePhoto = (id) => setPhotoLibrary((previous) => previous.filter((photo) => photo.id !== id));
+
   const handleVideoUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -912,6 +1006,20 @@ if (publishPrivacy === 'private') {
   } : {};
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
+
+  const savedProjects = getSavedProjects();
+
+  const chartTypeMeta = [
+    { type: 'shape', label: t('editor.chartShape'), color: '#8b5cf6' },
+    { type: 'emoji', label: t('editor.chartEmoji'), color: '#f59e0b' },
+    { type: 'text', label: t('editor.chartText'), color: '#3b82f6' },
+    { type: 'image', label: t('editor.chartImage'), color: '#10b981' }
+  ];
+  const totalCount = elements.length;
+  const chartRows = chartTypeMeta.map((meta) => {
+    const count = elements.filter((element) => element.type === meta.type).length;
+    return { ...meta, count, percent: totalCount ? Math.round((count / totalCount) * 100) : 0 };
+  });
 
   const startZoomEdit = () => {
     setZoomInputValue(String(Math.round(camera.scale * 100)));
@@ -1098,24 +1206,36 @@ if (publishPrivacy === 'private') {
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT MENU STRIP */}
-        <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-2 z-10 shrink-0">
-          {editorTabs.map((tab) => (
-            <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              title={t(tab.labelKey)}
-              aria-label={t(tab.labelKey)}
-              className={`flex items-center justify-center w-14 h-14 rounded-lg border-2 transition-all ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
-            >
-              <tab.icon className={`w-7 h-7 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
-            </button>
-          ))}
+        <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-1 z-10 shrink-0 overflow-y-auto overflow-x-hidden">
+          {editorTabs.map((tab, idx) => {
+            if (tab.isDivider) {
+              return <div key={`divider-${idx}`} className="w-6 h-px bg-gray-200 my-2 shrink-0"></div>;
+            }
+            return (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                title={t(tab.labelKey) || tab.defaultLabel}
+                className={`flex flex-col items-center justify-center w-16 py-2 rounded-lg border-2 transition-all gap-1 shrink-0 ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
+              >
+                <div className="relative">
+                  <tab.icon className={`w-6 h-6 ${activeTab === tab.id ? 'fill-red-100' : ''}`} />
+                  {tab.isPremium && (
+                    <Crown className="w-3 h-3 text-amber-500 absolute -top-2 -right-3 fill-amber-500" />
+                  )}
+                </div>
+                <span className="text-[10px] font-bold">{t(tab.labelKey) || tab.defaultLabel}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* LEFT PANEL CONTENT */}
         <div className="w-64 bg-white border-r-4 border-black flex flex-col z-10 shadow-[4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden md:flex">
           <div className="p-4 border-b-2 border-black">
-            <h2 className="font-black text-sm uppercase">{t(tabLabelKeys[activeTab])}</h2>
+            <h2 className="font-black text-sm uppercase">
+              {t(tabLabelKeys[activeTab]) || editorTabs.find(t => t.id === activeTab)?.defaultLabel}
+            </h2>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
@@ -1217,6 +1337,210 @@ if (publishPrivacy === 'private') {
                   </button>
                 )}
                 <p className="text-[10px] text-gray-500 font-bold">{t('editor.uploadInstruction')}</p>
+              </div>
+            )}
+            {activeTab === 'BRAND' && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 bg-amber-50 border-2 border-amber-300 rounded px-3 py-2">
+                  <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="text-[10px] font-black text-amber-700 uppercase">{t('editor.premiumBadge')}</span>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.brandColor')}</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['#111111', '#cc0000', '#4895ef', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#84cc16'].map((color) => (
+                      <button key={color} type="button" onClick={() => setDrawingColor(color)} title={color} className={`w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform ${drawingColor.toLowerCase() === color ? 'ring-4 ring-[#4895ef] ring-offset-1' : ''}`} style={{ backgroundColor: color }} />
+                    ))}
+                  </div>
+                  <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                    <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.color')}</span>
+                    <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
+                  </label>
+                </div>
+                <div className="space-y-2 border-t-2 border-black pt-3">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.brandTextStyle')}</label>
+                  <div className="flex items-center gap-2">
+                    {[400, 700, 900].map((weight) => (
+                      <button key={weight} type="button" onClick={() => setBrandFontWeight(weight)} className={`flex-1 border-2 border-black rounded py-2 font-black text-xs ${brandFontWeight === weight ? 'bg-[#cc0000] text-white' : 'bg-white hover:bg-gray-100'}`} style={{ fontWeight: weight }}>A</button>
+                    ))}
+                  </div>
+                  <input type="range" min="18" max="64" value={brandFontSize} onChange={(event) => setBrandFontSize(Number(event.target.value))} className="w-full" />
+                  <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase">
+                    <span>18px</span>
+                    <span>{brandFontSize}px</span>
+                    <span>64px</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.brandHelper')}</p>
+                </div>
+              </div>
+            )}
+            {activeTab === 'TOOLS' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {drawingTools.map(([tool, Icon, labelKey]) => (
+                    <button key={tool} type="button" onClick={() => handleToolAction(tool)} className={`flex items-center gap-2 border-2 border-black rounded-lg px-3 py-2.5 font-black text-[10px] uppercase transition-colors ${activeTool === tool ? 'bg-[#cc0000] text-white' : 'bg-white hover:bg-amber-100'}`}>
+                      <Icon className="w-4 h-4" />
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t-2 border-black pt-3 space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.color')}</label>
+                  <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                    <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.chooseColor')}</span>
+                    <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
+                  </label>
+                </div>
+                <div className="border-t-2 border-black pt-3 space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.actions')}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={undo} disabled={!history.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Undo2 className="w-4 h-4" /> {t('editor.undo')}
+                    </button>
+                    <button type="button" onClick={redo} disabled={!future.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Redo2 className="w-4 h-4" /> {t('editor.redo')}
+                    </button>
+                    <button type="button" onClick={fitView} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100">
+                      <Maximize className="w-4 h-4" /> {t('editor.fitView')}
+                    </button>
+                    <button type="button" onClick={() => { pushHistory(); setElements([]); setElementPositions({}); setSelectedElement(null); setContextMenuElementId(null); }} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase text-red-600 hover:bg-red-50">
+                      <Trash2 className="w-4 h-4" /> {t('editor.clearCanvas')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'PROJECTS' && (
+              <div className="space-y-3">
+                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.projectsHint')}</p>
+                {savedProjects.length === 0 ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <Folder className="w-6 h-6 mx-auto text-gray-300" />
+                    <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.projectsEmpty')}</p>
+                  </div>
+                ) : savedProjects.map((project) => (
+                  <div key={project.id} className={`border-2 border-black rounded-lg p-3 ${project.id === mapId ? 'bg-amber-50' : 'bg-white'}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-black text-xs truncate">{project.mapTitle || t('editor.untitledMap')}</p>
+                      {project.id === mapId && <span className="text-[9px] font-black text-amber-600 uppercase shrink-0">{t('editor.currentProject')}</span>}
+                    </div>
+                    <p className="text-[9px] text-gray-400 font-bold mt-0.5">{project.updatedAt ? new Date(project.updatedAt).toLocaleString() : '—'}</p>
+                    <button type="button" onClick={() => loadProject(project)} disabled={project.id === mapId} className="mt-2 w-full flex items-center justify-center gap-2 border-2 border-black bg-[#4895ef] text-white rounded px-3 py-2 font-black text-[10px] uppercase hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <Check className="w-3.5 h-3.5" /> {t('editor.projectsLoad')}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {activeTab === 'APPS' && (
+              <div className="space-y-3">
+                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.appsHelper')}</p>
+                {[
+                  { id: 'community', labelKey: 'editor.appCommunity', icon: <Shapes className="w-5 h-5" />, onClick: () => navigateTo('community') },
+                  { id: 'map', labelKey: 'editor.appWorldMap', icon: <LayoutGrid className="w-5 h-5" />, onClick: () => navigateTo('map') },
+                  { id: 'mymaps', labelKey: 'editor.appMyMaps', icon: <Folder className="w-5 h-5" />, onClick: () => navigateTo('mymaps') },
+                  { id: 'profile', labelKey: 'editor.appProfile', icon: <Compass className="w-5 h-5" />, onClick: () => navigateTo('profile') },
+                  { id: 'settings', labelKey: 'editor.appSettings', icon: <Settings className="w-5 h-5" />, onClick: () => navigateTo('settings') }
+                ].map((app) => (
+                  <button key={app.id} type="button" onClick={app.onClick} className="w-full flex items-center gap-3 border-2 border-black bg-white rounded-lg px-3 py-3 hover:bg-amber-100 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="w-9 h-9 bg-gray-100 border-2 border-black rounded flex items-center justify-center">{app.icon}</span>
+                    <span className="font-black text-xs">{t(app.labelKey)}</span>
+                    <ArrowLeft className="w-4 h-4 ml-auto text-gray-400 rotate-180" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeTab === 'PHOTOS' && (
+              <div className="space-y-3">
+                <input ref={photosInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
+                <button type="button" onClick={() => photosInputRef.current?.click()} className="w-full border-2 border-black bg-[#4895ef] text-white p-3 font-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-blue-600 flex items-center justify-center gap-2">
+                  <ImagePlus className="w-4 h-4" /> {t('editor.photosUpload')}
+                </button>
+                {photoLibrary.length === 0 ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <ImageIcon className="w-6 h-6 mx-auto text-gray-300" />
+                    <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.photosEmpty')}</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {photoLibrary.map((photo) => (
+                      <div key={photo.id} className="relative border-2 border-black rounded overflow-hidden aspect-square group">
+                        <button type="button" onClick={() => addPhotoToMap(photo)} title={photo.label} className="w-full h-full cursor-pointer">
+                          <img src={photo.content} alt={photo.label} className="w-full h-full object-cover" />
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ImagePlus className="w-6 h-6 text-white" />
+                          </span>
+                        </button>
+                        <button type="button" onClick={() => removePhoto(photo.id)} className="absolute top-1 left-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.photosRemove')}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.photosHelper')}</p>
+              </div>
+            )}
+            {activeTab === 'BACKGROUND' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.bgSolidColor')}</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['#ffffff', '#111111', '#cc0000', '#4895ef', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#92400e'].map((color) => (
+                      <button key={color} type="button" onClick={() => applyBackgroundColor(color)} title={color} className="aspect-square rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform" style={{ backgroundColor: color }} />
+                    ))}
+                  </div>
+                  <label className="mt-2 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                    <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.color')}</span>
+                    <input type="color" defaultValue="#ffffff" onInput={(event) => applyBackgroundColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
+                  </label>
+                </div>
+                <div className="border-t-2 border-black pt-3 space-y-2">
+                  <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
+                  <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white'}`}>
+                    <ImagePlus className="w-3.5 h-3.5" /> {t('editor.uploadBackground')}
+                  </button>
+                  {backgroundImage && (
+                    <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
+                      <X className="w-3.5 h-3.5" /> {t('editor.clearBackground')}
+                    </button>
+                  )}
+                  <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.backgroundHelper')}</p>
+                </div>
+              </div>
+            )}
+            {activeTab === 'CHARTS' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.chartElements')}</label>
+                  {totalCount === 0 ? (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                      <BarChart3 className="w-6 h-6 mx-auto text-gray-300" />
+                      <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.chartEmpty')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {chartRows.map((row) => (
+                        <div key={row.type} className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px] font-black">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full border border-black" style={{ backgroundColor: row.color }} />
+                              {row.label}
+                            </span>
+                            <span>{row.count} · {row.percent}%</span>
+                          </div>
+                          <div className="h-3 bg-gray-100 border border-black rounded overflow-hidden">
+                            <div className="h-full transition-all" style={{ width: `${row.percent}%`, backgroundColor: row.color }} />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="border-t-2 border-black pt-2 flex justify-between text-[10px] font-black text-gray-500">
+                        <span>{t('editor.chartTotal')}</span>
+                        <span>{totalCount}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

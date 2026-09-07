@@ -22,6 +22,12 @@ const createGridTile = (color) => {
 };
 
 const templateLayouts = {
+  blank: {
+    base: '#ffffff',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
+  },
   tropical: {
     base: '#f8d58b',
     gridColor: 'rgba(49,78,75,0.22)',
