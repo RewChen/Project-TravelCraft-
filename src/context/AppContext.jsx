@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
