@@ -194,7 +194,6 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updat
   const [showTextStyleMenu, setShowTextStyleMenu] = useState(false);
   const [recentlyWonBadges, setRecentlyWonBadges] = useState([]);
   const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
-  const tourCameraRef = useRef(camera);
   const [selectedElement, setSelectedElement] = useState(null); 
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
   const {
@@ -209,12 +208,19 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updat
     endPan,
     isPanning
   } = useCanvasControls();
+  const tourCameraRef = useRef(camera);
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
   const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
     ? scaleElementFontSizes(savedEditorState.elements, savedEditorState?.elementPositions).map((element) => normalizeElementFont(element))
     : []));
   const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {});
+  const tourStops = useMemo(
+    () => elements
+      .map((element) => ({ element }))
+      .filter(({ element }) => elementPositions[element.id]),
+    [elements, elementPositions]
+  );
   const [dragging, setDragging] = useState(null);
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
@@ -499,8 +505,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     const stop = tourStops[tourIndex];
     const pos = stop?.element ? elementPositions[stop.element.id] : null;
     if (!stop || !pos) {
-      setTourActive(false);
-      return undefined;
+      const stopTimer = setTimeout(() => setTourActive(false), 0);
+      return () => clearTimeout(stopTimer);
     }
 
     const targetScale = clampValue(Math.min(
@@ -679,6 +685,7 @@ persistEditorStateToStore(mapId, editorDraftState);
     // Build traveler logs with all attached selfies (multi)
     let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
     if (publishSelfieUrls.length) {
+      // eslint-disable-next-line react-hooks/purity -- unique id for publish-time log entries (event handler, not render)
       const baseTime = Date.now();
       const selfieLogs = publishSelfieUrls.map((img, idx) => ({
         id: `selfie-${baseTime}-${idx}`,
@@ -829,13 +836,6 @@ if (publishPrivacy === 'private') {
     pushHistory();
     updateSelectedTextStyle(updates);
   };
-
-  const tourStops = useMemo(
-    () => elements
-      .map((element) => ({ element }))
-      .filter(({ element }) => elementPositions[element.id]),
-    [elements, elementPositions]
-  );
 
   const startTour = () => {
     if (!tourStops.length) return;
