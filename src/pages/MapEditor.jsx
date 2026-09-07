@@ -4,7 +4,7 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon
 } from 'lucide-react';
 
 const getYouTubeEmbedUrl = (value) => {
@@ -155,6 +155,12 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [publishPrivacy, setPublishPrivacy] = useState(() => savedEditorState?.publishPrivacy || editorSetup?.privacy || 'public');
   const [publishVideoUrl, setPublishVideoUrl] = useState(() => savedEditorState?.publishVideoUrl || editorSetup?.videoUrl || '');
   const [publishVideoError, setPublishVideoError] = useState('');
+  const [publishSelfieUrls, setPublishSelfieUrls] = useState(() => {
+    if (Array.isArray(savedEditorState?.publishSelfieUrls)) return savedEditorState.publishSelfieUrls;
+    if (typeof savedEditorState?.publishSelfieUrl === 'string' && savedEditorState.publishSelfieUrl) return [savedEditorState.publishSelfieUrl];
+    return [];
+  });
+  const [publishSelfieError, setPublishSelfieError] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
@@ -162,6 +168,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [autosaveStatus, setAutosaveStatus] = useState('');
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
+  const selfieInputRef = useRef(null);
   const nextElementId = useRef(0);
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
@@ -179,7 +186,10 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     publishDescription,
     publishTags,
     publishPrivacy,
-    publishVideoUrl
+    publishVideoUrl,
+    publishSelfieUrls,
+    // keep legacy single for backwards compat
+    publishSelfieUrl: publishSelfieUrls[0] || ''
   };
 
   const persistEditorStateToStore = useCallback((id, state) => {
@@ -303,12 +313,14 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         publishDescription,
         publishTags,
         publishPrivacy,
-        publishVideoUrl
+        publishVideoUrl,
+        publishSelfieUrls,
+        publishSelfieUrl: publishSelfieUrls[0] || ''
       });
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, selectedTemplate, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, mapId]);
+  }, [elements, elementPositions, selectedTemplate, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, mapId]);
 
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
@@ -442,6 +454,20 @@ persistEditorStateToStore(mapId, editorDraftState);
         return;
       }
     }
+    // Build traveler logs with all attached selfies (multi)
+    let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
+    if (publishSelfieUrls.length) {
+      const baseTime = Date.now();
+      const selfieLogs = publishSelfieUrls.map((img, idx) => ({
+        id: `selfie-${baseTime}-${idx}`,
+        type: 'selfie',
+        image: img,
+        caption: mapTitle.trim() || t('editor.untitledMap'),
+        author: userProfile?.name || 'Traveler',
+        date: new Date().toLocaleDateString(),
+      }));
+      finalLogs = [...finalLogs, ...selfieLogs];
+    }
 
     const publishedPins = elements.map((element) => {
       const position = elementPositions[element.id];
@@ -472,7 +498,9 @@ id: mapId,
       fee: editorSetup?.fee || t('editor.freeExploration'),
       bestTime: editorSetup?.bestTime || t('editor.anytime'),
       travel: editorSetup?.travel || t('editor.communityGateway'),
-      logs: editorSetup?.logs || [],
+      logs: finalLogs,
+      selfieUrl: publishSelfieUrls[0] || null,
+      selfieUrls: publishSelfieUrls.length ? [...publishSelfieUrls] : null,
       rarity: editorSetup?.rarity || 'common',
       tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
       privacy: publishPrivacy,
@@ -624,6 +652,44 @@ if (publishPrivacy === 'private') {
     event.target.value = '';
   };
 
+  const handleSelfieUpload = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const remainingSlots = 9 - publishSelfieUrls.length;
+    if (files.length > remainingSlots) {
+      setPublishSelfieError(t('editor.selfieTooMany', { max: 9 }));
+    }
+    const toProcess = files.slice(0, remainingSlots);
+    let hasError = false;
+    toProcess.forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        setPublishSelfieError(t('editor.onlyImage'));
+        hasError = true;
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        setPublishSelfieError(t('editor.imageTooLarge'));
+        hasError = true;
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPublishSelfieUrls((prev) => {
+          if (prev.length >= 9) return prev;
+          return [...prev, reader.result];
+        });
+        setPublishSelfieError('');
+      };
+      reader.readAsDataURL(file);
+    });
+    if (!hasError && toProcess.length) setPublishSelfieError('');
+    event.target.value = '';
+  };
+
+  const removeSelfieAt = (idx) => {
+    setPublishSelfieUrls((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const selectedData = elements.find((element) => element.id === selectedElement);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
@@ -742,7 +808,7 @@ if (publishPrivacy === 'private') {
             <h2 className="font-black uppercase tracking-wide">{t('editor.publishTitle')}</h2>
             <button type="button" onClick={() => setShowPublishModal(false)} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
           </div>
-          <div className="p-5 space-y-4">
+          <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
             <div>
               <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapTitle')}</label>
               <input id="publish-title" value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
@@ -776,6 +842,48 @@ if (publishPrivacy === 'private') {
               {publishVideoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">{t('editor.videoSelected')}</p>}
               {publishVideoError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishVideoError}</p>}
               <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
+            </div>
+            {/* Selfie attachment for Traveler Logs (บันทึกการเดินทาง) */}
+            <div>
+              <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5" /> {t('editor.selfiePhoto')}
+              </label>
+              <div className="flex gap-2 items-start">
+                <input ref={selfieInputRef} type="file" accept="image/*" multiple onChange={handleSelfieUpload} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => selfieInputRef.current?.click()}
+                  className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                >
+                  <ImageIcon className="w-4 h-4" /> {t('editor.attachSelfie')} {publishSelfieUrls.length ? `(${publishSelfieUrls.length}/9)` : ''}
+                </button>
+                <div className="flex-1 min-w-0">
+                  {publishSelfieUrls.length ? (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-3 gap-2">
+                        {publishSelfieUrls.map((url, idx) => (
+                          <div key={`${url.slice(0,20)}-${idx}`} className="relative border-2 border-black rounded overflow-hidden bg-gray-50 group">
+                            <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeSelfieAt(idx)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
+                              title={t('editor.removeSelfie')}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.5">{idx + 1}/9</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-emerald-700 font-bold">{t('editor.selfieSelected')} · {publishSelfieUrls.length} {t('editor.imagesAttached')}</p>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.selfieHelper')}</p>
+                  )}
+                  {publishSelfieError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishSelfieError}</p>}
+                </div>
+              </div>
             </div>
             <fieldset>
               <legend className="block text-xs font-black uppercase mb-2">{t('editor.privacy')}</legend>

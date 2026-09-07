@@ -1036,6 +1036,8 @@ export const AppProvider = ({ children }) => {
       previewBackground: newCommunityMap.previewBackground || null,
       isEditorMap: Boolean(newCommunityMap.isEditorMap),
       bgThemeUrl: mapBackgroundImage || newCommunityMap.bgThemeUrl,
+      selfieUrl: newCommunityMap.selfieUrl || null,
+      selfieUrls: newCommunityMap.selfieUrls || (newCommunityMap.selfieUrl ? [newCommunityMap.selfieUrl] : null),
       details: {
         title,
         region: newCommunityMap.region || 'Custom Traveler Realm',
@@ -1043,6 +1045,8 @@ export const AppProvider = ({ children }) => {
         tag: 'Custom',
         lore: newCommunityMap.description || 'A custom world map created and shared by an explorer.',
         videoUrl: newCommunityMap.videoUrl || null,
+        selfieUrl: newCommunityMap.selfieUrl || null,
+        selfieUrls: newCommunityMap.selfieUrls || (newCommunityMap.selfieUrl ? [newCommunityMap.selfieUrl] : null),
         hours: newCommunityMap.hours || '24/7',
         fee: newCommunityMap.fee || 'Free Exploration',
         bestTime: newCommunityMap.bestTime || 'Anytime',
