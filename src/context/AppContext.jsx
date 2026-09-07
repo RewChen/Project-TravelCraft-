@@ -765,6 +765,30 @@ export const AppProvider = ({ children }) => {
   const [globalSettings, setGlobalSettings] = useState(() => loadStored('adminSettings', initialGlobalSettings));
   const [adminToast, setAdminToast] = useState(null);
 
+  // Notifications — bell button dropdown (persists locally)
+  const initialNotifications = [
+    { id: 'n1', titleKey: 'notifications.demo1Title', messageKey: 'notifications.demo1Msg', time: '2m ago', read: false, icon: '🗺️' },
+    { id: 'n2', titleKey: 'notifications.demo2Title', messageKey: 'notifications.demo2Msg', time: '1h ago', read: false, icon: '📸' },
+    { id: 'n3', titleKey: 'notifications.demo3Title', messageKey: 'notifications.demo3Msg', time: '1d ago', read: true, icon: '✨' },
+  ];
+  const [notifications, setNotifications] = useState(() => loadStored('notifications', initialNotifications));
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const addNotification = useCallback((notif) => {
+    setNotifications((prev) => [{ id: `n-${Date.now()}`, read: false, time: 'just now', icon: '🔔', ...notif }, ...prev].slice(0, 20));
+  }, []);
+  const markAllNotificationsRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, []);
+  const clearNotifications = useCallback(() => setNotifications([]), []);
+  const markNotificationRead = useCallback((id) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  }, []);
+  // Ref to avoid stale user id in realtime callbacks
+  const currentUserIdRef = useRef(null);
+  useEffect(() => {
+    currentUserIdRef.current = userProfile?.id || null;
+  }, [userProfile?.id]);
+
   // Initial hydration of trainer registry from Supabase (keeps admin view in sync with real users table)
   useEffect(() => {
     if (isAuthLoading) return undefined;
@@ -796,19 +820,24 @@ export const AppProvider = ({ children }) => {
   }, [isAuthLoading]);
 
   // Realtime sync: whenever any user creates/updates/deletes a map or user, keep admin dashboard in sync with the user UI.
+  // Also pushes real system notifications to the bell.
   useEffect(() => {
     const channel = supabase
       .channel('maps-live-sync')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'maps' }, (payload) => {
         if (payload.eventType === 'DELETE') {
           const deletedId = payload.old?.id;
-          if (deletedId) setCommunityMaps((prev) => prev.filter((m) => m.id !== deletedId));
+          if (deletedId) {
+            setCommunityMaps((prev) => prev.filter((m) => m.id !== deletedId));
+            addNotification({ titleKey: 'notifications.mapDeletedTitle', messageKey: 'notifications.mapDeletedMsg', icon: '🗑️' });
+          }
           return;
         }
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           const row = payload.new;
           if (!row) return;
           const item = mapRowToItem(row);
+          const isOwn = row.owner_id && currentUserIdRef.current && row.owner_id === currentUserIdRef.current;
           setCommunityMaps((prev) => {
             const idx = prev.findIndex((m) => m.id === item.id);
             if (idx >= 0) {
@@ -818,13 +847,33 @@ export const AppProvider = ({ children }) => {
             }
             return [item, ...prev];
           });
+          // Real notification — only for other users' inserts (own insert already notified via publishMapToCommunity)
+          if (payload.eventType === 'INSERT' && !isOwn) {
+            const creator = item.discoveredBy || row.data?.discoveredBy || 'Trainer';
+            addNotification({
+              titleKey: 'notifications.newMapTitle',
+              messageKey: 'notifications.newMapMsg',
+              titleParam: item.title || 'New Map',
+              messageParam: creator,
+              icon: '🗺️',
+              data: { mapId: item.id },
+            });
+          } else if (payload.eventType === 'UPDATE' && !isOwn) {
+            addNotification({
+              titleKey: 'notifications.mapUpdatedTitle',
+              messageKey: 'notifications.mapUpdatedMsg',
+              titleParam: item.title || 'Map',
+              icon: '✏️',
+              data: { mapId: item.id },
+            });
+          }
         }
       })
       .subscribe();
 
     const usersChannel = supabase
       .channel('users-live-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async (payload) => {
         try {
           const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(200);
           if (!data) return;
@@ -839,6 +888,17 @@ export const AppProvider = ({ children }) => {
             strikes: u.strikes ?? 0,
           }));
           setTrainers(mapped);
+          if (payload?.eventType === 'INSERT' && payload.new) {
+            const isOwn = payload.new.id === currentUserIdRef.current;
+            if (!isOwn) {
+              addNotification({
+                titleKey: 'notifications.newUserTitle',
+                messageKey: 'notifications.newUserMsg',
+                titleParam: payload.new.username || 'New Trainer',
+                icon: '👤',
+              });
+            }
+          }
         } catch (e) {
           console.warn('users live sync skipped:', e);
         }
@@ -849,7 +909,7 @@ export const AppProvider = ({ children }) => {
       supabase.removeChannel(channel);
       supabase.removeChannel(usersChannel);
     };
-  }, []);
+  }, [addNotification]);
 
   const showAdminToast = (message, type = 'success') => {
     setAdminToast({ message, type });
@@ -871,10 +931,11 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
       localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
       localStorage.setItem('pocket_odyssey_language', language);
+      localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
     } catch (err) {
       console.warn('LocalStorage save error:', err);
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language, notifications]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
@@ -1104,6 +1165,7 @@ export const AppProvider = ({ children }) => {
     });
     setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
     persistMapToDb(publishedItem);
+    addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
     navigateTo('community');
   };
 
@@ -1454,7 +1516,13 @@ export const AppProvider = ({ children }) => {
         changeTrainerRole,
         addBaseMap,
         deleteBaseMap,
-        updateGlobalSettings
+        updateGlobalSettings,
+        notifications,
+        unreadCount,
+        addNotification,
+        markNotificationRead,
+        markAllNotificationsRead,
+        clearNotifications
       }}
     >
       {children}
