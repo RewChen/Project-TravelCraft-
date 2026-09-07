@@ -48,6 +48,8 @@ ON public.users FOR UPDATE USING (auth.uid() = id);
 
 -- =========================================
 -- TRIGGER: Auto-create public.users profile on auth signup
+-- Supports email/password + OAuth (Google, Facebook)
+-- OAuth providers supply: full_name/name, avatar_url/picture
 -- =========================================
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS trigger AS $$
@@ -55,15 +57,27 @@ BEGIN
   INSERT INTO public.users (id, username, email, avatar, role)
   VALUES (
     new.id,
-    COALESCE(new.raw_user_meta_data->>'username', 'Trainer_' || substr(new.id::text, 1, 6)),
+    COALESCE(
+      new.raw_user_meta_data->>'username',
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      new.raw_user_meta_data->>'user_name',
+      'Trainer_' || substr(new.id::text, 1, 6)
+    ),
     new.email,
-    COALESCE(new.raw_user_meta_data->>'avatar', '🏃'),
+    COALESCE(
+      new.raw_user_meta_data->>'avatar',
+      new.raw_user_meta_data->>'avatar_url',
+      new.raw_user_meta_data->>'picture',
+      '🏃'
+    ),
     COALESCE(new.raw_user_meta_data->>'role', 'player')
   );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

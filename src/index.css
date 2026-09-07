@@ -12,42 +12,139 @@ body {
 }
 
 html.dark body {
-  background-color: #020817;
-  color: #e2e8f0;
+  background-color: #020617;
+  color: #f1f5f9;
 }
 
 @layer utilities {
-  .dark .text-gray-600,
-  .dark .text-gray-700,
-  .dark .text-gray-800,
-  .dark .text-gray-900,
-  .dark .text-gray-500,
-  .dark .text-slate-600,
-  .dark .text-slate-500,
-  .dark .text-slate-700,
-  .dark .text-slate-800,
+  /* ——— Text hierarchy: primary / secondary / muted ———
+     Makes dark theme font harmonious and easy to read (WCAG AA) */
   .dark .text-black,
-  .dark .text-slate-900 {
-    color: #e2e8f0;
+  .dark .text-gray-900,
+  .dark .text-slate-900,
+  .dark .text-gray-800,
+  .dark .text-slate-800 {
+    color: #f1f5f9; /* slate-100 - primary heading/body */
   }
 
+  .dark .text-gray-700,
+  .dark .text-slate-700,
+  .dark .text-gray-600,
+  .dark .text-slate-600 {
+    color: #cbd5e1; /* slate-300 - secondary */
+  }
+
+  .dark .text-gray-500,
+  .dark .text-slate-500,
+  .dark .text-gray-400,
+  .dark .text-slate-400,
   .dark .text-gray-300,
-  .dark .text-slate-300,
-  .dark .text-slate-400 {
-    color: #f8fafc;
+  .dark .text-slate-300 {
+    color: #94a3b8; /* slate-400 - muted/descriptive, still readable */
   }
 
+  /* Keep vibrant badge/pill contrast - black text on light amber/sky stays black */
+  .dark .bg-amber-400.text-black,
+  .dark .bg-sky-400.text-black,
+  .dark .bg-emerald-400.text-black {
+    color: #020617 !important;
+  }
+
+  /* Tinted semantic text - lighten for dark cards (was dark brown/green on light bg) */
+  .dark .text-amber-900 {
+    color: #fde68a !important; /* amber-200 */
+  }
+  .dark .text-amber-700,
+  .dark .text-amber-600 {
+    color: #fcd34d !important; /* amber-300 */
+  }
+  .dark .text-emerald-800,
+  .dark .text-emerald-700 {
+    color: #6ee7b7 !important; /* emerald-300 */
+  }
+  .dark .text-emerald-950 {
+    color: #d1fae5 !important;
+  }
+  .dark .text-indigo-700,
+  .dark .text-indigo-600 {
+    color: #a5b4fc !important; /* indigo-300 */
+  }
+  .dark .text-red-800,
+  .dark .text-red-700 {
+    color: #fca5a5 !important; /* red-300 */
+  }
+  .dark .text-red-600 {
+    color: #f87171 !important;
+  }
+  .dark .text-sky-600 {
+    color: #7dd3fc !important;
+  }
+
+  /* ——— Backgrounds: map light surfaces to slate-800/700 ——— */
   .dark .bg-white {
-    background-color: #0f172a;
+    background-color: #1e293b; /* slate-800 - card/panel */
   }
 
+  .dark .bg-gray-50,
+  .dark .bg-slate-50,
+  .dark .bg-zinc-50,
   .dark .bg-gray-100,
-  .dark .bg-gray-200,
-  .dark .bg-slate-100 {
+  .dark .bg-slate-100,
+  .dark .bg-gray-200 {
+    background-color: #334155; /* slate-700 - subtle contrast vs card */
+  }
+
+  .dark .bg-indigo-50,
+  .dark .bg-red-50,
+  .dark .bg-emerald-50,
+  .dark .bg-amber-50,
+  .dark .bg-sky-50,
+  .dark .bg-amber-100 {
     background-color: #1e293b;
   }
 
+  /* Header translucent */
+  .dark .bg-white\/90 {
+    background-color: rgba(15, 23, 42, 0.9);
+  }
+
+  /* Search input focus state */
+  .dark .focus\:bg-amber-50:focus {
+    background-color: #1e293b;
+  }
+  .dark .hover\:bg-gray-100:hover,
+  .dark .hover\:bg-gray-50:hover {
+    background-color: #334155;
+  }
+
+  /* Borders - soften pure black on dark bg */
   .dark .border-black {
-    border-color: rgba(148, 163, 184, 0.9);
+    border-color: #475569; /* slate-600 */
+  }
+  .dark .border-slate-200,
+  .dark .border-gray-200,
+  .dark .border-gray-300 {
+    border-color: #334155;
+  }
+
+  /* Placeholder & form elements */
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #94a3b8;
+  }
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color-scheme: dark;
+  }
+  .dark .bg-white input,
+  .dark .bg-white textarea {
+    background-color: #0f172a;
+    color: #f1f5f9;
+  }
+
+  /* Selection & scrollbar harmony */
+  .dark ::selection {
+    background-color: rgba(220, 38, 38, 0.4);
   }
 }

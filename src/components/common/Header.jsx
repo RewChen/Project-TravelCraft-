@@ -22,14 +22,14 @@ export default function Header() {
       <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 text-sm font-bold dark:text-slate-200">
         <button 
           onClick={() => navigateTo('home')}
-          className={`${currentPage === 'home' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={`${currentPage === 'home' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.home')}
         </button>
 
         <button 
           onClick={() => navigateTo('community')}
-          className={`${currentPage === 'community' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={`${currentPage === 'community' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.community')}
         </button>
@@ -38,7 +38,7 @@ export default function Header() {
         {activeCommunityMap && (
           <button 
             onClick={() => navigateTo('map')}
-            className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+            className={`${currentPage === 'map' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
           >
             {t('nav.worldMap')}
           </button>
@@ -46,7 +46,7 @@ export default function Header() {
 
         <button 
           onClick={() => navigateTo('mymaps')}
-          className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={`${currentPage === 'mymaps' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.myMaps')}
         </button>
@@ -65,14 +65,6 @@ export default function Header() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 border border-black animate-pulse"></span>
           </button>
         )}
-
-        {/* Profile */}
-        <button 
-          onClick={() => navigateTo('profile')}
-          className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
-        >
-          {t('nav.profile')}
-        </button>
 
       </nav>
 

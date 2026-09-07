@@ -463,17 +463,23 @@ export const AppProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const createFallbackProfile = (authUser) => ({
-    id: authUser.id,
-    name: authUser.user_metadata?.username || 'Traveler',
-    email: authUser.email || '',
-    avatar: authUser.user_metadata?.avatar || '🏃',
-    role: authUser.user_metadata?.role || 'Cartographer',
-    coins: 1245,
-    level: 1,
-    badges: [],
-    visitedCount: 0
-  });
+  const createFallbackProfile = (authUser) => {
+    const meta = authUser.user_metadata || {};
+    // OAuth providers use different keys: google -> full_name/picture, facebook -> full_name/picture
+    const oauthName = meta.full_name || meta.name || meta.user_name || meta.preferred_username || meta.username;
+    const oauthAvatar = meta.avatar_url || meta.picture || meta.avatar;
+    return {
+      id: authUser.id,
+      name: oauthName || meta.username || 'Traveler',
+      email: authUser.email || '',
+      avatar: oauthAvatar || meta.avatar || '🏃',
+      role: meta.role || 'Cartographer',
+      coins: 1245,
+      level: 1,
+      badges: [],
+      visitedCount: 0
+    };
+  };
 
   const fetchUserProfile = async (userId) => {
     try {
@@ -528,9 +534,6 @@ export const AppProvider = ({ children }) => {
           id: userId,
           name: data.username,
           email: data.email,
-          avatar: data.avatar || '🏃',
-          role: data.role || 'Cartographer',
-          coins: 1245, // Placeholder game stats
           avatar: data.avatar || (isAdmin ? '🛡️' : '🏃'),
           role: isAdmin ? 'Admin' : (data.role || 'Cartographer'),
           coins: 1245,
@@ -1149,6 +1152,22 @@ export const AppProvider = ({ children }) => {
     setCurrentPage('home');
   };
 
+  const signInWithOAuth = async (provider) => {
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        ...(provider === 'facebook' ? { scopes: 'email' } : {}),
+      },
+    });
+    if (error) throw error;
+    return data;
+  };
+
+  const signInWithGoogle = () => signInWithOAuth('google');
+  const signInWithFacebook = () => signInWithOAuth('facebook');
+
   const login = (e) => {
     if (e) e.preventDefault();
     setIsLoggedIn(true);
@@ -1231,6 +1250,9 @@ export const AppProvider = ({ children }) => {
         loginAsAdmin,
         loginAsTrainer,
         logout,
+        signInWithOAuth,
+        signInWithGoogle,
+        signInWithFacebook,
         navigateTo,
         isAuthLoading,
         // Admin exports

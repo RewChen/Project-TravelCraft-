@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Plus, Key, Mail, User as UserIcon, AlertCircle, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
+import SocialAuthButtons from './SocialAuthButtons';
 
 export default function RegisterForm() {
   const { login, setAuthMode, t } = useApp();
@@ -99,6 +100,8 @@ export default function RegisterForm() {
       <p className="text-[10px] text-gray-600 leading-tight">
         {t('auth.registerDesc')}
       </p>
+
+      <SocialAuthButtons mode="register" />
 
       {/* Error Alert */}
       {errorMsg && (

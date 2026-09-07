@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Mail, Key, Play, AlertCircle, Shield, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
+import SocialAuthButtons from './SocialAuthButtons';
 
 export default function LoginForm() {
   const { login, loginAsAdmin, loginAsTrainer, setAuthMode, t } = useApp();
@@ -57,6 +58,8 @@ export default function LoginForm() {
     <form onSubmit={handleLogin} className="space-y-3 font-mono">
       <div className="text-center text-[10px] text-gray-500 font-bold uppercase">{t('auth.bootStatus')}</div>
       <h2 className="text-center text-lg font-extrabold text-black mb-2"> {t('auth.loginTitle')}</h2>
+
+      <SocialAuthButtons mode="login" />
 
       {errorMsg && (
         <div className="bg-red-100 border-2 border-black text-red-700 p-2 rounded-xl text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
