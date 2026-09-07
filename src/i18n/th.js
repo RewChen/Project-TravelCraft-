@@ -179,6 +179,12 @@ export default {
     chartEmoji: 'อีโมจิ',
     chartText: 'ข้อความ',
     chartImage: 'รูปภาพ',
+    textColor: 'สีข้อความ',
+    textAlign: 'การจัดตำแหน่งข้อความ',
+    bold: 'ตัวหนา',
+    textEffects: 'เอฟเฟ็กต์',
+    textAnimate: 'แอนิเมต',
+    textPosition: 'ตำแหน่ง',
   },
   common: {
     cancel: 'ยกเลิก',

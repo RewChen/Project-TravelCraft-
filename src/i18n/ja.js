@@ -179,6 +179,12 @@ export default {
     chartEmoji: '絵文字',
     chartText: 'テキスト',
     chartImage: '画像',
+    textColor: '文字色',
+    textAlign: '文字の配置',
+    bold: '太字',
+    textEffects: 'エフェクト',
+    textAnimate: 'アニメーション',
+    textPosition: '位置',
   },
   common: {
     cancel: 'キャンセル',

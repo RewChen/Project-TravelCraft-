@@ -179,6 +179,12 @@ export default {
     chartEmoji: 'Emoji',
     chartText: 'Text',
     chartImage: 'Images',
+    textColor: 'Text color',
+    textAlign: 'Text alignment',
+    bold: 'Bold',
+    textEffects: 'Effects',
+    textAnimate: 'Animate',
+    textPosition: 'Position',
   },
   common: {
     cancel: 'Cancel',

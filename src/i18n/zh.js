@@ -179,6 +179,12 @@ export default {
     chartEmoji: '表情',
     chartText: '文字',
     chartImage: '图片',
+    textColor: '文字颜色',
+    textAlign: '文字对齐',
+    bold: '加粗',
+    textEffects: '特效',
+    textAnimate: '动画',
+    textPosition: '位置',
   },
   common: {
     cancel: '取消',

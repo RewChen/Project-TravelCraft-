@@ -179,6 +179,12 @@ export default {
     chartEmoji: '이모지',
     chartText: '텍스트',
     chartImage: '이미지',
+    textColor: '텍스트 색상',
+    textAlign: '텍스트 정렬',
+    bold: '굵게',
+    textEffects: '효과',
+    textAnimate: '애니메이션',
+    textPosition: '위치',
   },
   common: {
     cancel: '취소',

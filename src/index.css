@@ -18,6 +18,15 @@ html.dark body {
 }
 
 @layer utilities {
+  /* Hide scrollbar but keep scrollability (secondary toolbar) */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ——— Text hierarchy: primary / secondary / muted ———
      Makes dark theme font harmonious and easy to read (WCAG AA) */
   .dark .text-black,

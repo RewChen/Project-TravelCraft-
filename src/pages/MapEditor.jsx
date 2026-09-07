@@ -6,7 +6,8 @@ import {
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
-  Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3
+  Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
+  Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown
 } from 'lucide-react';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
@@ -1075,6 +1076,119 @@ if (publishPrivacy === 'private') {
           </button>
         </div>
       </header>
+
+      {/* SECONDARY TOOLBAR (TEXT FORMATTING) */}
+      {selectedElement && selectedData?.type === 'text' && (
+        <div className="h-12 bg-white border-b-4 border-black flex items-center px-4 gap-2 z-10 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar">
+
+          {/* Font Family */}
+          <div className="relative shrink-0 min-w-[120px]">
+            <select
+              value={selectedData.fontFamily || 'Garuda'}
+              onChange={(event) => updateSelectedTextStyle({ fontFamily: event.target.value })}
+              className="appearance-none w-full border-2 border-black rounded-lg px-3 py-1 bg-white hover:bg-gray-100 font-bold text-sm cursor-pointer pr-8"
+            >
+              <option value="Garuda">Garuda</option>
+              <option value="Tahoma">Tahoma</option>
+              <option value="sans-serif">Sans-serif</option>
+              <option value="serif">Serif</option>
+              <option value="monospace">Monospace</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Font Size */}
+          <div className="flex items-center border-2 border-black rounded-lg overflow-hidden h-8 bg-white shrink-0">
+            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.max(8, (selectedData.fontSize || 32) - 1) })} className="px-2 h-full hover:bg-gray-200 font-bold">-</button>
+            <input
+              type="number"
+              value={selectedData.fontSize || 32}
+              onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(MAX_TEXT_FONT_SIZE, Number(event.target.value))) })}
+              className="w-12 text-center font-bold text-sm outline-none border-x-2 border-black h-full"
+            />
+            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.min(MAX_TEXT_FONT_SIZE, (selectedData.fontSize || 32) + 1) })} className="px-2 h-full hover:bg-gray-200 font-bold">+</button>
+          </div>
+
+          <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+
+          {/* Text Color (A rainbow) */}
+          <label className="flex items-center justify-center w-8 h-8 rounded border-2 border-transparent hover:border-black cursor-pointer relative group shrink-0" title={t('editor.textColor')}>
+            <span className="font-serif font-bold text-lg leading-none" style={{ color: selectedData.color || '#000000' }}>A</span>
+            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-gradient-to-r from-red-500 via-yellow-400 via-green-500 to-blue-500"></div>
+            <input type="color" value={selectedData.color || '#000000'} onChange={(event) => updateSelectedTextStyle({ color: event.target.value })} className="absolute opacity-0 w-0 h-0" />
+          </label>
+
+          {/* Bold */}
+          <button
+            onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight || 400) >= 700 ? 400 : 700 })}
+            title={t('editor.bold')}
+            className={`w-8 h-8 flex items-center justify-center rounded border-2 shrink-0 ${selectedData.fontWeight >= 700 ? 'bg-gray-200 border-black' : 'border-transparent hover:border-black'}`}
+          >
+            <Bold className="w-4 h-4" />
+          </button>
+
+          {/* Italic */}
+          <button
+            onClick={() => updateSelectedTextStyle({ fontStyle: selectedData.fontStyle === 'italic' ? 'normal' : 'italic' })}
+            title="Italic"
+            className={`w-8 h-8 flex items-center justify-center rounded border-2 shrink-0 ${selectedData.fontStyle === 'italic' ? 'bg-gray-200 border-black' : 'border-transparent hover:border-black'}`}
+          >
+            <Italic className="w-4 h-4" />
+          </button>
+
+          {/* Underline */}
+          <button
+            onClick={() => {
+              const isUnderline = (selectedData.textDecoration || '').includes('underline');
+              const newDecor = isUnderline ? (selectedData.textDecoration || '').replace('underline', '').trim() : `${selectedData.textDecoration || ''} underline`.trim();
+              updateSelectedTextStyle({ textDecoration: newDecor });
+            }}
+            title="Underline"
+            className={`w-8 h-8 flex items-center justify-center rounded border-2 shrink-0 ${(selectedData.textDecoration || '').includes('underline') ? 'bg-gray-200 border-black' : 'border-transparent hover:border-black'}`}
+          >
+            <Underline className="w-4 h-4" />
+          </button>
+
+          {/* Strikethrough */}
+          <button
+            onClick={() => {
+              const isStrike = (selectedData.textDecoration || '').includes('line-through');
+              const newDecor = isStrike ? (selectedData.textDecoration || '').replace('line-through', '').trim() : `${selectedData.textDecoration || ''} line-through`.trim();
+              updateSelectedTextStyle({ textDecoration: newDecor });
+            }}
+            title="Strikethrough"
+            className={`w-8 h-8 flex items-center justify-center rounded border-2 shrink-0 ${(selectedData.textDecoration || '').includes('line-through') ? 'bg-gray-200 border-black' : 'border-transparent hover:border-black'}`}
+          >
+            <Strikethrough className="w-4 h-4" />
+          </button>
+
+          <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+
+          {/* Alignment */}
+          <button
+            onClick={() => {
+              const aligns = ['left', 'center', 'right', 'justify'];
+              const current = selectedData.textAlign || 'center';
+              const next = aligns[(aligns.indexOf(current) + 1) % aligns.length];
+              updateSelectedTextStyle({ textAlign: next });
+            }}
+            title={t('editor.textAlign')}
+            className="w-8 h-8 flex items-center justify-center rounded border-2 border-transparent hover:border-black shrink-0"
+          >
+            {(!selectedData.textAlign || selectedData.textAlign === 'center') && <AlignCenter className="w-4 h-4" />}
+            {selectedData.textAlign === 'left' && <AlignLeft className="w-4 h-4" />}
+            {selectedData.textAlign === 'right' && <AlignRight className="w-4 h-4" />}
+            {selectedData.textAlign === 'justify' && <AlignJustify className="w-4 h-4" />}
+          </button>
+
+          <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
+
+          {/* Tool presets */}
+          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textEffects')}</button>
+          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textAnimate')}</button>
+          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textPosition')}</button>
+        </div>
+      )}
       {saveStatus && <div className="absolute top-16 right-4 z-30 bg-emerald-100 border-2 border-black px-3 py-2 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{saveStatus}</div>}
 
       {showShareModal && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
@@ -1694,10 +1808,14 @@ if (publishPrivacy === 'private') {
                           onChange={(event) => setElements((previous) => previous.map((item) => item.id === element.id ? { ...item, content: event.target.value } : item))}
                           onBlur={() => setEditingTextId(null)}
                           onPointerDown={(event) => event.stopPropagation()}
-                          className="w-full h-full bg-transparent border-none outline-none resize-none p-2 text-center"
+                          className="w-full h-full bg-transparent border-none outline-none resize-none p-2"
                           style={{
                             fontSize: `${element.fontSize ?? 32}px`,
                             fontWeight: element.fontWeight ?? 900,
+                            fontStyle: element.fontStyle || 'normal',
+                            textDecoration: element.textDecoration || 'none',
+                            textAlign: element.textAlign || 'center',
+                            fontFamily: element.fontFamily || 'Garuda, sans-serif',
                             lineHeight: 1.2,
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
@@ -1706,7 +1824,7 @@ if (publishPrivacy === 'private') {
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 text-center flex items-center justify-center w-full h-full overflow-hidden" style={{ fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 32}px`, fontWeight: element.fontWeight ?? 900, whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
+                        <span className="filter drop-shadow-md px-2 flex items-center justify-center w-full h-full overflow-hidden" style={{ fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 32}px`, fontWeight: element.fontWeight ?? 900, fontStyle: element.fontStyle || 'normal', textDecoration: element.textDecoration || 'none', textAlign: element.textAlign || 'center', fontFamily: element.fontFamily || 'Garuda, sans-serif', whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
                       )
                     )}
                     {isSelected && !isEditingText && <>
