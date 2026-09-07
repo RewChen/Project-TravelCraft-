@@ -67,3 +67,59 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- =========================================
+-- PUBLIC.MAPS (Map Editor autosave + community maps)
+-- =========================================
+CREATE TABLE public.maps (
+    id TEXT PRIMARY KEY,
+    owner_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL DEFAULT 'UNTITLED MAP',
+    privacy TEXT NOT NULL DEFAULT 'private',
+    is_editor_map BOOLEAN NOT NULL DEFAULT FALSE,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_maps_owner ON public.maps(owner_id);
+CREATE INDEX idx_maps_updated ON public.maps(updated_at DESC);
+
+ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
+
+-- Public maps are viewable by everyone; private drafts only by their owner.
+CREATE POLICY "Maps are viewable by everyone"
+    ON public.maps FOR SELECT USING (privacy = 'public' OR auth.uid() = owner_id);
+
+-- Only the authenticated owner may insert their own maps.
+CREATE POLICY "Owners can insert their maps"
+    ON public.maps FOR INSERT WITH CHECK (auth.uid() = owner_id);
+
+-- Only the authenticated owner may update their own maps.
+CREATE POLICY "Owners can update their own maps"
+    ON public.maps FOR UPDATE USING (auth.uid() = owner_id);
+
+-- Only the authenticated owner may delete their own maps.
+CREATE POLICY "Owners can delete their own maps"
+    ON public.maps FOR DELETE USING (auth.uid() = owner_id);
+
+-- =========================================
+-- STORAGE BUCKET: MEDIA (unified, folder per map)
+-- Bucket name: media
+-- Folder structure: maps/<mapId>/cover | pins | video
+-- Create the bucket (idempotent), then the storage policies below.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+-- =========================================
+CREATE POLICY "Media files are publicly viewable"
+    ON storage.objects FOR SELECT USING (bucket_id = 'media');
+
+CREATE POLICY "Authenticated users can upload media"
+    ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Owners can update their media"
+    ON storage.objects FOR UPDATE USING (bucket_id = 'media' AND auth.uid() = owner_id);
+
+CREATE POLICY "Owners can delete their media"
+    ON storage.objects FOR DELETE USING (bucket_id = 'media' AND auth.uid() = owner_id);

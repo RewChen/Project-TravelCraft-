@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
+import { fetchAllMaps, upsertMap, deleteMapRow } from '../lib/supabaseMaps';
+import { deleteMapAssets } from '../lib/supabaseUploads';
 
 const AppContext = createContext();
 
@@ -389,6 +391,15 @@ const initialGlobalSettings = {
   radarRadiusKm: 25
 };
 
+const rarityColorForTier = (tier) => {
+  switch (tier) {
+    case 'rare': return 'bg-sky-500 text-white';
+    case 'epic': return 'bg-indigo-500 text-white';
+    case 'legendary': return 'bg-[#cc0000] text-white';
+    default: return 'bg-gray-400 text-white';
+  }
+};
+
 export const AppProvider = ({ children }) => {
   // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth', 'admin'
   const [currentPage, setCurrentPage] = useState('home');
@@ -598,6 +609,56 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
+  // Persist a map to Supabase when a real session exists (guest/offline stays local).
+  const persistMapToDb = async (item) => {
+    if (!item?.id) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await upsertMap(item);
+    } catch (err) {
+      console.warn('Supabase map sync skipped:', err);
+    }
+  };
+
+  // Delete a map row from Supabase when a real session exists.
+  const deleteMapFromDb = async (mapId) => {
+    if (!mapId) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await deleteMapRow(mapId);
+    } catch (err) {
+      console.warn('Supabase map delete skipped:', err);
+    }
+  };
+
+  // Once auth is resolved, hydrate community maps from the database (fallback stays local).
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    const hydrateMapsFromDb = async () => {
+      try {
+        const dbMaps = await fetchAllMaps();
+        if (cancelled || !dbMaps?.length) return;
+        setCommunityMaps((previous) => {
+          const merged = [...dbMaps];
+          const seen = new Set(dbMaps.map((map) => map.id));
+          for (const localItem of previous) {
+            if (!seen.has(localItem.id)) merged.push(localItem);
+          }
+          return merged;
+        });
+      } catch (err) {
+        console.warn('Community maps fallback to local storage:', err);
+      }
+    };
+    hydrateMapsFromDb();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthLoading]);
+
   // Admin Dashboard States & Persistence
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
@@ -740,12 +801,84 @@ export const AppProvider = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Persist the latest Map Editor state for a map owned by the current user.
+  const saveEditorMapState = (mapId, editorState) => {
+    if (!mapId || !editorState) return;
+    const currentItem = communityMaps.find((item) => item.id === mapId);
+    if (currentItem) {
+      const details = currentItem.details ? { ...currentItem.details } : {};
+      if (editorState.mapTitle) details.title = editorState.mapTitle;
+      if (editorState.publishDescription) details.lore = editorState.publishDescription;
+      const updatedItem = {
+        ...currentItem,
+        title: editorState.mapTitle ? String(editorState.mapTitle).toUpperCase() : currentItem.title,
+        details,
+        editorState,
+        updatedAt: Date.now()
+      };
+      setCommunityMaps((previous) => previous.map((item) => (item.id === mapId ? updatedItem : item)));
+      persistMapToDb(updatedItem);
+    }
+  };
+
+  // Register a fresh editor map as an openable private draft.
+  const registerEditorDraft = (draft) => {
+    const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
+    const rarity = draft.rarity || 'common';
+    const draftItem = {
+      id: draft.id,
+      ownerId: author.id || null,
+      title: (draft.title || 'Untitled Map').toUpperCase(),
+      discoveredBy: author.name,
+      authorRole: author.role || 'Cartographer',
+      authorBadgeColor: 'bg-[#cc0000]',
+      popularityLv: 0,
+      imageUrl: draft.imageUrl || '',
+      rarity,
+      rarityColor: rarityColorForTier(rarity),
+      category: 'landmarks',
+      isEditorMap: true,
+      privacy: 'private',
+      pins: draft.pins || [],
+      tags: draft.tags || [],
+      details: {
+        title: draft.title || 'Untitled Map',
+        region: draft.locationCity || 'Custom Traveler Realm',
+        type: 'Community Map',
+        tag: 'Custom',
+        lore: draft.description || 'A custom map still being designed.',
+        hours: draft.hours || '24/7',
+        fee: draft.fee || 'Free Exploration',
+        bestTime: draft.bestTime || 'Anytime',
+        travel: draft.travel || 'Community Gateway',
+        popularity: 0,
+        visitors: '0',
+        rarity,
+        logs: draft.logs || [],
+        tags: draft.tags || [],
+        privacy: 'private'
+      },
+      editorState: draft.editorState || null,
+      updatedAt: Date.now()
+    };
+    setCommunityMaps((previous) => {
+      const exists = previous.some((item) => item.id === draftItem.id && item.ownerId === draftItem.ownerId);
+      if (exists) return previous;
+      return [draftItem, ...previous];
+    });
+    persistMapToDb(draftItem);
+  };
+
   // Publish a custom user map to Community Discoveries!
   const publishMapToCommunity = (newCommunityMap) => {
     const title = newCommunityMap.title?.trim() || 'Untitled Map';
     const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
     const mapSlug = title.replace(/\s+/g, '-').toLowerCase();
-    const uniqueId = `comm-user-${mapSlug}-${newCommunityMap.id || Date.now()}`;
+    const rawId = newCommunityMap.id;
+    const uniqueId = rawId
+      ? (String(rawId).startsWith('comm-user-') ? rawId : `comm-user-${mapSlug}-${rawId}`)
+      : `comm-user-${mapSlug}`;
+    const rarity = newCommunityMap.rarity || 'common';
     const publishedItem = {
       id: uniqueId,
       ownerId: author.id || null,
@@ -754,8 +887,8 @@ export const AppProvider = ({ children }) => {
       authorRole: author.role || 'Cartographer',
       authorBadgeColor: 'bg-[#cc0000]',
       popularityLv: 85,
-      rarity: 'Epic',
-      rarityColor: 'bg-indigo-500 text-white',
+      rarity,
+      rarityColor: rarityColorForTier(rarity),
       category: newCommunityMap.category || 'landmarks',
       imageUrl: newCommunityMap.imageUrl || 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80',
       videoUrl: newCommunityMap.videoUrl || null,
@@ -775,18 +908,28 @@ export const AppProvider = ({ children }) => {
         travel: newCommunityMap.travel || 'Community Gateway',
         popularity: 85,
         visitors: 'Community Discoveries',
-        rarity: 'Epic',
+        rarity,
         logs: newCommunityMap.logs || [],
         tags: newCommunityMap.tags || [],
         privacy: newCommunityMap.privacy || 'public'
       },
       pins: newCommunityMap.pins || mapPins,
       tags: newCommunityMap.tags || [],
-      privacy: newCommunityMap.privacy || 'public'
+      privacy: newCommunityMap.privacy || 'public',
+      editorState: newCommunityMap.editorState || null
     };
 
-    setCommunityMaps((prev) => [publishedItem, ...prev]);
+    setCommunityMaps((prev) => {
+      const existingIndex = prev.findIndex((item) => item.id === uniqueId);
+      if (existingIndex >= 0) {
+        const next = [...prev];
+        next[existingIndex] = { ...next[existingIndex], ...publishedItem };
+        return next;
+      }
+      return [publishedItem, ...prev];
+    });
     setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
+    persistMapToDb(publishedItem);
     navigateTo('community');
   };
 
@@ -798,6 +941,8 @@ export const AppProvider = ({ children }) => {
           : map.discoveredBy === userProfile?.name
       ))
     )));
+    deleteMapFromDb(mapId);
+    deleteMapAssets(mapId);
   };
 
   // --- Admin Action Handlers ---
@@ -1074,6 +1219,8 @@ export const AppProvider = ({ children }) => {
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,
+        saveEditorMapState,
+        registerEditorDraft,
         addCustomPin,
         deleteCustomPin,
         favorites,
