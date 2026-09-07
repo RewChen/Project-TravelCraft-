@@ -7,6 +7,7 @@ export default function CommunityPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const canDeleteMap = (mapItem) => Boolean(userProfile && (
     mapItem.ownerId
       ? mapItem.ownerId === userProfile.id
@@ -159,9 +160,7 @@ export default function CommunityPage() {
 
                 {canDeleteMap(mapItem) && (
                   <button
-                    onClick={() => {
-                      if (window.confirm(t('community.deleteConfirm', { title: mapItem.title }))) deleteCommunityMap(mapItem.id);
-                    }}
+                    onClick={() => setDeleteTarget(mapItem)}
                     className="w-full bg-white hover:bg-red-50 text-red-700 font-black py-2.5 px-4 border-2 border-red-700 text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" /> {t('community.deleteMyMap')}
@@ -173,6 +172,39 @@ export default function CommunityPage() {
           </div>
         ))}
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              <h2 className="font-black uppercase tracking-wide">Delete from Community?</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-sm font-bold text-gray-800">
+                {t('community.deleteConfirm', { title: deleteTarget.title })} This cannot be undone.
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteCommunityMap(deleteTarget.id);
+                    setDeleteTarget(null);
+                  }}
+                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

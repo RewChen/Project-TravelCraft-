@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff } from 'lucide-react';
+import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff, Eye, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CreateMapForm from '../components/map/CreateMapForm';
 
@@ -20,11 +20,26 @@ function CardCover({ imageUrl, title }) {
   );
 }
 
+function PreviewCover({ imageUrl, title }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="mb-3 h-44 border-2 border-black rounded bg-[#a2d2ff] overflow-hidden flex items-center justify-center">
+      {imageUrl && !failed ? (
+        <img src={imageUrl} alt={title} onError={() => setFailed(true)} className="w-full h-full object-cover" />
+      ) : (
+        <span className="font-black uppercase text-xs text-gray-700">No Cover</span>
+      )}
+    </div>
+  );
+}
+
 export default function MyMapsPage() {
-const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, userProfile, deleteCommunityMap } = useApp();
+const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, userProfile, deleteCommunityMap, trackMapOnWorldMap } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [publishedSuccess, setPublishedSuccess] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [publishTarget, setPublishTarget] = useState(null);
+  const [previewTarget, setPreviewTarget] = useState(null);
 
   const startDesigning = (data) => {
     setEditorSetup({
@@ -151,7 +166,7 @@ const openMapInEditor = (mapItem) => {
             <div className="space-y-2">
               {map.privacy === 'private' && (
                 <button 
-                  onClick={() => handlePublishMap(map)}
+                  onClick={() => setPublishTarget(map)}
                   className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
                 >
                   <Globe className="w-4 h-4" /> Publish to Community
@@ -159,10 +174,10 @@ const openMapInEditor = (mapItem) => {
               )}
 
               <button 
-                onClick={() => navigateTo('map')}
-                className="w-full bg-[#cc0000] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-700 cursor-pointer"
+                onClick={() => setPreviewTarget(map)}
+                className="w-full bg-[#cc0000] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-700 cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Open Map →
+                <Eye className="w-4 h-4" /> Preview Map
               </button>
 
               <button
@@ -222,6 +237,87 @@ const openMapInEditor = (mapItem) => {
           </div>
         )}
       </div>
+
+      {publishTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-amber-400 text-black p-4 border-b-4 border-black flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              <h2 className="font-black uppercase tracking-wide">Publish to Community?</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-sm font-bold text-gray-800">
+                Publish "{publishTarget.title}" to Community Discoveries? Everyone will be able to see and track this map.
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setPublishTarget(null)}
+                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handlePublishMap(publishTarget);
+                    setPublishTarget(null);
+                  }}
+                  className="px-5 py-2.5 bg-amber-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                >
+                  <Globe className="w-4 h-4" /> Publish
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-md shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-[#4895ef] text-white p-4 border-b-4 border-black flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                <h2 className="font-black uppercase tracking-wide">Map Preview</h2>
+              </div>
+              <button
+                onClick={() => setPreviewTarget(null)}
+                className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5">
+              <PreviewCover imageUrl={previewTarget.imageUrl} title={previewTarget.title} />
+              <h3 className="text-lg font-black mb-1 text-slate-900">{previewTarget.title}</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{previewTarget.region}</p>
+              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 max-h-24 overflow-y-auto">
+                {previewTarget.description}
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => {
+                    trackMapOnWorldMap(previewTarget);
+                    setPreviewTarget(null);
+                  }}
+                  className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <MapPin className="w-4 h-4" /> Open in World Map
+                </button>
+                <button
+                  onClick={() => {
+                    openMapInEditor(previewTarget);
+                    setPreviewTarget(null);
+                  }}
+                  className="w-full bg-[#4895ef] hover:bg-blue-600 text-white font-black py-2.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4" /> Edit Map
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">

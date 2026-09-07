@@ -921,11 +921,11 @@ export const AppProvider = ({ children }) => {
         rarity,
         logs: newCommunityMap.logs || [],
         tags: newCommunityMap.tags || [],
-        privacy: newCommunityMap.privacy || 'public'
+        privacy: 'public'
       },
       pins: newCommunityMap.pins || mapPins,
       tags: newCommunityMap.tags || [],
-      privacy: newCommunityMap.privacy || 'public',
+      privacy: 'public',
       editorState: newCommunityMap.editorState || null
     };
 
