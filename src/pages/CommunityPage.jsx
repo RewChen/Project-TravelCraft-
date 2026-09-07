@@ -30,14 +30,14 @@ export default function CommunityPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-16 font-mono text-black">
+    <div className="max-w-6xl mx-auto px-4 pb-16 font-mono text-black dark:text-slate-100">
       
       {/* Main Title Section */}
       <div className="text-center my-8 space-y-2">
         <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
           {t('community.title')}
         </h1>
-        <p className="text-sm font-sans font-bold text-gray-700 underline decoration-2 underline-offset-4">
+        <p className="text-sm font-sans font-bold text-gray-700 dark:text-slate-300 underline decoration-2 underline-offset-4">
           {t('community.subtitle')}
         </p>
       </div>
@@ -45,7 +45,7 @@ export default function CommunityPage() {
       {/* Search Input Bar */}
       <div className="max-w-2xl mx-auto mb-6">
         <div className="relative">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-800" />
+          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-800 dark:text-slate-300" />
           <input 
             type="text" 
             value={searchQuery}

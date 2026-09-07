@@ -19,7 +19,7 @@ function AppContent() {
   // Show loading screen while Supabase checks session
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-[#e8ecef] flex items-center justify-center font-mono">
+      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-[#e8ecef]'} flex items-center justify-center font-mono`}>
         <div className="bg-white border-4 border-black rounded-2xl p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-center">
           <div className="text-4xl mb-4 animate-bounce">🗺️</div>
           <p className="font-black text-sm uppercase tracking-widest">Loading Save Data...</p>
