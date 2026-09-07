@@ -516,6 +516,27 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const getStoredBadges = () => {
+    try {
+      const raw = localStorage.getItem('pocket_odyssey_badges');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Persist badges locally so they survive a reload on this device.
+  const updateUserBadges = (badges) => {
+    const next = Array.isArray(badges) ? badges : [];
+    setUserProfile((prev) => (prev ? { ...prev, badges: next } : prev));
+    try {
+      localStorage.setItem('pocket_odyssey_badges', JSON.stringify(next));
+    } catch {
+      // ignore storage failures
+    }
+  };
+
   // Persist the chosen role so it survives reload and syncs to Supabase when signed in.
   const updateUserRole = async (role) => {
     setUserProfile((prev) => (prev ? { ...prev, role } : { role, name: 'Traveler' }));
@@ -550,7 +571,7 @@ export const AppProvider = ({ children }) => {
       role: getStoredRole() || meta.role || 'Cartographer',
       coins: 1245,
       level: 1,
-      badges: [],
+      badges: getStoredBadges(),
       visitedCount: 0
     };
   };
@@ -603,6 +624,7 @@ export const AppProvider = ({ children }) => {
 
       if (data) {
         const isAdmin = data.role?.toLowerCase() === 'admin';
+        const loadedBadges = getStoredBadges();
         setIsAdminLoggedIn(isAdmin);
         setUserProfile({
           id: userId,
@@ -612,7 +634,7 @@ export const AppProvider = ({ children }) => {
           role: isAdmin ? 'Admin' : (getStoredRole() || data.role || 'Cartographer'),
           coins: 1245,
           level: 1,
-          badges: ['Pioneer', 'Kyoto Explorer'],
+          badges: loadedBadges.length ? loadedBadges : (Array.isArray(data.badges) ? data.badges : ['Pioneer', 'Kyoto Explorer']),
           visitedCount: 14
         });
         if (isAdmin) {
@@ -639,7 +661,7 @@ export const AppProvider = ({ children }) => {
         email: '',
         avatar: '🏃',
         role: 'Cartographer',
-        coins: 1245, level: 1, badges: [], visitedCount: 0
+        coins: 1245, level: 1, badges: getStoredBadges(), visitedCount: 0
       });
     }
   };
@@ -1459,6 +1481,7 @@ export const AppProvider = ({ children }) => {
         userProfile,
         setUserProfile,
         updateUserRole,
+        updateUserBadges,
         selectedLocation,
         setSelectedLocation,
         mapBackgroundImage,

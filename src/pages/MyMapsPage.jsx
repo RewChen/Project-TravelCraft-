@@ -3,6 +3,8 @@ import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff, Eye, X 
 import { useApp } from '../context/AppContext';
 import CreateMapForm from '../components/map/CreateMapForm';
 
+const badgeIcon = (name) => ({ Cartographer: '🗺️', 'Master Builder': '🧱', Storyteller: '📖' }[name] || '🏅');
+
 function CardCover({ imageUrl, title }) {
   const [failed, setFailed] = useState(false);
   if (!imageUrl || failed) {
@@ -114,6 +116,15 @@ const openMapInEditor = (mapItem) => {
           <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">
             {t('myMaps.subtitle')}
           </p>
+          {Array.isArray(userProfile?.badges) && userProfile.badges.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {userProfile.badges.map((b) => (
+                <span key={b} className="inline-flex items-center gap-1 bg-amber-50 border-2 border-black rounded-full px-2 py-0.5 text-[9px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
+                  <span>{badgeIcon(b)}</span> {b}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <button 

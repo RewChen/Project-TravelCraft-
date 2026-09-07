@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Stage } from 'react-konva';
 import { useApp } from '../context/AppContext';
 import { 
@@ -8,8 +8,9 @@ import {
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
@@ -144,6 +145,27 @@ const normalizeElementFont = (element) => {
   return element;
 };
 
+const textGradientPresets = [
+  { id: 'sunset', labelKey: 'editor.gradientSunset', css: 'linear-gradient(135deg,#f97316 0%,#ec4899 55%,#8b5cf6 100%)' },
+  { id: 'ocean', labelKey: 'editor.gradientOcean', css: 'linear-gradient(135deg,#22d3ee 0%,#3b82f6 60%,#0ea5e9 100%)' },
+  { id: 'neon', labelKey: 'editor.gradientNeon', css: 'linear-gradient(135deg,#22c55e 0%,#eab308 50%,#ef4444 100%)' }
+];
+
+const photoFilters = [
+  { id: 'none', labelKey: 'editor.filterNone' },
+  { id: 'sepia', labelKey: 'editor.filterSepia' },
+  { id: 'vintage', labelKey: 'editor.filterVintage' },
+  { id: 'bw', labelKey: 'editor.filterBw' },
+  { id: 'polaroid', labelKey: 'editor.filterPolaroid' },
+  { id: 'sticker', labelKey: 'editor.filterSticker' }
+];
+
+const badgeMeta = {
+  Cartographer: { icon: '🗺️', labelKey: 'editor.badgeCartographer', descKey: 'editor.badgeCartographerDesc' },
+  'Master Builder': { icon: '🧱', labelKey: 'editor.badgeMasterBuilder', descKey: 'editor.badgeMasterBuilderDesc' },
+  Storyteller: { icon: '📖', labelKey: 'editor.badgeStoryteller', descKey: 'editor.badgeStorytellerDesc' }
+};
+
 const drawingTools = [
   ['select', MousePointer2, 'editor.toolSelect'],
   ['pen', Pencil, 'editor.toolLine'],
@@ -155,7 +177,7 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, registerEditorDraft, navigateTo } = useApp();
+const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo } = useApp();
   const [mapId] = useState(() => editorSetup?.id || 'comm-user-draft-new');
   const [savedEditorState] = useState(() => {
     try {
@@ -167,6 +189,12 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [panelOpen, setPanelOpen] = useState(true);
+  const [tourActive, setTourActive] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+  const [showTextStyleMenu, setShowTextStyleMenu] = useState(false);
+  const [recentlyWonBadges, setRecentlyWonBadges] = useState([]);
+  const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
+  const tourCameraRef = useRef(camera);
   const [selectedElement, setSelectedElement] = useState(null); 
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
   const {
@@ -425,6 +453,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const clearBackground = () => setBackgroundImage('');
 
   const handleWorldPointerDown = (event) => {
+    setTourActive(false);
     setContextMenuElementId(null);
     // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
     if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
@@ -461,8 +490,60 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }
   }, [photoLibrary]);
 
+  useEffect(() => {
+    tourCameraRef.current = camera;
+  }, [camera]);
+
+  useEffect(() => {
+    if (!tourActive) return undefined;
+    const stop = tourStops[tourIndex];
+    const pos = stop?.element ? elementPositions[stop.element.id] : null;
+    if (!stop || !pos) {
+      setTourActive(false);
+      return undefined;
+    }
+
+    const targetScale = clampValue(Math.min(
+      (viewportSize.width * 0.6) / pos.width,
+      (viewportSize.height * 0.6) / pos.height
+    ), MIN_ZOOM, MAX_ZOOM);
+    const targetX = ((viewportSize.width - pos.width * targetScale) / 2) - pos.left * targetScale;
+    const targetY = ((viewportSize.height - pos.height * targetScale) / 2) - pos.top * targetScale;
+
+    let frameId;
+    let holdTimer;
+    let startTime = null;
+    const duration = 700;
+
+    const frame = (now) => {
+      if (!startTime) startTime = now;
+      const progress = Math.min(1, (now - startTime) / duration);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = tourCameraRef.current;
+      setCamera({
+        x: current.x + (targetX - current.x) * ease,
+        y: current.y + (targetY - current.y) * ease,
+        scale: current.scale + (targetScale - current.scale) * ease
+      });
+      if (progress < 1) {
+        frameId = requestAnimationFrame(frame);
+      } else {
+        holdTimer = setTimeout(() => {
+          if (tourIndex < tourStops.length - 1) setTourIndex(tourIndex + 1);
+          else setTourActive(false);
+        }, 1800);
+      }
+    };
+    frameId = requestAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearTimeout(holdTimer);
+    };
+  }, [tourActive, tourIndex, viewportSize, tourStops, elementPositions, setCamera]);
+
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
+    setTourActive(false);
     endPan(); // stop any active pan so dragging takes over
     const position = elementPositions[elementId];
     pushHistory();
@@ -562,13 +643,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setSelectedElement(duplicateId);
   };
 
-  const rotateSelectedElement = () => {
-    if (!selectedElement) return;
-    setElements((previous) => previous.map((element) => element.id === selectedElement
-      ? { ...element, rotation: ((element.rotation ?? 0) + 15) % 360 }
-      : element));
-  };
-
   const deleteSelectedElement = () => {
     if (!selectedElement) return;
     pushHistory();
@@ -605,7 +679,6 @@ persistEditorStateToStore(mapId, editorDraftState);
     // Build traveler logs with all attached selfies (multi)
     let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
     if (publishSelfieUrls.length) {
-      // eslint-disable-next-line react-hooks/purity -- unique id for publish-time log entries (event handler, not render)
       const baseTime = Date.now();
       const selfieLogs = publishSelfieUrls.map((img, idx) => ({
         id: `selfie-${baseTime}-${idx}`,
@@ -665,8 +738,12 @@ if (publishPrivacy === 'private') {
     }
 
     publishMapToCommunity(mapData);
+    const wonBadges = awardPublishBadges();
+    setRecentlyWonBadges(wonBadges);
+    setShowBadgeCelebration(wonBadges.length > 0);
     setSaveStatus(t('editor.statusPublished'));
     setShowPublishModal(false);
+    triggerConfetti();
   };
 
   const shareUrl = window.location.href;
@@ -746,6 +823,54 @@ if (publishPrivacy === 'private') {
   const updateSelectedTextStyle = (updates) => {
     if (!selectedElement) return;
     setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, ...updates } : element));
+  };
+
+  const applyTextStyle = (updates) => {
+    pushHistory();
+    updateSelectedTextStyle(updates);
+  };
+
+  const tourStops = useMemo(
+    () => elements
+      .map((element) => ({ element }))
+      .filter(({ element }) => elementPositions[element.id]),
+    [elements, elementPositions]
+  );
+
+  const startTour = () => {
+    if (!tourStops.length) return;
+    setShowShareModal(false);
+    setShowPublishModal(false);
+    setEditingTextId(null);
+    setSelectedElement(null);
+    setContextMenuElementId(null);
+    setTourIndex(0);
+    setTourActive(true);
+  };
+
+  const triggerConfetti = () => {
+    try {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      setTimeout(() => confetti({ particleCount: 80, spread: 120, origin: { y: 0.55 } }), 250);
+      setTimeout(() => confetti({ particleCount: 60, spread: 90, origin: { y: 0.65 }, scalar: 0.8 }), 500);
+    } catch {
+      // confetti optional, ignore failures
+    }
+  };
+
+  const awardPublishBadges = () => {
+    if (!userProfile) return [];
+    const current = Array.isArray(userProfile.badges) ? userProfile.badges : [];
+    const won = [];
+    const add = (name) => { if (!current.includes(name)) won.push(name); };
+    const myPublishedCount = (communityMaps || []).filter((m) => (userProfile?.id ? m.ownerId === userProfile.id : m.discoveredBy === userProfile?.name)).length;
+    if (myPublishedCount === 0) add('Cartographer');
+    if (elements.length >= 10) add('Master Builder');
+    if (publishSelfieUrls.length > 0) add('Storyteller');
+    if (won.length) {
+      updateUserBadges([...current, ...won]);
+    }
+    return won;
   };
 
   const handleToolAction = (tool) => {
@@ -1000,6 +1125,16 @@ if (publishPrivacy === 'private') {
 
     return { borderColor: color };
   };
+  const getImageFilterStyle = (element) => {
+    const filterMap = {
+      sepia: 'sepia(0.85)',
+      vintage: 'sepia(0.45) contrast(1.1) brightness(0.95)',
+      bw: 'grayscale(1) contrast(1.05)',
+      polaroid: 'sepia(0.15) contrast(1.05)',
+      sticker: 'none'
+    };
+    return filterMap[element.filter] ? { filter: filterMap[element.filter] } : {};
+  };
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
@@ -1076,11 +1211,15 @@ if (publishPrivacy === 'private') {
           <button onClick={() => setShowShareModal(true)} title={t('editor.shareTooltip')} className="bg-amber-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2">
             <Share2 className="w-3 h-3" /> {t('editor.share')}
           </button>
+          <button onClick={startTour} disabled={!tourStops.length} title={t('editor.tourStart')} className="bg-emerald-400 text-black font-black text-xs px-3 py-2 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none uppercase flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed">
+            <Play className="w-3 h-3 fill-black" /> {t('editor.tour')}
+          </button>
         </div>
       </header>
 
       {/* SECONDARY TOOLBAR (TEXT FORMATTING) */}
       {selectedElement && selectedData?.type === 'text' && (
+        <div className="relative shrink-0 z-20">
         <div className="h-12 bg-white border-b-4 border-black flex items-center px-4 gap-2 z-10 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar">
 
           {/* Font Family */}
@@ -1186,9 +1325,35 @@ if (publishPrivacy === 'private') {
           <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
 
           {/* Tool presets */}
-          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textEffects')}</button>
+          <button onClick={() => setShowTextStyleMenu((value) => !value)} className={`px-3 py-1 text-xs font-bold rounded shrink-0 whitespace-nowrap flex items-center gap-1 ${showTextStyleMenu ? 'bg-amber-200 border-2 border-black' : 'hover:bg-gray-100'}`}>
+            <Wand2 className="w-3.5 h-3.5" />{t('editor.textEffects')}
+          </button>
           <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textAnimate')}</button>
           <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textPosition')}</button>
+        </div>
+
+        {showTextStyleMenu && (
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textGradient')}</label>
+                <div className="flex gap-2">
+                  {textGradientPresets.map((preset) => (
+                    <button key={preset.id} type="button" title={t(preset.labelKey)} onClick={() => applyTextStyle({ textGradient: selectedData.textGradient === preset.css ? undefined : preset.css })}
+                      className={`h-8 flex-1 rounded-lg border-2 ${selectedData.textGradient === preset.css ? 'border-black ring-2 ring-offset-1 ring-black' : 'border-black'}`} style={{ background: preset.css }} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => applyTextStyle({ textStroke: selectedData.textStroke ? undefined : 3 })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textStroke ? 'bg-amber-200' : 'bg-white hover:bg-gray-50'}`}>{t('editor.textStroke')}</button>
+                <button type="button" onClick={() => applyTextStyle({ textGlow: selectedData.textGlow ? undefined : '#f59e0b' })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textGlow ? 'bg-amber-200' : 'bg-white hover:bg-gray-50'}`}>{t('editor.textGlow')}</button>
+              </div>
+              {(selectedData.textGradient || selectedData.textStroke || selectedData.textGlow) && (
+                <button type="button" onClick={() => applyTextStyle({ textGradient: undefined, textStroke: undefined, textGlow: undefined })} className="w-full border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase text-red-600 bg-white hover:bg-red-50">{t('editor.textStyleClear')}</button>
+              )}
+            </div>
+          </div>
+        )}
         </div>
       )}
       {saveStatus && <div className="absolute top-16 right-4 z-30 bg-emerald-100 border-2 border-black px-3 py-2 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{saveStatus}</div>}
@@ -1318,6 +1483,32 @@ if (publishPrivacy === 'private') {
         </form>
       </div>}
 
+      {showBadgeCelebration && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowBadgeCelebration(false)}>
+          <div className="w-full max-w-sm bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 text-center" onClick={(event) => event.stopPropagation()}>
+            <div className="text-4xl mb-1">🎉</div>
+            <h3 className="font-black uppercase text-sm">{t('editor.badgeUnlocked')}</h3>
+            <div className="mt-4 space-y-2">
+              {recentlyWonBadges.map((badge) => {
+                const meta = badgeMeta[badge];
+                return (
+                  <div key={badge} className="flex items-center gap-3 border-2 border-black rounded-xl bg-amber-50 p-3">
+                    <span className="text-3xl">{meta?.icon || '🏅'}</span>
+                    <div className="text-left min-w-0">
+                      <div className="font-black text-sm">{meta ? t(meta.labelKey) : badge}</div>
+                      <div className="text-[10px] font-bold text-gray-500">{meta ? t(meta.descKey) : ''}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button type="button" onClick={() => setShowBadgeCelebration(false)} className="mt-5 w-full bg-[#cc0000] text-white font-black py-2.5 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:bg-red-700 cursor-pointer">
+              {t('editor.badgeContinue')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* EDITOR WORKSPACE */}
       <div className="flex-1 flex overflow-hidden">
         
@@ -1377,18 +1568,6 @@ if (publishPrivacy === 'private') {
                       <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
                     </button>
                   ))}
-                </div>
-                <div className="mt-4 space-y-2 border-t-2 border-black pt-3">
-                  <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
-                  <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white'}`}>
-                    <Upload className="w-3.5 h-3.5" /> {t('editor.uploadBackground')}
-                  </button>
-                  {backgroundImage && (
-                    <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
-                      <X className="w-3.5 h-3.5" /> {t('editor.clearBackground')}
-                    </button>
-                  )}
-                  <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.backgroundHelper')}</p>
                 </div>
               </div>
             )}
@@ -1831,7 +2010,23 @@ if (publishPrivacy === 'private') {
                       setEditingTextId(element.id);
                     }
                   }}>
-                    {element.type === 'image' ? <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain pointer-events-none" /> : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
+                    {element.type === 'image' ? (
+                      element.filter === 'polaroid' ? (
+                        <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">
+                          <div className="w-full h-full bg-white border-2 border-black p-1 pb-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] rotate-[-2deg]">
+                            <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain" style={getImageFilterStyle(element)} />
+                          </div>
+                        </div>
+                      ) : element.filter === 'sticker' ? (
+                        <div className="w-full h-full p-[4%] pointer-events-none">
+                          <div className="w-full h-full bg-white rounded-[28%] border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden">
+                            <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-cover" style={getImageFilterStyle(element)} />
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
+                      )
+                    ) : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
                       isEditingText ? (
                         <textarea
                           autoFocus
@@ -1848,7 +2043,9 @@ if (publishPrivacy === 'private') {
                             textAlign: element.textAlign || 'center',
                             fontFamily: element.fontFamily || 'sans-serif',
                             lineHeight: 1.2,
-                            color: element.color ?? drawingColor ?? '#111111'
+                            color: element.color ?? drawingColor ?? '#111111',
+                            ...(element.type !== 'emoji' && element.textStroke ? { WebkitTextStroke: `${element.textStroke}px #111111` } : {}),
+                            ...(element.type !== 'emoji' && element.textGlow ? { textShadow: `0 0 16px ${element.textGlow}` } : {})
                           }}
                         />
                       ) : (
@@ -1865,7 +2062,10 @@ if (publishPrivacy === 'private') {
                             lineHeight: 1.2,
                             wordBreak: 'break-word',
                             overflowWrap: 'break-word',
-                            color: element.color ?? drawingColor ?? '#111111'
+                            color: element.color ?? drawingColor ?? '#111111',
+                            ...(element.type !== 'emoji' && element.textGradient ? { backgroundImage: element.textGradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : {}),
+                            ...(element.type !== 'emoji' && element.textStroke ? { WebkitTextStroke: `${element.textStroke}px #111111` } : {}),
+                            ...(element.type !== 'emoji' && element.textGlow ? { textShadow: `0 0 18px ${element.textGlow}` } : {})
                           }}>
                             {element.content}
                         </span>
@@ -1894,6 +2094,20 @@ if (publishPrivacy === 'private') {
               })}
             </div>
           </div>
+
+          {tourActive && tourStops[tourIndex] && (
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white border-2 border-black rounded-xl px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="text-center min-w-[130px]">
+                <div className="text-[9px] font-black uppercase text-gray-400">{t('editor.tourLabel')} {tourIndex + 1}<span className="mx-0.5">/</span>{tourStops.length}</div>
+                <div className="font-black text-sm text-[#cc0000] truncate max-w-[200px]">{getElementLabel(tourStops[tourIndex].element)}</div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setTourIndex(Math.max(0, tourIndex - 1))} disabled={tourIndex === 0} title={t('editor.tourPrev')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setTourIndex(Math.min(tourStops.length - 1, tourIndex + 1))} disabled={tourIndex === tourStops.length - 1} title={t('editor.tourNext')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setTourActive(false)} title={t('editor.tourStop')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-red-50 text-red-600"><X className="w-4 h-4" /></button>
+              </div>
+            </div>
+          )}
 
           {/* Pan hint */}
           <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
@@ -1971,6 +2185,20 @@ if (publishPrivacy === 'private') {
                         {selectedData.fontWeight && selectedData.fontWeight > 400 ? t('editor.normal') : t('editor.bold')}
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedData.type === 'image' && (
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.filterTitle')}</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {photoFilters.map((filter) => (
+                      <button key={filter.id} type="button" onClick={() => { pushHistory(); setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, filter: filter.id === 'none' ? undefined : filter.id } : element)); }}
+                        className={`border-2 border-black rounded-lg px-1 py-1.5 font-black text-[9px] uppercase text-center ${(selectedData.filter || 'none') === filter.id ? 'bg-amber-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
+                        {t(filter.labelKey)}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}
