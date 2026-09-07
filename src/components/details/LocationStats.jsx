@@ -31,8 +31,8 @@ export default function LocationStats() {
   };
 
   return (
-    <div className="bg-[#e8ecef] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-      <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-amber-700">
+    <div className="bg-white dark:bg-[#e8ecef] border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+      <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-amber-700 dark:text-amber-600">
         <BarChart2 className="w-5 h-5" /> {t('details.statsTitle')}
       </h3>
       
@@ -48,13 +48,13 @@ export default function LocationStats() {
       <div className="grid grid-cols-2 gap-3 mb-5">
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
-          <div className="text-[9px] font-bold text-gray-500 uppercase">{t('details.visitors')}</div>
-          <div className="text-xs font-black">{selectedLocation.visitors}</div>
+          <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t('details.visitors')}</div>
+          <div className="text-xs font-black text-slate-900">{selectedLocation.visitors}</div>
         </div>
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <span className="text-amber-500 text-sm block mb-1">🎖️</span>
-          <div className="text-[9px] font-bold text-gray-500 uppercase">{t('details.rarity')}</div>
-          <div className="text-xs font-black">{selectedLocation.rarity}</div>
+          <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t('details.rarity')}</div>
+          <div className="text-xs font-black text-slate-900">{selectedLocation.rarity}</div>
         </div>
       </div>
 

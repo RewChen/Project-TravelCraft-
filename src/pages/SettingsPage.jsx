@@ -14,8 +14,8 @@ export default function SettingsPage() {
             <Palette className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black uppercase tracking-tight">{t('settings.title')}</h1>
-            <p className="text-xs text-gray-600 font-sans">{t('settings.subtitle')}</p>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">{t('settings.title')}</h1>
+            <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">{t('settings.subtitle')}</p>
           </div>
         </div>
       </div>
@@ -24,9 +24,9 @@ export default function SettingsPage() {
       <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex items-center gap-2 mb-1">
           <Languages className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-base font-black uppercase">{t('settings.language')}</h2>
+          <h2 className="text-base font-black uppercase text-slate-900">{t('settings.language')}</h2>
         </div>
-        <p className="text-xs text-gray-600 font-sans mb-4">{t('settings.languageDesc')}</p>
+        <p className="text-xs text-slate-600 dark:text-slate-300 font-sans mb-4">{t('settings.languageDesc')}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {languages.map((lang) => {
@@ -46,7 +46,7 @@ export default function SettingsPage() {
                   <span className="text-xl">{lang.flag}</span>
                   <span>
                     <span className="block text-sm font-black uppercase">{lang.native}</span>
-                    <span className="block text-[10px] text-gray-600 font-bold">{lang.name}</span>
+                    <span className="block text-[10px] text-slate-600 dark:text-slate-400 font-bold">{lang.name}</span>
                   </span>
                 </span>
                 {isActive && <Check className="w-5 h-5 text-black stroke-[3]" />}
@@ -60,9 +60,9 @@ export default function SettingsPage() {
       <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex items-center gap-2 mb-1">
           <Palette className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-base font-black uppercase">{t('settings.theme')}</h2>
+          <h2 className="text-base font-black uppercase text-slate-900">{t('settings.theme')}</h2>
         </div>
-        <p className="text-xs text-gray-600 font-sans mb-4">{t('settings.themeDesc')}</p>
+        <p className="text-xs text-slate-600 dark:text-slate-300 font-sans mb-4">{t('settings.themeDesc')}</p>
 
         <div className="grid grid-cols-2 gap-3">
           <button

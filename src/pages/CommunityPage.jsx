@@ -37,7 +37,7 @@ export default function CommunityPage() {
         <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
           {t('community.title')}
         </h1>
-        <p className="text-sm font-sans font-bold text-gray-700 dark:text-slate-300 underline decoration-2 underline-offset-4">
+        <p className="text-sm font-sans font-bold text-slate-700 dark:text-slate-300 underline decoration-2 underline-offset-4">
           {t('community.subtitle')}
         </p>
       </div>
@@ -45,7 +45,7 @@ export default function CommunityPage() {
       {/* Search Input Bar */}
       <div className="max-w-2xl mx-auto mb-6">
         <div className="relative">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-800 dark:text-slate-300" />
+          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 dark:text-slate-300" />
           <input 
             type="text" 
             value={searchQuery}
@@ -126,7 +126,7 @@ export default function CommunityPage() {
                 </h3>
                 
                 {/* Author Info & Role */}
-                <div className="flex items-center justify-between text-xs font-bold text-gray-800 mb-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-4">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 border border-black ${mapItem.authorBadgeColor}`}></div>
                     <span>{t('community.discoveredBy')} <strong className="font-black text-black">{mapItem.discoveredBy}</strong></span>

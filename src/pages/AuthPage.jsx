@@ -6,13 +6,16 @@ import RestoredForm from '../components/auth/RestoredForm';
 import { useApp } from '../context/AppContext';
 
 export default function AuthPage() {
-  const { authMode, navigateTo, t } = useApp();
+  const { authMode, navigateTo, t, themeMode } = useApp();
+  const isDark = themeMode === 'dark';
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-4 font-mono">
+    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-[#e8ecef]'} flex flex-col items-center justify-center p-4 font-mono transition-colors duration-200`}>
       <button
         onClick={() => navigateTo('home')}
-        className="mb-4 text-white text-xs font-bold bg-gray-800 hover:bg-gray-700 px-4 py-2 border-2 border-white rounded-lg flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] cursor-pointer"
+        className={`mb-4 text-xs font-bold px-4 py-2 border-2 rounded-lg flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors ${
+          isDark ? 'text-white bg-gray-800 hover:bg-gray-700 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : 'text-slate-800 bg-white hover:bg-gray-50 border-black'
+        }`}
       >
         {t('auth.back')}
       </button>
@@ -54,11 +57,11 @@ export default function AuthPage() {
 
       </div>
 
-      <footer className="text-center text-xs text-white/60 mt-6 space-y-1 font-sans">
+      <footer className={`text-center text-xs mt-6 space-y-1 font-sans ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
         <div className="flex justify-center gap-4 font-bold underline">
-          <button className="hover:text-white">{t('footer.legal')}</button>
-          <button className="hover:text-white">{t('footer.support')}</button>
-          <button className="hover:text-white">{t('footer.trainerClub')}</button>
+          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.legal')}</button>
+          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.support')}</button>
+          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.trainerClub')}</button>
         </div>
         <p className="text-[10px]">{t('footer.copyright')}</p>
       </footer>

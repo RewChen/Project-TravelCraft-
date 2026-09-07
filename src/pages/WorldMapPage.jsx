@@ -61,7 +61,7 @@ export default function WorldMapPage() {
                 </span>
               )}
             </h2>
-            <p className="text-[11px] text-gray-600 font-sans">
+            <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans">
               {t('worldMap.helperText')}
             </p>
           </div>

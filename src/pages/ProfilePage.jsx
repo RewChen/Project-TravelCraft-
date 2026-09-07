@@ -93,8 +93,8 @@ export default function ProfilePage() {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
-          <h2 className="text-xl font-black">{userProfile.name}</h2>
-          <p className="text-xs text-gray-500 font-bold mb-2">{userProfile.email}</p>
+          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{userProfile.name}</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-bold mb-2">{userProfile.email}</p>
 
           {/* Active Trainer Role Badge */}
           <span className="bg-[#cc0000] text-white text-[10px] font-black px-3 py-1 border-2 border-black rounded-full uppercase flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -113,8 +113,8 @@ export default function ProfilePage() {
             <div className="bg-indigo-50 border-2 border-black rounded-xl p-4 flex items-center gap-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <div className="text-4xl font-black text-indigo-700">{myPublishedMaps.length}</div>
               <div>
-                <div className="text-xs font-bold text-gray-500 uppercase">{t('profile.mapsPublished')}</div>
-                <div className="text-[11px] text-gray-600 font-sans mt-0.5">
+                <div className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">{t('profile.mapsPublished')}</div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-300 font-sans mt-0.5">
                   {myPublishedMaps.length === 0
                     ? t('profile.noPublishedMaps')
                     : myPublishedMaps.length > 1
@@ -129,8 +129,8 @@ export default function ProfilePage() {
               <ul className="mt-3 space-y-1.5">
                 {myPublishedMaps.map((m) => (
                   <li key={m.id} className="flex items-center gap-2 bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                    🗺️ <span>{m.title}</span>
-                    <span className="ml-auto text-[10px] text-gray-400 font-normal">{m.rarity}</span>
+                     🗺️ <span className="text-slate-800">{m.title}</span>
+                     <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400 font-normal">{m.rarity}</span>
                   </li>
                 ))}
               </ul>

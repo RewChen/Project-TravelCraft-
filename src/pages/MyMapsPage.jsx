@@ -96,7 +96,7 @@ const openMapInEditor = (mapItem) => {
             <Map className="w-6 h-6 text-red-600" />
             <h1 className="text-2xl font-black uppercase">{t('myMaps.title')}</h1>
           </div>
-          <p className="text-xs text-gray-600 font-sans">
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">
             {t('myMaps.subtitle')}
           </p>
         </div>
@@ -122,7 +122,7 @@ const openMapInEditor = (mapItem) => {
       {/* Map List Grid */}
       {myMapsList.length === 0 ? (
         <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <p className="text-gray-500 font-bold mb-4">You haven't created any maps yet.</p>
+          <p className="text-slate-600 dark:text-slate-300 font-bold mb-4">You haven't created any maps yet.</p>
           <button onClick={() => isLoggedIn ? setShowCreateModal(true) : navigateTo('auth')} className="bg-[#cc0000] text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             Create Your First Map
           </button>
@@ -141,9 +141,9 @@ const openMapInEditor = (mapItem) => {
                 </span>
               </div>
               <CardCover imageUrl={map.imageUrl} title={map.title} />
-              <h3 className="text-lg font-black mb-1">{map.title}</h3>
-              <p className="text-[11px] text-gray-500 font-bold mb-3">{map.region}</p>
-              <p className="text-xs text-gray-700 font-sans leading-relaxed mb-6">
+              <h3 className="text-lg font-black mb-1 text-slate-900">{map.title}</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{map.region}</p>
+              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6">
                 {map.description}
               </p>
             </div>
@@ -190,7 +190,7 @@ const openMapInEditor = (mapItem) => {
           <Star className="w-5 h-5 fill-amber-500 text-amber-600" /> {t('myMaps.favoritesTitle')} ({favorites.length})
         </h2>
         {favorites.length === 0 ? (
-          <p className="text-xs text-gray-500">{t('myMaps.noFavorites')}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-300">{t('myMaps.noFavorites')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {favorites.map((item, idx) => (

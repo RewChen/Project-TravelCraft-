@@ -9,7 +9,7 @@ export default function LocationLore() {
       <h3 className="text-lg font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2">
         <BookOpen className="w-5 h-5 text-red-600" /> {t('details.loreTitle')}
       </h3>
-      <p className="text-sm text-gray-700 font-sans leading-relaxed mb-6">
+      <p className="text-sm text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6">
         {selectedLocation.lore}
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

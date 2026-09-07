@@ -16,7 +16,7 @@ export default function HomePage() {
             <h1 className="text-4xl md:text-5xl font-black text-black leading-tight mb-4 tracking-tight">
               Gotta <span className="text-[#cc0000]">{t('home.titlePart')}</span> 'Em All.
             </h1>
-            <p className="text-gray-600 text-xs md:text-sm font-sans leading-relaxed mb-8 font-medium">
+            <p className="text-slate-600 dark:text-slate-300 text-xs md:text-sm font-sans leading-relaxed mb-8 font-medium">
               {t('home.subtitle')}
             </p>
           </div>
@@ -66,8 +66,8 @@ export default function HomePage() {
       </section>
 
       {/* Core Gameplay Loop */}
-      <section className="bg-gray-200 border-4 border-black rounded-2xl p-6 md:p-8 mb-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <h3 className="text-center text-2xl font-black uppercase tracking-wider mb-8">{t('home.loopTitle')}</h3>
+      <section className="bg-gray-200 dark:bg-slate-800 border-4 border-black rounded-2xl p-6 md:p-8 mb-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <h3 className="text-center text-2xl font-black uppercase tracking-wider mb-8 text-slate-900 dark:text-slate-100">{t('home.loopTitle')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
           <div className="hidden md:block absolute top-1/2 left-10 right-10 h-1 bg-black -translate-y-1/2 z-0"></div>
           {[
@@ -82,8 +82,8 @@ export default function HomePage() {
               <div className="w-12 h-12 border-2 border-black rounded-full bg-gray-50 mx-auto mb-3 flex items-center justify-center">
                 <item.icon className={`w-5 h-5 ${item.step === 1 ? 'text-red-600' : item.step === 2 ? 'text-amber-600' : 'text-blue-600'}`} />
               </div>
-              <h4 className="font-extrabold text-base mb-1">{t(item.titleKey)}</h4>
-              <p className="text-[11px] text-gray-600 font-sans font-medium">{t(item.descKey)}</p>
+              <h4 className="font-extrabold text-base mb-1 text-slate-900">{t(item.titleKey)}</h4>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans font-medium">{t(item.descKey)}</p>
             </div>
           ))}
         </div>

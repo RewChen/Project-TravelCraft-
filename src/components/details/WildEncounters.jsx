@@ -53,10 +53,10 @@ export default function WildEncounters() {
               {item.icon}
             </div>
             <div className="flex-1">
-              <div className="text-xs font-bold">{item.title}</div>
-              <div className="text-[10px] text-gray-500">{item.distance}</div>
+              <div className="text-xs font-bold text-slate-900">{item.title}</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">{item.distance}</div>
             </div>
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
           </div>
         ))}
       </div>

@@ -7,6 +7,7 @@ html {
 body {
   margin: 0;
   background-color: #e8ecef;
+  color: #1e293b; /* slate-800 - primary light-theme font, softer than pure black */
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -146,5 +147,59 @@ html.dark body {
   /* Selection & scrollbar harmony */
   .dark ::selection {
     background-color: rgba(220, 38, 38, 0.4);
+  }
+
+  /* Hard-coded light hex surfaces → dark slate in dark mode (prevents white-on-white) */
+  .dark .bg-\[\#e8ecef\],
+  .dark .bg-\[\#f0f0f0\],
+  .dark .bg-\[\#f0f2f5\],
+  .dark .bg-\[\#d8d8d8\] {
+    background-color: #1e293b !important;
+  }
+  .dark .bg-\[\#202020\],
+  .dark .bg-\[\#111111\],
+  .dark .bg-\[\#111\] {
+    background-color: #0f172a !important;
+  }
+
+  /* ——— Light theme tuning: ensure muted text harmonizes with #e8ecef / white cards ———
+     Light theme uses warm slate, not pure gray, for better harmony.
+     Without .dark, keep headings crisp and soften secondary text just enough. */
+  .text-black {
+    color: #0f172a; /* slate-900 - crisp heading in light theme */
+  }
+  .text-gray-900,
+  .text-slate-900 {
+    color: #1e293b; /* slate-800 */
+  }
+  .text-gray-800,
+  .text-slate-800 {
+    color: #334155; /* slate-700 */
+  }
+  .text-gray-700,
+  .text-slate-700 {
+    color: #334155;
+  }
+  .text-gray-600,
+  .text-slate-600 {
+    color: #475569; /* slate-600 - readable muted on white/#e8ecef */
+  }
+  .text-gray-500,
+  .text-slate-500 {
+    color: #475569; /* bump from slate-500 to slate-600 for visibility on white */
+  }
+  .text-gray-400,
+  .text-slate-400,
+  .text-gray-300,
+  .text-slate-300 {
+    color: #64748b; /* slate-500 - visible instead of faint 300/400 */
+  }
+  /* Keep placeholders subtle but readable in light */
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+  ::selection {
+    background-color: rgba(248, 113, 113, 0.3);
   }
 }
