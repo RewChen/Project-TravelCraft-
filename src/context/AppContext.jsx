@@ -645,10 +645,17 @@ export const AppProvider = ({ children }) => {
         const dbMaps = await fetchAllMaps();
         if (cancelled || !dbMaps?.length) return;
         setCommunityMaps((previous) => {
-          const merged = [...dbMaps];
-          const seen = new Set(dbMaps.map((map) => map.id));
+          const merged = [];
+          const seen = new Set();
+          for (const dbMap of dbMaps) {
+            if (seen.has(dbMap.id)) continue;
+            seen.add(dbMap.id);
+            merged.push(dbMap);
+          }
           for (const localItem of previous) {
-            if (!seen.has(localItem.id)) merged.push(localItem);
+            if (seen.has(localItem.id)) continue;
+            seen.add(localItem.id);
+            merged.push(localItem);
           }
           return merged;
         });

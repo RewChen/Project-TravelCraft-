@@ -20,7 +20,10 @@ export default function CommunityPage() {
     { id: 'urban', label: 'community.urban', icon: Building2 }
   ];
 
+  const seenIds = new Set();
   const filteredMaps = (communityMaps || []).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
+    if (!item?.id || seenIds.has(item.id)) return false;
+    seenIds.add(item.id);
     const title = item.title || t('common.untitledMap');
     const author = item.discoveredBy || t('common.traveler');
     const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
