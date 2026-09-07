@@ -11,9 +11,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.3",
+    "konva": "^10.3.3",
     "lucide-react": "^1.31.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-konva": "^19.2.6",
+    "use-image": "^1.1.4"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

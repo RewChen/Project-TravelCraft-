@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Stage } from 'react-konva';
 import { useApp } from '../context/AppContext';
 import { 
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize
 } from 'lucide-react';
+import useCanvasControls from '../hooks/useCanvasControls';
+import BackgroundLayer from '../components/editor/BackgroundLayer';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -99,9 +103,9 @@ const elementOptions = [
 ];
 
 const textPresets = [
-  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 32, fontWeight: 900 },
-  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 22, fontWeight: 700 },
-  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 16, fontWeight: 400 }
+  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 160, fontWeight: 900 },
+  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 110, fontWeight: 700 },
+  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 80, fontWeight: 400 }
 ];
 
 const drawingTools = [
@@ -127,17 +131,28 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [selectedElement, setSelectedElement] = useState('tree'); // 'tree', 'chest', null
-  const [zoom, setZoom] = useState(100);
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'tropical');
+  const {
+    viewportRef,
+    viewportSize,
+    camera,
+    zoomIn,
+    zoomOut,
+    fitView,
+    startPan,
+    isPanning
+  } = useCanvasControls();
+  const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
+  const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
-    ? savedEditorState.elements
+    ? scaleElementFontSizes(savedEditorState.elements)
     : [
         { id: 'tree', type: 'emoji', labelKey: 'editor.ancientTree', content: '🌳' },
         { id: 'chest', type: 'emoji', labelKey: 'editor.woodenChest', content: '🧰' }
       ]));
-  const [elementPositions, setElementPositions] = useState(() => savedEditorState?.elementPositions || {
-    tree: { left: 200, top: 150, width: 128, height: 128 },
-    chest: { left: 500, top: 350, width: 64, height: 64 }
+  const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {
+    tree: { left: 1000, top: 750, width: 640, height: 640 },
+    chest: { left: 2500, top: 1750, width: 320, height: 320 }
   });
   const [dragging, setDragging] = useState(null);
   const [history, setHistory] = useState([]);
@@ -169,6 +184,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
+  const backgroundInputRef = useRef(null);
   const nextElementId = useRef(0);
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
@@ -182,6 +198,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     elements,
     elementPositions,
     selectedTemplate,
+    backgroundImage,
     mapTitle,
     publishDescription,
     publishTags,
@@ -220,18 +237,18 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     if (!dragging) return undefined;
 
     const handlePointerMove = (event) => {
-      const scale = zoom / 100;
+      const scale = camera.scale;
       const deltaX = (event.clientX - dragging.startX) / scale;
       const deltaY = (event.clientY - dragging.startY) / scale;
 
       setElementPositions((previous) => {
         const element = previous[dragging.id];
-        const maxLeft = 800 - element.width;
-        const maxTop = 600 - element.height;
+        const maxLeft = CANVAS_WIDTH - element.width;
+        const maxTop = CANVAS_HEIGHT - element.height;
 
         if (dragging.mode === 'resize') {
-          const nextWidth = Math.max(40, Math.min(800 - element.left, dragging.startWidth + deltaX));
-          const nextHeight = Math.max(40, Math.min(600 - element.top, dragging.startHeight + deltaY));
+          const nextWidth = Math.max(MIN_ELEMENT_SIZE, Math.min(CANVAS_WIDTH - element.left, dragging.startWidth + deltaX));
+          const nextHeight = Math.max(MIN_ELEMENT_SIZE, Math.min(CANVAS_HEIGHT - element.top, dragging.startHeight + deltaY));
           return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight } };
         }
 
@@ -255,7 +272,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dragging, zoom]);
+  }, [dragging, camera.scale]);
 
   useEffect(() => {
     const handleDeleteKey = (event) => {
@@ -302,6 +319,36 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fit the world into view once the viewport has been measured.
+  useEffect(() => {
+    if (ready || !viewportSize.width || !viewportSize.height) return undefined;
+    const timer = setTimeout(() => {
+      fitView();
+      setReady(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [ready, viewportSize.width, viewportSize.height, fitView]);
+
+  const handleBackgroundUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith('image/')) {
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setBackgroundImage(reader.result);
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const clearBackground = () => setBackgroundImage('');
+
+  const handleWorldPointerDown = (event) => {
+    if (event.button === 1 || event.target === event.currentTarget) {
+      startPan(event.clientX, event.clientY);
+    }
+  };
+
   // Auto-save on edit or open (debounced).
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -309,6 +356,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         elements,
         elementPositions,
         selectedTemplate,
+        backgroundImage,
         mapTitle,
         publishDescription,
         publishTags,
@@ -320,7 +368,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, selectedTemplate, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, mapId]);
+  }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, mapId]);
 
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
@@ -364,13 +412,20 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) return;
     pushHistory();
-    setElementPositions((previous) => ({
-      ...previous,
-      [selectedElement]: {
-        ...previous[selectedElement],
-        [property]: Math.max(property === 'width' || property === 'height' ? 40 : 0, numericValue)
-      }
-    }));
+    setElementPositions((previous) => {
+      const current = previous[selectedElement];
+      const maxValue = property === 'width' ? CANVAS_WIDTH - current.left
+        : property === 'height' ? CANVAS_HEIGHT - current.top
+          : property === 'left' ? CANVAS_WIDTH - current.width
+            : CANVAS_HEIGHT - current.height;
+      return {
+        ...previous,
+        [selectedElement]: {
+          ...current,
+          [property]: Math.max(property === 'width' || property === 'height' ? MIN_ELEMENT_SIZE : 0, Math.min(maxValue, numericValue))
+        }
+      };
+    });
   };
 
   const setOverlay = (color) => {
@@ -457,6 +512,7 @@ persistEditorStateToStore(mapId, editorDraftState);
     // Build traveler logs with all attached selfies (multi)
     let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
     if (publishSelfieUrls.length) {
+      // eslint-disable-next-line react-hooks/purity -- unique id for publish-time log entries (event handler, not render)
       const baseTime = Date.now();
       const selfieLogs = publishSelfieUrls.map((img, idx) => ({
         id: `selfie-${baseTime}-${idx}`,
@@ -474,8 +530,8 @@ persistEditorStateToStore(mapId, editorDraftState);
       return {
         id: `editor-${element.id}`,
         title: getElementLabel(element),
-        top: `${Math.round(((position.top + position.height / 2) / 600) * 100)}%`,
-        left: `${Math.round(((position.left + position.width / 2) / 800) * 100)}%`,
+        top: `${Math.round(((position.top + position.height / 2) / CANVAS_HEIGHT) * 100)}%`,
+        left: `${Math.round(((position.left + position.width / 2) / CANVAS_WIDTH) * 100)}%`,
         icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
         category: 'landmarks',
         lore: element.type === 'text' ? element.content : t('editor.addedLore', { name: getElementLabel(element) })
@@ -569,15 +625,27 @@ if (publishPrivacy === 'private') {
     const colorValue = element.color ?? drawingColor ?? '#111111';
     const textStyles = element.type === 'text'
       ? {
-          fontSize: element.fontSize ?? 28,
+          fontSize: element.fontSize ?? 140,
           fontWeight: element.fontWeight ?? 900,
           color: colorValue
         }
       : { color: colorValue };
     setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
+    const width = element.type === 'text' ? 1100 : 500;
+    const height = element.type === 'text' ? 350 : 500;
+    const fallbackLeft = CANVAS_WIDTH / 2 - width / 2;
+    const fallbackTop = CANVAS_HEIGHT / 2 - height / 2;
+    const viewportX = viewportSize.width / 2;
+    const viewportY = viewportSize.height / 2;
+    const placeLeft = viewportSize.width
+      ? Math.max(0, Math.min(CANVAS_WIDTH - width, Math.round((viewportX - camera.x) / camera.scale - width / 2)))
+      : fallbackLeft;
+    const placeTop = viewportSize.height
+      ? Math.max(0, Math.min(CANVAS_HEIGHT - height, Math.round((viewportY - camera.y) / camera.scale - height / 2)))
+      : fallbackTop;
     setElementPositions((previous) => ({
       ...previous,
-      [id]: { left: 330, top: 220, width: element.type === 'text' ? 220 : 100, height: element.type === 'text' ? 70 : 100 }
+      [id]: { left: placeLeft, top: placeTop, width, height }
     }));
     setSelectedElement(id);
   };
@@ -695,7 +763,7 @@ if (publishPrivacy === 'private') {
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
   const selectionToolbarStyle = selectedPosition ? {
     top: Math.max(10, selectedPosition.top - 50),
-    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2 - 72, 660))
+    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2 - 72, CANVAS_WIDTH - 144))
   } : {};
   const getShapeStyle = (element) => {
     const color = element.color ?? drawingColor ?? '#111111';
@@ -733,7 +801,7 @@ if (publishPrivacy === 'private') {
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
-    left: Math.max(20, Math.min(contextMenuPosition.left, 650))
+    left: Math.max(20, Math.min(contextMenuPosition.left, CANVAS_WIDTH - 240))
   } : {};
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
   const selectTemplate = (templateId) => setSelectedTemplate(templateId);
@@ -931,15 +999,29 @@ if (publishPrivacy === 'private') {
           
           <div className="flex-1 overflow-y-auto p-4">
             {activeTab === 'TEMPLATES' && (
-              <div className="grid grid-cols-2 gap-3">
-                {mapTemplates.map((template) => (
-                  <button key={template.id} type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} className={`aspect-square border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
-                    <div className="absolute inset-0" style={{ background: template.preview }}></div>
-                    <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
-                    {selectedTemplate === template.id && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
-                    <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  {mapTemplates.map((template) => (
+                    <button key={template.id} type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} className={`aspect-square border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
+                      <div className="absolute inset-0" style={{ background: template.preview }}></div>
+                      <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
+                      {selectedTemplate === template.id && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
+                      <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-4 space-y-2 border-t-2 border-black pt-3">
+                  <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
+                  <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white'}`}>
+                    <Upload className="w-3.5 h-3.5" /> {t('editor.uploadBackground')}
                   </button>
-                ))}
+                  {backgroundImage && (
+                    <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
+                      <X className="w-3.5 h-3.5" /> {t('editor.clearBackground')}
+                    </button>
+                  )}
+                  <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.backgroundHelper')}</p>
+                </div>
               </div>
             )}
             {activeTab === 'ELEMENTS' && (
@@ -970,41 +1052,42 @@ if (publishPrivacy === 'private') {
         </div>
 
         {/* CENTER CANVAS AREA */}
-        <div 
+        <div
+          ref={viewportRef}
           className="flex-1 relative overflow-hidden bg-[#e5e5e5]"
-          style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}
+          style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px', cursor: isPanning ? 'grabbing' : 'grab' }}
           onClick={() => setSelectedElement(null)}
         >
-          <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-            <div className="flex items-center gap-2">
-              <div className="bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
-                {drawingTools.map(([tool, Icon, labelKey]) => (
-                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={t(labelKey)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-                    <Icon className="w-5 h-5" />
-                  </button>
-                ))}
-              </div>
-
-              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
-                <span className="text-[8px] font-black uppercase text-gray-700">{t('editor.color')}</span>
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-black overflow-hidden bg-white">
-                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title={t('editor.chooseColor')} />
-                </span>
-              </label>
-            </div>
-          </div>
-          {/* Zoom Control */}
-          <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
-            <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setZoom(Math.max(50, zoom - 10)); }}>-</button>
-            <span className="w-12 text-center">{zoom}%</span>
-            <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setZoom(Math.min(200, zoom + 10)); }}>+</button>
+          {/* Konva background layer — the pannable/zoomable map viewport */}
+          <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+            <Stage
+              width={viewportSize.width}
+              height={viewportSize.height}
+              x={camera.x}
+              y={camera.y}
+              scaleX={camera.scale}
+              scaleY={camera.scale}
+              listening={false}
+            >
+              <BackgroundLayer templateId={selectedTemplate} backgroundImage={backgroundImage} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+            </Stage>
           </div>
 
-          {/* Actual Canvas */}
-          <div className="w-full h-full flex items-center justify-center overflow-auto p-12">
-            <div 
+          {/* Interactive world overlay — elements live here, dragging empty space pans */}
+          <div className="absolute inset-0 overflow-hidden" style={{ pointerEvents: 'none' }}>
+            <div
               className="border-4 border-black relative shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden"
-              style={{ width: '800px', height: '600px', transform: `scale(${zoom / 100})`, transformOrigin: 'center', ...activeTemplate.canvas }}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: CANVAS_WIDTH,
+                height: CANVAS_HEIGHT,
+                transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
+                transformOrigin: '0 0',
+                pointerEvents: 'auto'
+              }}
+              onPointerDown={handleWorldPointerDown}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
@@ -1088,7 +1171,7 @@ if (publishPrivacy === 'private') {
                           onPointerDown={(event) => event.stopPropagation()}
                           className="w-full h-full bg-transparent border-none outline-none resize-none p-2 text-center"
                           style={{
-                            fontSize: `${element.fontSize ?? 28}px`,
+                            fontSize: `${element.fontSize ?? 140}px`,
                             fontWeight: element.fontWeight ?? 900,
                             lineHeight: 1.2,
                             whiteSpace: 'pre-wrap',
@@ -1114,6 +1197,41 @@ if (publishPrivacy === 'private') {
                 );
               })}
             </div>
+          </div>
+
+          {/* Drawing tools + color */}
+          <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
+            <div className="flex items-center gap-2">
+              <div className="bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
+                {drawingTools.map(([tool, Icon, labelKey]) => (
+                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={t(labelKey)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
+                    <Icon className="w-5 h-5" />
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
+                <span className="text-[8px] font-black uppercase text-gray-700">{t('editor.color')}</span>
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-black overflow-hidden bg-white">
+                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title={t('editor.chooseColor')} />
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Pan hint */}
+          <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
+            {t('editor.panHint')}
+          </div>
+
+          {/* Zoom Control */}
+          <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
+            <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); zoomOut(); }}>-</button>
+            <span className="w-12 text-center">{Math.round(camera.scale * 100)}%</span>
+            <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); zoomIn(); }}>+</button>
+            <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); fitView(); }} title={t('editor.fitView')}>
+              <Maximize className="w-3 h-3" />
+            </button>
           </div>
         </div>
 
