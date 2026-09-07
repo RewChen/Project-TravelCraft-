@@ -5,7 +5,7 @@ import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera } from 'lucide-r
 import { useApp } from '../context/AppContext';
 
 export default function ProfilePage() {
-  const { t, userProfile, setUserProfile, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
+  const { t, userProfile, setUserProfile, updateUserRole, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
   const [selectedRole, setSelectedRole] = useState(userProfile?.role || t('auth.roleNovice'));
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
   const fileInputRef = useRef(null);
@@ -17,7 +17,7 @@ export default function ProfilePage() {
 
   const handleRoleChange = (newRole) => {
     setSelectedRole(newRole);
-    setUserProfile((prev) => ({ ...prev, role: newRole }));
+    updateUserRole(newRole);
     setRoleUpdatedMsg(true);
     setTimeout(() => setRoleUpdatedMsg(false), 3000);
   };

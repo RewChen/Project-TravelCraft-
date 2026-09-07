@@ -340,7 +340,7 @@ export default {
     noPublishedMaps: '您还没有发布任何地图。',
     publishedCount: '您已与社区分享 {count} 张地图！',
     publishedCountPlural: '您已与社区分享 {count} 张地图！',
-    changeRole: '更换旅行者角色',
+    changeRole: '更换我的角色',
     roleUpdated: '角色已更新！',
     openCommandCenter: '🛡️ 打开指挥中心（管理员）',
     logoutSession: '退出旅行者会话',

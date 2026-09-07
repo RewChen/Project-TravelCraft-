@@ -340,7 +340,7 @@ export default {
     noPublishedMaps: '아직 게시한 지도가 없습니다.',
     publishedCount: '커뮤니티와 {count}개의 지도를 공유했습니다!',
     publishedCountPlural: '커뮤니티와 {count}개의 지도를 공유했습니다!',
-    changeRole: '트레이너 역할 변경',
+    changeRole: '내 역할 변경',
     roleUpdated: '역할이 업데이트되었습니다!',
     openCommandCenter: '🛡️ 지휘 센터 열기 (관리자)',
     logoutSession: '트레이너 세션 종료',

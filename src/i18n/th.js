@@ -340,7 +340,7 @@ export default {
     noPublishedMaps: 'คุณยังไม่ได้เผยแพร่แผนที่ใด',
     publishedCount: 'คุณแชร์ {count} แผนที่กับชุมชน!',
     publishedCountPlural: 'คุณแชร์ {count} แผนที่กับชุมชน!',
-    changeRole: 'เปลี่ยนบทบาทนักเดินทาง',
+    changeRole: 'เปลี่ยนบทบาทของฉัน',
     roleUpdated: 'อัปเดตบทบาทแล้ว!',
     openCommandCenter: '🛡️ เปิดศูนย์ควบคุม (ผู้ดูแล)',
     logoutSession: 'ออกจากระบบนักเดินทาง',

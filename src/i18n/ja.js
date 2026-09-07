@@ -340,7 +340,7 @@ export default {
     noPublishedMaps: 'まだマップを公開していません。',
     publishedCount: 'コミュニティと {count} 件のマップを共有しました！',
     publishedCountPlural: 'コミュニティと {count} 件のマップを共有しました！',
-    changeRole: 'トレーナーの役割を変更',
+    changeRole: '自分の役割を変更',
     roleUpdated: '役割が更新されました！',
     openCommandCenter: '🛡️ コマンドセンターを開く(管理者)',
     logoutSession: 'トレーナーセッションを終了',

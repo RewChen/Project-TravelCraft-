@@ -508,6 +508,35 @@ export const AppProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  const getStoredRole = () => {
+    try {
+      return localStorage.getItem('pocket_odyssey_userRole') || null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Persist the chosen role so it survives reload and syncs to Supabase when signed in.
+  const updateUserRole = async (role) => {
+    setUserProfile((prev) => (prev ? { ...prev, role } : { role, name: 'Traveler' }));
+    try {
+      localStorage.setItem('pocket_odyssey_userRole', role);
+    } catch (err) {
+      console.warn(err);
+    }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { error } = await supabase
+        .from('users')
+        .update({ role })
+        .eq('id', session.user.id);
+      if (error) console.warn('Role sync skipped:', error);
+    } catch (err) {
+      console.warn('Role sync skipped:', err);
+    }
+  };
+
   const createFallbackProfile = (authUser) => {
     const meta = authUser.user_metadata || {};
     // OAuth providers use different keys: google -> full_name/picture, facebook -> full_name/picture
@@ -518,7 +547,7 @@ export const AppProvider = ({ children }) => {
       name: oauthName || meta.username || 'Traveler',
       email: authUser.email || '',
       avatar: oauthAvatar || meta.avatar || '🏃',
-      role: meta.role || 'Cartographer',
+      role: getStoredRole() || meta.role || 'Cartographer',
       coins: 1245,
       level: 1,
       badges: [],
@@ -580,7 +609,7 @@ export const AppProvider = ({ children }) => {
           name: data.username,
           email: data.email,
           avatar: data.avatar || (isAdmin ? '🛡️' : '🏃'),
-          role: isAdmin ? 'Admin' : (data.role || 'Cartographer'),
+          role: isAdmin ? 'Admin' : (getStoredRole() || data.role || 'Cartographer'),
           coins: 1245,
           level: 1,
           badges: ['Pioneer', 'Kyoto Explorer'],
@@ -1365,6 +1394,7 @@ export const AppProvider = ({ children }) => {
         setIsLoggedIn,
         userProfile,
         setUserProfile,
+        updateUserRole,
         selectedLocation,
         setSelectedLocation,
         mapBackgroundImage,

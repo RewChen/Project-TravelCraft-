@@ -341,7 +341,7 @@ export default {
     noPublishedMaps: 'You haven\'t published any maps yet.',
     publishedCount: 'You\'ve shared {count} map with the community!',
     publishedCountPlural: 'You\'ve shared {count} maps with the community!',
-    changeRole: 'Change Trainer Role',
+    changeRole: 'Change My Role',
     roleUpdated: 'Role Updated!',
     openCommandCenter: '🛡️ Open Command Center (Admin)',
     logoutSession: 'Log Out Trainer Session',
