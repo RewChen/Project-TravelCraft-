@@ -149,6 +149,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
     zoomOut,
     fitView,
     startPan,
+    endPan,
     isPanning
   } = useCanvasControls();
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
@@ -289,21 +290,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
             nextTop = dragging.startTop + (dragging.startHeight - nextHeight);
           }
 
-          // constrain within canvas
-          nextLeft = Math.max(0, Math.min(CANVAS_WIDTH - nextWidth, nextLeft));
-          nextTop = Math.max(0, Math.min(CANVAS_HEIGHT - nextHeight, nextTop));
-
           return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight, left: nextLeft, top: nextTop } };
         }
 
-        const maxLeft = CANVAS_WIDTH - element.width;
-        const maxTop = CANVAS_HEIGHT - element.height;
         return {
           ...previous,
           [dragging.id]: {
             ...element,
-            left: Math.max(0, Math.min(maxLeft, dragging.startLeft + deltaX)),
-            top: Math.max(0, Math.min(maxTop, dragging.startTop + deltaY))
+            left: dragging.startLeft + deltaX,
+            top: dragging.startTop + deltaY
           }
         };
       });
@@ -391,7 +386,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
   const handleWorldPointerDown = (event) => {
     setContextMenuElementId(null);
-    if (event.button === 1 || event.target === event.currentTarget) {
+    // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
+    if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
       startPan(event.clientX, event.clientY);
     }
   };
@@ -419,6 +415,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
   const startDragging = (elementId, event, mode = 'move') => {
     event.stopPropagation();
+    endPan(); // stop any active pan so dragging takes over
     const position = elementPositions[elementId];
     pushHistory();
     setSelectedElement(elementId);
@@ -1129,9 +1126,9 @@ if (publishPrivacy === 'private') {
           </div>
 
           {/* Interactive world overlay — elements live here, dragging empty space pans */}
-          <div className="absolute inset-0 overflow-hidden" style={{ pointerEvents: 'none' }}>
+          <div className="absolute inset-0 overflow-visible" style={{ pointerEvents: 'none' }}>
             <div
-              className="border-4 border-black relative shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden"
+              className="border-4 border-black relative shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]"
               style={{
                 position: 'absolute',
                 left: 0,
