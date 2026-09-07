@@ -69,6 +69,7 @@ export default {
     elemWater: 'Water',
     elemCampfire: 'Campfire',
     elemStar: 'Star',
+    elemDoor: 'Door',
     ancientTree: 'Ancient Tree',
     woodenChest: 'Wooden Chest',
     textHeading: 'Heading',

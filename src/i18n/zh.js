@@ -69,6 +69,7 @@ export default {
     elemWater: '水',
     elemCampfire: '篝火',
     elemStar: '星星',
+    elemDoor: '门',
     ancientTree: '古树',
     woodenChest: '木箱',
     textHeading: '标题',

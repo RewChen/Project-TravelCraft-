@@ -69,6 +69,7 @@ export default {
     elemWater: '물',
     elemCampfire: '모닥불',
     elemStar: '별',
+    elemDoor: '문',
     ancientTree: '고목',
     woodenChest: '나무 상자',
     textHeading: '제목',

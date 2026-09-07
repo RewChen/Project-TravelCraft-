@@ -90,6 +90,7 @@ const elementOptions = [
   { content: '🌲', labelKey: 'editor.elemTree' },
   { content: '🏔️', labelKey: 'editor.elemMountain' },
   { content: '🏠', labelKey: 'editor.elemHouse' },
+  { content: '🚪', labelKey: 'editor.elemDoor' },
   { content: '📍', labelKey: 'editor.elemPin' },
   { content: '☀️', labelKey: 'editor.elemSun' },
   { content: '🌊', labelKey: 'editor.elemWater' },

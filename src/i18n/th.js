@@ -69,6 +69,7 @@ export default {
     elemWater: 'น้ำ',
     elemCampfire: 'กองไฟ',
     elemStar: 'ดาว',
+    elemDoor: 'ประตู',
     ancientTree: 'ต้นไม้โบราณ',
     woodenChest: 'หีบไม้',
     textHeading: 'หัวเรื่อง',

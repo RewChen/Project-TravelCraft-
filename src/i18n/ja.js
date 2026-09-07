@@ -69,6 +69,7 @@ export default {
     elemWater: '水',
     elemCampfire: 'キャンプファイヤー',
     elemStar: '星',
+    elemDoor: '扉',
     ancientTree: '古代の木',
     woodenChest: '木の宝箱',
     textHeading: '見出し',
