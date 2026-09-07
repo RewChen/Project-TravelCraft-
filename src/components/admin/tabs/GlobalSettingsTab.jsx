@@ -3,7 +3,7 @@ import { Globe, Save, ShieldAlert, Cpu, Database, Award, MapPin } from 'lucide-r
 import { useApp } from '../../../context/AppContext';
 
 export default function GlobalSettingsTab() {
-  const { globalSettings, updateGlobalSettings } = useApp();
+  const { globalSettings, updateGlobalSettings, t } = useApp();
 
   const [settings, setSettings] = useState(globalSettings);
 
@@ -22,10 +22,10 @@ export default function GlobalSettingsTab() {
       <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>Global Map Settings</span>
+            <span>{t('admin.globalMapSettings')}</span>
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
-            Configure regional limits, cartography policies, and server rules.
+            {t('admin.configureRegional')}
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export default function GlobalSettingsTab() {
           className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
         >
           <Save className="w-4 h-4" />
-          <span>Save Settings</span>
+          <span>{t('admin.saveSettings')}</span>
         </button>
       </div>
 
@@ -44,13 +44,13 @@ export default function GlobalSettingsTab() {
         <div className="bg-white border-4 border-black rounded-2xl p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-4">
           <div className="border-b-2 border-black pb-2 flex items-center gap-2">
             <MapPin className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-black text-sm uppercase">Cartography & Map Policies</h3>
+            <h3 className="font-black text-sm uppercase">{t('admin.cartographyPolicies')}</h3>
           </div>
 
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-black uppercase mb-1 text-gray-700">
-                Max Custom Pins Per Map
+                {t('admin.maxPinsPerMap')}
               </label>
               <input
                 type="number"
@@ -64,9 +64,9 @@ export default function GlobalSettingsTab() {
 
             <div className="flex items-center justify-between p-3 bg-gray-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <div>
-                <div className="text-xs font-black uppercase text-black">Auto-Approve Community Maps</div>
+                <div className="text-xs font-black uppercase text-black">{t('admin.autoApprove')}</div>
                 <div className="text-[10px] text-gray-500 font-sans">
-                  Publish newly submitted trainer maps without manual review.
+                  {t('admin.autoApproveDesc')}
                 </div>
               </div>
               <input
@@ -79,9 +79,9 @@ export default function GlobalSettingsTab() {
 
             <div className="flex items-center justify-between p-3 bg-gray-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
               <div>
-                <div className="text-xs font-black uppercase text-black">Fast-Travel Teleportation</div>
+                <div className="text-xs font-black uppercase text-black">{t('admin.fastTravel')}</div>
                 <div className="text-[10px] text-gray-500 font-sans">
-                  Allow instant teleport between visited gym markers and landmarks.
+                  {t('admin.fastTravelDesc')}
                 </div>
               </div>
               <input
@@ -98,13 +98,13 @@ export default function GlobalSettingsTab() {
         <div className="bg-white border-4 border-black rounded-2xl p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-4">
           <div className="border-b-2 border-black pb-2 flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-500" />
-            <h3 className="font-black text-sm uppercase">Economy & Moderation Rules</h3>
+            <h3 className="font-black text-sm uppercase">{t('admin.economyRules')}</h3>
           </div>
 
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-black uppercase mb-1 text-gray-700">
-                Coin Reward Multiplier
+                {t('admin.coinMultiplier')}
               </label>
               <input
                 type="number"
@@ -119,7 +119,7 @@ export default function GlobalSettingsTab() {
 
             <div>
               <label className="block text-xs font-black uppercase mb-1 text-gray-700">
-                Auto-Ban Strike Threshold
+                {t('admin.autoBanThreshold')}
               </label>
               <input
                 type="number"
@@ -135,10 +135,10 @@ export default function GlobalSettingsTab() {
               <div>
                 <div className="text-xs font-black uppercase text-red-900 flex items-center gap-1">
                   <ShieldAlert className="w-4 h-4 text-red-600" />
-                  <span>Maintenance Mode</span>
+                  <span>{t('admin.maintenanceMode')}</span>
                 </div>
                 <div className="text-[10px] text-red-700 font-sans">
-                  Block non-admin user logins while performing database schema updates.
+                  {t('admin.maintenanceModeDesc')}
                 </div>
               </div>
               <input

@@ -14,18 +14,18 @@ import {
 import { useApp } from '../../context/AppContext';
 
 export default function AdminSidebar({ onOpenNewMission }) {
-  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations } = useApp();
+  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations, t } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
 
   const navItems = [
-    { id: 'overview', label: 'Overview', icon: LayoutGrid },
-    { id: 'basemaps', label: 'Base Maps', icon: MapIcon },
-    { id: 'settings', label: 'Global Map Settings', icon: Globe },
-    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'overview', label: t('admin.overview'), icon: LayoutGrid },
+    { id: 'basemaps', label: t('admin.baseMaps'), icon: MapIcon },
+    { id: 'settings', label: t('admin.globalSettings'), icon: Globe },
+    { id: 'users', label: t('admin.userManagement'), icon: Users },
     {
       id: 'reports',
-      label: 'Reported Locations',
+      label: t('admin.reportedLocations'),
       icon: AlertTriangle,
       badge: pendingReportsCount > 0 ? pendingReportsCount : null
     },
@@ -45,14 +45,14 @@ export default function AdminSidebar({ onOpenNewMission }) {
             </div>
             <button
               onClick={() => navigateTo('home')}
-              title="Return to Trainer App"
+              title={t('admin.returnToApp')}
               className="px-2 py-1 bg-white hover:bg-gray-100 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
             >
               <ArrowLeft className="w-3 h-3" />
-              <span>App</span>
+              <span>{t('admin.app')}</span>
             </button>
           </div>
-          <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">ADMIN USER</p>
+          <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">{t('admin.adminUser')}</p>
         </div>
 
         {/* + New Mission Action Button */}
@@ -61,7 +61,7 @@ export default function AdminSidebar({ onOpenNewMission }) {
           className="w-full mb-6 bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>New Mission</span>
+          <span>{t('admin.newMission')}</span>
         </button>
 
         {/* Navigation Items */}
@@ -109,7 +109,7 @@ export default function AdminSidebar({ onOpenNewMission }) {
 
           <button
             onClick={() => navigateTo('home')}
-            title="Exit to World Map"
+            title={t('admin.exit')}
             className="w-7 h-7 bg-gray-100 hover:bg-red-50 border-2 border-black rounded-lg flex items-center justify-center text-gray-700 hover:text-red-600 cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -121,7 +121,7 @@ export default function AdminSidebar({ onOpenNewMission }) {
           className="w-full text-[10px] text-red-600 hover:text-red-800 font-black uppercase text-center py-1 cursor-pointer flex items-center justify-center gap-1"
         >
           <LogOut className="w-3 h-3" />
-          <span>Log Out System</span>
+          <span>{t('admin.logOutSystem')}</span>
         </button>
       </div>
     </aside>

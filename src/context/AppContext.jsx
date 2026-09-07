@@ -438,16 +438,61 @@ export const AppProvider = ({ children }) => {
     return str;
   }, [language]);
 
-  const setLanguage = (code) => {
+  const setLanguage = useCallback((code) => {
     if (translations[code]) {
       setLanguageState(code);
+      try {
+        const bc = new BroadcastChannel('pocket_odyssey_lang');
+        bc.postMessage({ language: code });
+        bc.close();
+      } catch {}
     }
-  };
+  }, []);
 
-  const toggleLanguage = () => {
-    setLanguageState((prev) => (prev === 'en' ? 'th' : 'en'));
-  };
-  
+  const toggleLanguage = useCallback(() => {
+    setLanguageState((prev) => {
+      const next = prev === 'en' ? 'th' : 'en';
+      try {
+        const bc = new BroadcastChannel('pocket_odyssey_lang');
+        bc.postMessage({ language: next });
+        bc.close();
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Cross-tab / cross-dashboard language sync: storage event + BroadcastChannel fallback.
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'pocket_odyssey_language' && e.newValue && translations[e.newValue] && e.newValue !== language) {
+        setLanguageState(e.newValue);
+      }
+      if (e.key === 'pocket_odyssey_themeMode' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && parsed !== themeMode) setThemeMode(parsed);
+        } catch {
+          if (e.newValue !== themeMode) setThemeMode(e.newValue);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    // Also listen to BroadcastChannel for same-tab immediate sync (some browsers don't fire storage for same tab)
+    let bc;
+    try {
+      bc = new BroadcastChannel('pocket_odyssey_lang');
+      bc.onmessage = (ev) => {
+        if (ev.data?.language && translations[ev.data.language] && ev.data.language !== language) {
+          setLanguageState(ev.data.language);
+        }
+      };
+    } catch {}
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (bc) bc.close();
+    };
+  }, [language, themeMode]);
+
   // LocalStorage Helper Read
   const loadStored = (key, fallback) => {
     try {

@@ -21,7 +21,7 @@ export default function ReportedLocationsTab() {
     deleteReportedLocation,
     warnTrainer,
     banTrainer,
-    showAdminToast
+    t
   } = useApp();
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,11 +32,11 @@ export default function ReportedLocationsTab() {
       <div className="space-y-2">
         <div className="bg-[#eab308] border-4 border-black rounded-2xl p-4 sm:p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] inline-block w-full">
           <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>REPORTED LOCATIONS</span>
+            <span>{t('admin.reportedLocationsTitle')}</span>
           </h2>
         </div>
         <p className="text-xs sm:text-sm text-gray-600 font-bold pl-1 border-l-4 border-[#cc0000]">
-          Investigate and resolve flagged points of interest submitted by trainers in the field.
+          {t('admin.investigateDesc')}
         </p>
       </div>
 
@@ -48,10 +48,10 @@ export default function ReportedLocationsTab() {
           <div className="bg-[#cc0000] text-white border-b-4 border-black p-3.5 px-5 flex items-center justify-between">
             <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
-              <span>REPORT QUEUE</span>
+              <span>{t('admin.reportQueue')}</span>
             </h3>
             <span className="bg-white text-black text-[10px] font-black px-3 py-0.5 rounded-full border border-black uppercase tracking-wider shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-              High Priority
+              {t('admin.highPriority')}
             </span>
           </div>
 
@@ -60,11 +60,11 @@ export default function ReportedLocationsTab() {
             <table className="w-full text-left text-xs">
               <thead className="bg-gray-100 border-b-2 border-black text-gray-800 uppercase text-[10px] font-black tracking-wider">
                 <tr>
-                  <th className="p-3.5 px-4">LOCATION NAME</th>
-                  <th className="p-3.5">CREATOR</th>
-                  <th className="p-3.5">CATEGORY</th>
-                  <th className="p-3.5">COUNT ↓</th>
-                  <th className="p-3.5 text-center">ACTIONS</th>
+                  <th className="p-3.5 px-4">{t('admin.locationName')}</th>
+                  <th className="p-3.5">{t('admin.creator')}</th>
+                  <th className="p-3.5">{t('admin.category')}</th>
+                  <th className="p-3.5">{t('admin.count')}</th>
+                  <th className="p-3.5 text-center">{t('admin.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-gray-100 font-bold">
@@ -85,7 +85,7 @@ export default function ReportedLocationsTab() {
                           </span>
                           {item.isHidden && (
                             <span className="text-[9px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded border border-black uppercase">
-                              Hidden
+                              {t('admin.hidden')}
                             </span>
                           )}
                         </div>
@@ -117,14 +117,14 @@ export default function ReportedLocationsTab() {
                         {isResolved ? (
                           <span className="px-3 py-1 bg-gray-100 border border-gray-400 text-gray-500 rounded text-[10px] font-black uppercase inline-flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            <span>RESOLVED</span>
+                            <span>{t('admin.resolved')}</span>
                           </span>
                         ) : (
                           <div className="flex items-center justify-center gap-1.5">
                             {/* Delete (Red trash) */}
                             <button
                               onClick={() => deleteReportedLocation(item.id)}
-                              title="Delete Location"
+                              title={t('admin.deleteLocation')}
                               className="w-7 h-7 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg flex items-center justify-center cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:scale-95"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -133,7 +133,7 @@ export default function ReportedLocationsTab() {
                             {/* Hide (Yellow eye) */}
                             <button
                               onClick={() => hideReportedLocation(item.id)}
-                              title={item.isHidden ? 'Unhide Location' : 'Hide Location'}
+                              title={item.isHidden ? t('admin.unhideLocation') : t('admin.hideLocation')}
                               className="w-7 h-7 bg-[#eab308] hover:bg-amber-400 text-black border-2 border-black rounded-lg flex items-center justify-center cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:scale-95"
                             >
                               {item.isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -142,7 +142,7 @@ export default function ReportedLocationsTab() {
                             {/* Resolve (Green check) */}
                             <button
                               onClick={() => resolveReport(item.id)}
-                              title="Mark as Resolved"
+                              title={t('admin.markResolved')}
                               className="w-7 h-7 bg-white hover:bg-gray-100 text-emerald-600 border-2 border-black rounded-lg flex items-center justify-center cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:scale-95"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
@@ -159,7 +159,7 @@ export default function ReportedLocationsTab() {
 
           {/* Table Footer & Pagination */}
           <div className="bg-gray-100 border-t-2 border-black p-3 px-4 flex items-center justify-between text-xs text-gray-600 font-bold">
-            <div>Showing 1-{reportedLocations.length} of 842 records</div>
+            <div>{t('admin.showingRecords', { count: reportedLocations.length })}</div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -186,16 +186,16 @@ export default function ReportedLocationsTab() {
           <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="bg-[#eab308] border-b-4 border-black p-3.5 px-4 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-black" />
-              <h3 className="font-black text-xs uppercase tracking-wider text-black">CREATOR MOD</h3>
+              <h3 className="font-black text-xs uppercase tracking-wider text-black">{t('admin.creatorMod')}</h3>
             </div>
 
             <div className="p-4 space-y-4">
               {/* TOP OFFENDER: Grunt #42 */}
               <div className="border-2 border-dashed border-black rounded-xl p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-gray-500">TOP OFFENDER</span>
+                  <span className="text-[10px] font-black uppercase text-gray-500">{t('admin.topOffender')}</span>
                   <span className="bg-[#cc0000] text-white text-[9px] font-black px-2 py-0.5 rounded border border-black uppercase">
-                    24 STRIKES
+                    24 {t('admin.strikes')}
                   </span>
                 </div>
                 <div className="font-black text-base text-[#cc0000]">Grunt #42</div>
@@ -205,13 +205,13 @@ export default function ReportedLocationsTab() {
                     onClick={() => warnTrainer('Grunt #42')}
                     className="py-1.5 bg-white hover:bg-gray-100 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                   >
-                    WARN
+                    {t('admin.warn')}
                   </button>
                   <button
                     onClick={() => banTrainer('Grunt #42')}
                     className="py-1.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                   >
-                    BAN
+                    {t('admin.ban')}
                   </button>
                 </div>
               </div>
@@ -219,9 +219,9 @@ export default function ReportedLocationsTab() {
               {/* RECENT OFFENDER: Trainer Blue */}
               <div className="border-2 border-dashed border-black rounded-xl p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-gray-500">RECENT OFFENDER</span>
+                  <span className="text-[10px] font-black uppercase text-gray-500">{t('admin.recentOffender')}</span>
                   <span className="bg-amber-400 text-black text-[9px] font-black px-2 py-0.5 rounded border border-black uppercase">
-                    2 STRIKES
+                    2 {t('admin.strikes')}
                   </span>
                 </div>
                 <div className="font-black text-base text-black">Trainer Blue</div>
@@ -231,13 +231,13 @@ export default function ReportedLocationsTab() {
                     onClick={() => warnTrainer('Trainer Blue')}
                     className="py-1.5 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                   >
-                    WARN
+                    {t('admin.warn')}
                   </button>
                   <button
                     onClick={() => banTrainer('Trainer Blue')}
                     className="py-1.5 bg-white hover:bg-red-50 text-red-600 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                   >
-                    BAN
+                    {t('admin.ban')}
                   </button>
                 </div>
               </div>
@@ -248,9 +248,9 @@ export default function ReportedLocationsTab() {
           <div className="bg-[#dbeafe] border-4 border-black rounded-2xl p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-start gap-3">
             <Info className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
             <div>
-              <div className="text-[11px] font-black uppercase text-indigo-950 mb-1">SYSTEM NOTICE</div>
+              <div className="text-[11px] font-black uppercase text-indigo-950 mb-1">{t('admin.systemNotice')}</div>
               <p className="text-[10px] font-sans font-bold text-indigo-900 leading-relaxed">
-                Auto-ban threshold is currently set to 5 strikes within a 7-day period.
+                {t('admin.autoBanNotice')}
               </p>
             </div>
           </div>

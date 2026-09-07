@@ -18,7 +18,7 @@ import {
 import { useApp } from '../../../context/AppContext';
 
 export default function SystemOverviewTab({ onOpenDeployModal }) {
-  const { mapPins, communityMaps, baseMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap } = useApp();
+  const { mapPins, communityMaps, baseMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap, t } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -62,10 +62,10 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-4 border-black pb-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>System Overview</span>
+            <span>{t('admin.systemOverview')}</span>
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
-            Current status of the Odyssey Network.
+            {t('admin.systemOverviewSubtitle')}
           </p>
         </div>
 
@@ -74,7 +74,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
         >
           <RefreshCw className="w-4 h-4" />
-          <span>Deploy Update</span>
+          <span>{t('admin.deployUpdate')}</span>
         </button>
       </div>
 
@@ -84,7 +84,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           {/* Search Locations */}
           <div className="sm:col-span-5">
             <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              Search Locations
+              {t('admin.searchLocations')}
             </label>
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -92,7 +92,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by location name..."
+                placeholder={t('admin.searchLocationsPh')}
                 className="w-full pl-9 pr-3 py-2 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               />
             </div>
@@ -101,37 +101,37 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           {/* Category */}
           <div className="sm:col-span-3">
             <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              Category
+              {t('admin.category')}
             </label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="w-full py-2 px-3 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
             >
-              <option value="all">All Categories</option>
-              <option value="landmarks">Landmarks</option>
-              <option value="temples">Temples & Shrines</option>
-              <option value="cafes">Cafes & Shops</option>
-              <option value="viewpoints">Viewpoints</option>
-              <option value="nature">Nature</option>
-              <option value="urban">Urban</option>
+              <option value="all">{t('admin.allCategories')}</option>
+              <option value="landmarks">{t('admin.landmarks')}</option>
+              <option value="temples">{t('admin.templesShrines')}</option>
+              <option value="cafes">{t('admin.cafesShops')}</option>
+              <option value="viewpoints">{t('admin.viewpoints') || 'Viewpoints'}</option>
+              <option value="nature">{t('admin.nature') || 'Nature'}</option>
+              <option value="urban">{t('admin.urban') || 'Urban'}</option>
             </select>
           </div>
 
           {/* Status */}
           <div className="sm:col-span-2">
             <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              Status
+              {t('admin.status')}
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full py-2 px-3 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
             >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="flagged">Flagged</option>
+              <option value="all">{t('admin.allStatuses')}</option>
+              <option value="active">{t('admin.active')}</option>
+              <option value="pending">{t('admin.pending')}</option>
+              <option value="flagged">{t('admin.flagged')}</option>
             </select>
           </div>
 
@@ -142,7 +142,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
               className="w-full py-2 px-4 bg-[#cc0000] hover:bg-red-700 text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer transition-all"
             >
               <Filter className="w-3.5 h-3.5" />
-              <span>Filter</span>
+              <span>{t('admin.filter')}</span>
             </button>
           </div>
         </div>
@@ -157,10 +157,10 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
             <Users className="w-3.5 h-3.5" />
           </div>
           <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">Total Trainers</div>
+            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.totalTrainers')}</div>
             <div className="text-3xl font-black text-black">{totalTrainers.toLocaleString()}</div>
             <div className="mt-2 text-xs font-black text-emerald-600 flex items-center gap-1">
-              <span>● Live from registry</span>
+              <span>● {t('admin.liveFromRegistry')}</span>
             </div>
           </div>
         </div>
@@ -172,10 +172,10 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
             <Compass className="w-3.5 h-3.5" />
           </div>
           <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">Active Maps</div>
+            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.activeMaps')}</div>
             <div className="text-3xl font-black text-black">{activeMaps.toLocaleString()}</div>
             <div className="mt-2 text-xs font-black text-gray-600 flex items-center gap-1">
-              <span>{communityMaps.filter(m=>m.privacy==='private').length} drafts · {communityMaps.filter(m=>m.privacy!=='private').length} published</span>
+              <span>{communityMaps.filter(m=>m.privacy==='private').length} {t('admin.drafts')} · {communityMaps.filter(m=>m.privacy!=='private').length} {t('admin.published')}</span>
             </div>
           </div>
         </div>
@@ -187,14 +187,14 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
             <MapPin className="w-3.5 h-3.5" />
           </div>
           <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">Locations Found</div>
+            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.locationsFound')}</div>
             <div className="text-3xl font-black text-black">{totalLocations.toLocaleString()}</div>
             {/* Milestone Progress Bar */}
             <div className="mt-2 space-y-1">
               <div className="w-full bg-gray-200 border border-black rounded-full h-2 overflow-hidden">
                 <div className="bg-[#cc0000] h-full" style={{ width: `${milestonePct}%` }}></div>
               </div>
-              <div className="text-[10px] font-bold text-gray-500 text-right">{milestonePct}% to milestone (50)</div>
+              <div className="text-[10px] font-bold text-gray-500 text-right">{t('admin.toMilestone', { pct: milestonePct })}</div>
             </div>
           </div>
         </div>
@@ -206,11 +206,11 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
             <Settings className="w-3.5 h-3.5 animate-spin [animation-duration:8s]" />
           </div>
           <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">Capacity</div>
+            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.capacity')}</div>
             <div className="text-3xl font-black text-black">{serverCapacity}%</div>
             <div className="mt-2 text-xs font-black text-emerald-600 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>Stable · Synced</span>
+              <span>{t('admin.stableSynced')}</span>
             </div>
           </div>
         </div>
@@ -220,13 +220,13 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
       <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
         <div className="bg-gray-100 border-b-4 border-black p-4 flex items-center justify-between">
           <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2">
-            <span>🌍 Live Odyssey Point Registry</span>
+            <span>🌍 {t('admin.liveRegistry')}</span>
             <span className="text-[10px] bg-amber-400 border border-black px-2 py-0.5 rounded-full font-bold">
-              {filteredLocations.length} Found
+              {filteredLocations.length} {t('admin.found')}
             </span>
           </h3>
           <span className="text-[10px] text-gray-500 font-bold hidden sm:inline">
-            Status: Synchronized with Supabase Edge
+            {t('admin.synchronized')}
           </span>
         </div>
 
@@ -234,11 +234,11 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           <table className="w-full text-left text-xs">
             <thead className="bg-gray-200 border-b-2 border-black text-gray-800 uppercase text-[10px] font-black tracking-wider">
               <tr>
-                <th className="p-3">Location Name</th>
-                <th className="p-3">Region</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Status</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3">{t('admin.locationName')}</th>
+                <th className="p-3">{t('admin.region')}</th>
+                <th className="p-3">{t('admin.category')}</th>
+                <th className="p-3">{t('admin.status')}</th>
+                <th className="p-3 text-right">{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-gray-100 font-bold">
@@ -267,7 +267,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
                         className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer inline-flex items-center gap-1"
                       >
                         <Eye className="w-3 h-3" />
-                        <span>Inspect</span>
+                        <span>{t('admin.inspect')}</span>
                       </button>
                     ) : (
                       <button
@@ -275,7 +275,7 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
                         className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer inline-flex items-center gap-1"
                       >
                         <Eye className="w-3 h-3" />
-                        <span>View</span>
+                        <span>{t('admin.view')}</span>
                       </button>
                     )}
                   </td>

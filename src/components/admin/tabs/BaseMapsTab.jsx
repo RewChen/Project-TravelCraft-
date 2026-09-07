@@ -3,7 +3,7 @@ import { Plus, Map, Trash2, Eye, Compass, Edit3 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function BaseMapsTab({ onOpenAddModal }) {
-  const { baseMaps, deleteBaseMap, setMapBackgroundImage, navigateTo, showAdminToast } = useApp();
+  const { baseMaps, deleteBaseMap, setMapBackgroundImage, navigateTo, showAdminToast, t } = useApp();
 
   const handleLaunchInEditor = (baseMap) => {
     if (baseMap.image) {
@@ -19,10 +19,10 @@ export default function BaseMapsTab({ onOpenAddModal }) {
       <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>Manage Base Maps</span>
+            <span>{t('admin.manageBaseMaps')}</span>
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
-            Curate the foundations of new quests.
+            {t('admin.curateFoundations')}
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function BaseMapsTab({ onOpenAddModal }) {
           className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Add New Base Map</span>
+          <span>{t('admin.addNewBaseMap')}</span>
         </button>
       </div>
 
@@ -54,7 +54,7 @@ export default function BaseMapsTab({ onOpenAddModal }) {
               <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-xs border-2 border-black rounded-full px-2.5 py-0.5 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <span className="w-2 h-2 rounded-full bg-amber-400 border border-black"></span>
                 <span className="text-[10px] font-black uppercase text-black tracking-wider">
-                  {map.badge || 'BASE'}
+                  {map.badge || t('admin.base')}
                 </span>
               </div>
             </div>
@@ -76,12 +76,12 @@ export default function BaseMapsTab({ onOpenAddModal }) {
                   className="flex-1 py-1.5 px-2 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Compass className="w-3 h-3" />
-                  <span>Open in Editor</span>
+                  <span>{t('admin.openInEditor')}</span>
                 </button>
 
                 <button
                   onClick={() => deleteBaseMap(map.id)}
-                  title="Delete Base Map"
+                  title={t('admin.deleteBaseMap')}
                   className="w-8 h-8 bg-gray-100 hover:bg-red-100 text-gray-700 hover:text-red-600 border-2 border-black rounded-lg flex items-center justify-center text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

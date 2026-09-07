@@ -72,17 +72,15 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
         <button className="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none cursor-pointer">
           <Bell className="w-4 h-4 text-black" />
         </button>
-        {/* Settings — only for logged-in users */}
-        {isLoggedIn && (
-          <button 
-            onClick={() => navigateTo('settings')}
-            title={t('nav.settings')}
-            aria-label={t('nav.settings')}
-            className="w-9 h-9 border border-slate-200 rounded-full items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none hidden sm:flex cursor-pointer"
-          >
-            <Settings className="w-4 h-4 text-black" />
-          </button>
-        )}
+        {/* Settings — visible for all users (including unlogged-in) */}
+        <button 
+          onClick={() => navigateTo('settings')}
+          title={t('nav.settings')}
+          aria-label={t('nav.settings')}
+          className="w-9 h-9 border border-slate-200 rounded-full items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none hidden sm:flex cursor-pointer"
+        >
+          <Settings className="w-4 h-4 text-black" />
+        </button>
         {isLoggedIn ? (
           <div 
             onClick={() => navigateTo('profile')} 

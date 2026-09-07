@@ -13,7 +13,7 @@ import AuthPage from './AuthPage';
 import { Sparkles, AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 
 export default function AdminDashboard() {
-  const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode, themeMode } = useApp();
+  const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode, themeMode, t } = useApp();
   const isDarkMode = themeMode === 'dark';
 
   const [isNewMissionModalOpen, setIsNewMissionModalOpen] = useState(false);
@@ -35,16 +35,16 @@ export default function AdminDashboard() {
           </div>
 
           <h2 className={`text-xl font-black uppercase ${isDarkMode ? 'text-slate-100' : 'text-black'}`}>
-            RESTRICTED ACCESS
+            {t('admin.restricted')}
           </h2>
 
           <div className={`${isDarkMode ? 'bg-slate-800 border-red-500' : 'bg-red-50 border-red-400'} border-2 rounded-xl p-3 text-left space-y-1`}>
             <div className={`text-[11px] font-black uppercase ${isDarkMode ? 'text-red-300' : 'text-red-900'} flex items-center gap-1.5`}>
               <ShieldAlert className="w-4 h-4 text-red-600" />
-              <span>Admin Clearance Required</span>
+              <span>{t('admin.clearanceRequired')}</span>
             </div>
             <p className={`text-[10px] ${isDarkMode ? 'text-red-200' : 'text-red-800'} font-sans font-bold leading-relaxed`}>
-              Your account <span className="font-mono font-black">"{userProfile?.name}"</span> ({userProfile?.role || 'Player'}) does not have system administration privileges.
+              {t('admin.denied', { name: userProfile?.name, role: userProfile?.role || 'Player' })}
             </p>
           </div>
 
@@ -54,7 +54,7 @@ export default function AdminDashboard() {
               className="flex-1 bg-white hover:bg-gray-100 text-black font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Home</span>
+              <span>{t('common.home')}</span>
             </button>
 
             <button
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
               className="flex-1 bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
-              <span>Login as Admin</span>
+              <span>{t('admin.loginAsAdmin')}</span>
             </button>
           </div>
         </div>
