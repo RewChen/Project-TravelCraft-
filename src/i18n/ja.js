@@ -157,6 +157,8 @@ export default {
     brandTextStyle: 'ブランド文字スタイル',
     brandHelper: 'ブランドカラーは新規の図形・線の既定色になります。地図の統一感を保ちます。',
     clearCanvas: 'キャンバスをクリア',
+    collapsePanel: '左パネルを閉じる',
+    expandPanel: '左パネルを開く',
     projectsHint: '保存した地図はこの端末に保存されます。クリックで読み込みます。',
     projectsEmpty: '保存済みプロジェクトがありません。下書き保存で作成できます。',
     projectsLoad: 'キャンバスに読み込み',

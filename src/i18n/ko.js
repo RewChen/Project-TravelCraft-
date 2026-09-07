@@ -157,6 +157,8 @@ export default {
     brandTextStyle: '브랜드 텍스트 스타일',
     brandHelper: '브랜드 색상은 새 도형·선의 기본 색상이 됩니다. 지도의 통일감을 유지합니다.',
     clearCanvas: '캔버스 지우기',
+    collapsePanel: '왼쪽 패널 접기',
+    expandPanel: '왼쪽 패널 펼치기',
     projectsHint: '저장된 지도는 이 기기에 보관됩니다. 클릭하여 불러옵니다.',
     projectsEmpty: '저장된 프로젝트가 없습니다. 초안 저장으로 만들 수 있습니다.',
     projectsLoad: '캔버스에 불러오기',

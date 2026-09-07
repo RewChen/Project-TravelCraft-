@@ -157,6 +157,8 @@ export default {
     brandTextStyle: 'Brand Text Style',
     brandHelper: 'Brand color becomes the default for new shapes & strokes, keeping your maps on-brand.',
     clearCanvas: 'Clear canvas',
+    collapsePanel: 'Collapse left panel',
+    expandPanel: 'Expand left panel',
     projectsHint: 'Your saved maps live on this device. Click one to load it into this canvas.',
     projectsEmpty: 'No saved projects yet. Press Save Draft to create one.',
     projectsLoad: 'Load into canvas',

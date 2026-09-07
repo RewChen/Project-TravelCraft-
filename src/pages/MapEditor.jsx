@@ -7,7 +7,8 @@ import {
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
-  Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown
+  Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
@@ -129,12 +130,12 @@ const elementOptions = [
 ];
 
 const textPresets = [
-  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 56, fontWeight: 900 },
-  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 36, fontWeight: 700 },
-  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 26, fontWeight: 400 }
+  { labelKey: 'editor.textHeading', contentKey: 'editor.textHeadingContent', fontSize: 280, fontWeight: 900 },
+  { labelKey: 'editor.textSubheading', contentKey: 'editor.textSubheadingContent', fontSize: 180, fontWeight: 700 },
+  { labelKey: 'editor.textBody', contentKey: 'editor.textBodyContent', fontSize: 130, fontWeight: 400 }
 ];
 
-const MAX_TEXT_FONT_SIZE = 64;
+const MAX_TEXT_FONT_SIZE = 320;
 const normalizeElementFont = (element) => {
   if (element.type !== 'text' || typeof element.fontSize !== 'number') return element;
   if (element.fontSize > MAX_TEXT_FONT_SIZE) {
@@ -165,6 +166,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
     }
   });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
+  const [panelOpen, setPanelOpen] = useState(true);
   const [selectedElement, setSelectedElement] = useState(null); 
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
   const {
@@ -182,7 +184,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, saveEditorMapState, 
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
   const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
-    ? scaleElementFontSizes(savedEditorState.elements).map((element) => normalizeElementFont(element))
+    ? scaleElementFontSizes(savedEditorState.elements, savedEditorState?.elementPositions).map((element) => normalizeElementFont(element))
     : []));
   const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {});
   const [dragging, setDragging] = useState(null);
@@ -225,7 +227,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const backgroundInputRef = useRef(null);
   const photosInputRef = useRef(null);
   const nextElementId = useRef(0);
-  const [brandFontSize, setBrandFontSize] = useState(32);
+  const [brandFontSize, setBrandFontSize] = useState(160);
   const [brandFontWeight, setBrandFontWeight] = useState(900);
   const [photoLibrary, setPhotoLibrary] = useState(() => {
     try {
@@ -723,7 +725,7 @@ if (publishPrivacy === 'private') {
       : { color: colorValue };
     setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
     const width = element.type === 'text' ? 400 : 500;
-    const height = element.type === 'text' ? 140 : 500;
+    const height = element.type === 'text' ? Math.max(140, (element.fontSize ?? brandFontSize) * 1.5) : 500;
     const fallbackLeft = CANVAS_WIDTH / 2 - width / 2;
     const fallbackTop = CANVAS_HEIGHT / 2 - height / 2;
     const viewportX = viewportSize.width / 2;
@@ -862,7 +864,7 @@ if (publishPrivacy === 'private') {
 
   const loadProject = (state) => {
     pushHistory();
-    setElements(Array.isArray(state.elements) ? scaleElementFontSizes(state.elements).map((element) => normalizeElementFont(element)) : []);
+    setElements(Array.isArray(state.elements) ? scaleElementFontSizes(state.elements, state.elementPositions).map((element) => normalizeElementFont(element)) : []);
     setElementPositions(scaleElementPositions(state.elementPositions) || {});
     if (typeof state.selectedTemplate === 'string') setSelectedTemplate(state.selectedTemplate);
     if (typeof state.backgroundImage === 'string') setBackgroundImage(state.backgroundImage);
@@ -1084,13 +1086,13 @@ if (publishPrivacy === 'private') {
           {/* Font Family */}
           <div className="relative shrink-0 min-w-[120px]">
             <select
-              value={selectedData.fontFamily || 'Garuda'}
+              value={selectedData.fontFamily || 'sans-serif'}
               onChange={(event) => updateSelectedTextStyle({ fontFamily: event.target.value })}
               className="appearance-none w-full border-2 border-black rounded-lg px-3 py-1 bg-white hover:bg-gray-100 font-bold text-sm cursor-pointer pr-8"
             >
+              <option value="sans-serif">Sans-serif</option>
               <option value="Garuda">Garuda</option>
               <option value="Tahoma">Tahoma</option>
-              <option value="sans-serif">Sans-serif</option>
               <option value="serif">Serif</option>
               <option value="monospace">Monospace</option>
             </select>
@@ -1099,14 +1101,14 @@ if (publishPrivacy === 'private') {
 
           {/* Font Size */}
           <div className="flex items-center border-2 border-black rounded-lg overflow-hidden h-8 bg-white shrink-0">
-            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.max(8, (selectedData.fontSize || 32) - 1) })} className="px-2 h-full hover:bg-gray-200 font-bold">-</button>
+            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.max(20, (selectedData.fontSize || 160) - 4) })} className="px-2 h-full hover:bg-gray-200 font-bold">-</button>
             <input
               type="number"
-              value={selectedData.fontSize || 32}
-              onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(MAX_TEXT_FONT_SIZE, Number(event.target.value))) })}
-              className="w-12 text-center font-bold text-sm outline-none border-x-2 border-black h-full"
+              value={selectedData.fontSize || 160}
+              onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(20, Math.min(MAX_TEXT_FONT_SIZE, Number(event.target.value))) })}
+              className="w-14 text-center font-bold text-sm outline-none border-x-2 border-black h-full"
             />
-            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.min(MAX_TEXT_FONT_SIZE, (selectedData.fontSize || 32) + 1) })} className="px-2 h-full hover:bg-gray-200 font-bold">+</button>
+            <button onClick={() => updateSelectedTextStyle({ fontSize: Math.min(MAX_TEXT_FONT_SIZE, (selectedData.fontSize || 160) + 4) })} className="px-2 h-full hover:bg-gray-200 font-bold">+</button>
           </div>
 
           <div className="w-px h-6 bg-gray-300 mx-1 shrink-0"></div>
@@ -1345,11 +1347,15 @@ if (publishPrivacy === 'private') {
         </div>
 
         {/* LEFT PANEL CONTENT */}
+        {panelOpen ? (
         <div className="w-64 bg-white border-r-4 border-black flex flex-col z-10 shadow-[4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden md:flex">
-          <div className="p-4 border-b-2 border-black">
+          <div className="p-4 border-b-2 border-black flex items-center justify-between gap-2">
             <h2 className="font-black text-sm uppercase">
               {t(tabLabelKeys[activeTab]) || editorTabs.find(t => t.id === activeTab)?.defaultLabel}
             </h2>
+            <button type="button" onClick={() => setPanelOpen(false)} title={t('editor.collapsePanel')} className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100 shrink-0">
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
@@ -1478,11 +1484,11 @@ if (publishPrivacy === 'private') {
                       <button key={weight} type="button" onClick={() => setBrandFontWeight(weight)} className={`flex-1 border-2 border-black rounded py-2 font-black text-xs ${brandFontWeight === weight ? 'bg-[#cc0000] text-white' : 'bg-white hover:bg-gray-100'}`} style={{ fontWeight: weight }}>A</button>
                     ))}
                   </div>
-                  <input type="range" min="18" max="64" value={brandFontSize} onChange={(event) => setBrandFontSize(Number(event.target.value))} className="w-full" />
+                  <input type="range" min="96" max="320" value={brandFontSize} onChange={(event) => setBrandFontSize(Number(event.target.value))} className="w-full" />
                   <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase">
-                    <span>18px</span>
+                    <span>96px</span>
                     <span>{brandFontSize}px</span>
-                    <span>64px</span>
+                    <span>320px</span>
                   </div>
                   <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.brandHelper')}</p>
                 </div>
@@ -1659,6 +1665,13 @@ if (publishPrivacy === 'private') {
             )}
           </div>
         </div>
+        ) : (
+        <div className="w-10 bg-white border-r-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden md:flex">
+          <button type="button" onClick={() => setPanelOpen(true)} title={t('editor.expandPanel')} className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
+        </div>
+        )}
 
         {/* CENTER CANVAS AREA */}
         <div
@@ -1781,7 +1794,18 @@ if (publishPrivacy === 'private') {
                 const isEditingText = editingTextId === element.id && element.type === 'text';
 
                 return (
-                  <div key={element.id} className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-violet-500 bg-transparent' : 'hover:outline hover:outline-2 hover:outline-blue-400 bg-transparent'}`} style={{ top: `${position.top}px`, left: `${position.left}px`, width: `${position.width}px`, height: `${position.height}px`, backgroundColor: element.overlay ? `${element.overlay}00` : 'transparent', opacity: 1, transform: `rotate(${element.rotation ?? 0}deg)` }} onContextMenu={(event) => {
+                  <div key={element.id}
+                    className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-violet-500 bg-transparent' : 'hover:outline hover:outline-2 hover:outline-blue-400 bg-transparent'}`}
+                    style={{
+                      top: `${position.top}px`,
+                      left: `${position.left}px`,
+                      width: `${position.width}px`,
+                      height: `${position.height}px`,
+                      backgroundColor: element.overlay ? `${element.overlay}00` : 'transparent',
+                      opacity: 1,
+                      transform: `rotate(${element.rotation ?? 0}deg)`
+                    }}
+                    onContextMenu={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
                     setSelectedElement(element.id);
@@ -1808,23 +1832,36 @@ if (publishPrivacy === 'private') {
                           onChange={(event) => setElements((previous) => previous.map((item) => item.id === element.id ? { ...item, content: event.target.value } : item))}
                           onBlur={() => setEditingTextId(null)}
                           onPointerDown={(event) => event.stopPropagation()}
-                          className="w-full h-full bg-transparent border-none outline-none resize-none p-2"
+                          className="w-full bg-transparent border-none outline-none resize-none p-2"
                           style={{
-                            fontSize: `${element.fontSize ?? 32}px`,
+                            fontSize: `${element.fontSize ?? 160}px`,
                             fontWeight: element.fontWeight ?? 900,
                             fontStyle: element.fontStyle || 'normal',
                             textDecoration: element.textDecoration || 'none',
                             textAlign: element.textAlign || 'center',
-                            fontFamily: element.fontFamily || 'Garuda, sans-serif',
+                            fontFamily: element.fontFamily || 'sans-serif',
                             lineHeight: 1.2,
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            overflowWrap: 'break-word',
                             color: element.color ?? drawingColor ?? '#111111'
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 flex items-center justify-center w-full h-full overflow-hidden" style={{ fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 32}px`, fontWeight: element.fontWeight ?? 900, fontStyle: element.fontStyle || 'normal', textDecoration: element.textDecoration || 'none', textAlign: element.textAlign || 'center', fontFamily: element.fontFamily || 'Garuda, sans-serif', whiteSpace: 'pre-wrap', lineHeight: 1.2, wordBreak: 'break-word', overflowWrap: 'break-word', color: element.color ?? drawingColor ?? '#111111' }}>{element.content}</span>
+                        <span className="filter drop-shadow-md px-2 w-full"
+                          style={{
+                            fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 160}px`,
+                            fontWeight: element.fontWeight ?? 900,
+                            fontStyle: element.fontStyle || 'normal',
+                            textDecoration: element.textDecoration || 'none',
+                            textAlign: element.textAlign || 'center',
+                            fontFamily: element.fontFamily || 'sans-serif',
+                            display: 'block',
+                            whiteSpace: 'pre-wrap',
+                            lineHeight: 1.2,
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            color: element.color ?? drawingColor ?? '#111111'
+                          }}>
+                            {element.content}
+                        </span>
                       )
                     )}
                     {isSelected && !isEditingText && <>
@@ -1848,26 +1885,6 @@ if (publishPrivacy === 'private') {
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Drawing tools + color */}
-          <div className="absolute top-4 left-4 z-20 flex flex-col items-start gap-2">
-            <div className="flex items-center gap-2">
-              <div className="bg-white border-2 border-black rounded-xl p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
-                {drawingTools.map(([tool, Icon, labelKey]) => (
-                  <button key={tool} onClick={(event) => { event.stopPropagation(); handleToolAction(tool); }} title={t(labelKey)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${activeTool === tool ? 'bg-violet-100 text-violet-700 ring-2 ring-violet-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-                    <Icon className="w-5 h-5" />
-                  </button>
-                ))}
-              </div>
-
-              <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] cursor-pointer">
-                <span className="text-[8px] font-black uppercase text-gray-700">{t('editor.color')}</span>
-                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-black overflow-hidden bg-white">
-                  <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-full w-full cursor-pointer border-0 bg-transparent p-0" title={t('editor.chooseColor')} />
-                </span>
-              </label>
             </div>
           </div>
 

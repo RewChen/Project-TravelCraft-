@@ -157,6 +157,8 @@ export default {
     brandTextStyle: '品牌文字样式',
     brandHelper: '品牌颜色是新图形和线条的默认颜色，让您的地图风格统一。',
     clearCanvas: '清空画布',
+    collapsePanel: '收起左侧面板',
+    expandPanel: '展开左侧面板',
     projectsHint: '保存的地图存储在本设备上，点击即可载入。',
     projectsEmpty: '还没有已保存的项目，按“保存草稿”即可创建。',
     projectsLoad: '载入画布',
