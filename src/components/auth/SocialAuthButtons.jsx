@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { supabase } from '../../lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 import { useApp } from '../../context/AppContext';
 
 const isProviderNotEnabledError = (msg = '') => {
   const m = String(msg).toLowerCase();
-  return m.includes('unsupported provider') || m.includes('provider is not enabled') || m.includes('validation_failed');
+  return m.includes('unsupported provider') || m.includes('provider is not enabled') || m.includes('validation_failed') || m.includes('not enabled') || m.includes('provider_disabled');
+};
+
+const isMissingConfigError = (msg = '') => {
+  const m = String(msg).toLowerCase();
+  return m.includes('supabase') && (m.includes('url') || m.includes('key') || m.includes('not configured'));
 };
 
 export default function SocialAuthButtons({ mode = 'login' }) {
@@ -22,35 +27,7 @@ export default function SocialAuthButtons({ mode = 'login' }) {
     return raw || t('auth.oauthFailed');
   };
 
-  const handleOAuth = async (provider) => {
-    setOAuthError('');
-    setFailedProvider(null);
-    setOAuthLoading(provider);
-    try {
-      const redirectTo = window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          // For Facebook, request email scope explicitly
-          ...(provider === 'facebook' ? { scopes: 'email' } : {}),
-        },
-      });
-      if (error) {
-        setOAuthError(getFriendlyError(provider, error.message));
-        if (isProviderNotEnabledError(error.message)) setFailedProvider(provider);
-        setOAuthLoading(null);
-      }
-      // On success, Supabase redirects - no need to reset loading
-    } catch (err) {
-      const raw = err?.message || t('auth.oauthFailed');
-      setOAuthError(getFriendlyError(provider, raw));
-      if (isProviderNotEnabledError(raw)) setFailedProvider(provider);
-      setOAuthLoading(null);
-    }
-  };
-
-  const handleDemoLogin = (provider) => {
+  const demoLogin = (provider) => {
     const cap = provider.charAt(0).toUpperCase() + provider.slice(1);
     loginAsTrainer({
       id: `demo-${provider}-${Date.now()}`,
@@ -60,6 +37,69 @@ export default function SocialAuthButtons({ mode = 'login' }) {
       role: 'Cartographer',
     });
   };
+
+  const handleOAuth = async (provider) => {
+    setOAuthError('');
+    setFailedProvider(null);
+
+    // If Supabase is not configured at all, go straight to demo (offline usable)
+    if (!isSupabaseConfigured) {
+      demoLogin(provider);
+      return;
+    }
+
+    setOAuthLoading(provider);
+    try {
+      const redirectTo = window.location.origin;
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo,
+          // Facebook needs explicit email scope; Google gets profile+email by default
+          scopes: provider === 'facebook' ? 'email public_profile' : 'email profile',
+          queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
+        },
+      });
+      if (error) {
+        const raw = error.message || '';
+        // Provider not enabled or missing config -> auto fallback to demo so button is always usable
+        if (isProviderNotEnabledError(raw) || isMissingConfigError(raw)) {
+          setOAuthError(getFriendlyError(provider, raw));
+          setFailedProvider(provider);
+          setOAuthLoading(null);
+          // Auto-login as demo after short delay so single click = usable login
+          setTimeout(() => demoLogin(provider), 700);
+          return;
+        }
+        setOAuthError(getFriendlyError(provider, raw));
+        if (isProviderNotEnabledError(raw)) setFailedProvider(provider);
+        setOAuthLoading(null);
+        return;
+      }
+      // data.url is set when OAuth is properly configured – browser will redirect
+      // If no url returned (e.g. provider disabled silently), fallback to demo
+      if (!data?.url) {
+        setOAuthLoading(null);
+        demoLogin(provider);
+        return;
+      }
+      // On success, Supabase redirects - no need to reset loading
+    } catch (err) {
+      const raw = err?.message || t('auth.oauthFailed');
+      if (isProviderNotEnabledError(raw) || isMissingConfigError(raw)) {
+        setOAuthError(getFriendlyError(provider, raw));
+        setFailedProvider(provider);
+        setOAuthLoading(null);
+        setTimeout(() => demoLogin(provider), 700);
+        return;
+      }
+      setOAuthError(getFriendlyError(provider, raw));
+      if (isProviderNotEnabledError(raw)) setFailedProvider(provider);
+      setOAuthLoading(null);
+    }
+  };
+
+  const handleDemoLogin = (provider) => demoLogin(provider);
 
   return (
     <div className="space-y-3">

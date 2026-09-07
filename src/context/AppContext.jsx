@@ -1387,11 +1387,13 @@ export const AppProvider = ({ children }) => {
 
   const signInWithOAuth = async (provider) => {
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const scopes = provider === 'facebook' ? 'email public_profile' : 'email profile';
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
         redirectTo,
-        ...(provider === 'facebook' ? { scopes: 'email' } : {}),
+        scopes,
+        queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
       },
     });
     if (error) throw error;
