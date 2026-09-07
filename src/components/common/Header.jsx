@@ -6,7 +6,7 @@ export default function Header() {
   const avatar = userProfile?.avatar || '🏃';
 
   return (
-    <header className="bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-full p-3 px-5 mb-6 shadow-none flex items-center justify-between sticky top-4 z-50 transition-colors duration-200 backdrop-blur-sm">
+    <header className="bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 shadow-none flex items-center justify-between sticky top-4 z-50 transition-colors duration-200 backdrop-blur-sm">
       <div 
         onClick={() => navigateTo('home')}
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
@@ -19,17 +19,17 @@ export default function Header() {
         </span>
       </div>
 
-      <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 text-sm font-bold dark:text-slate-200">
+      <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 text-sm font-bold">
         <button 
           onClick={() => navigateTo('home')}
-          className={`${currentPage === 'home' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+className={`${currentPage === 'home' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.home')}
         </button>
 
         <button 
           onClick={() => navigateTo('community')}
-          className={`${currentPage === 'community' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+className={`${currentPage === 'community' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.community')}
         </button>
@@ -38,7 +38,7 @@ export default function Header() {
         {activeCommunityMap && (
           <button 
             onClick={() => navigateTo('map')}
-            className={`${currentPage === 'map' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
           >
             {t('nav.worldMap')}
           </button>
@@ -46,7 +46,7 @@ export default function Header() {
 
         <button 
           onClick={() => navigateTo('mymaps')}
-          className={`${currentPage === 'mymaps' ? 'text-red-600 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.myMaps')}
         </button>
@@ -66,11 +66,19 @@ export default function Header() {
           </button>
         )}
 
+        {/* Profile */}
+        <button 
+          onClick={() => navigateTo('profile')}
+          className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+        >
+          {t('nav.profile')}
+        </button>
+
       </nav>
 
       <div className="flex items-center gap-3">
-        <button className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none cursor-pointer">
-          <Bell className="w-4 h-4 text-black dark:text-slate-200" />
+        <button className="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none cursor-pointer">
+          <Bell className="w-4 h-4 text-black" />
         </button>
         {/* Settings — only for logged-in users */}
         {isLoggedIn && (
@@ -78,9 +86,9 @@ export default function Header() {
             onClick={() => navigateTo('settings')}
             title={t('nav.settings')}
             aria-label={t('nav.settings')}
-            className="w-9 h-9 border border-slate-200 dark:border-slate-600 rounded-full items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-amber-100 dark:hover:bg-slate-700 shadow-none hidden sm:flex cursor-pointer"
+            className="w-9 h-9 border border-slate-200 rounded-full items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none hidden sm:flex cursor-pointer"
           >
-            <Settings className="w-4 h-4 text-black dark:text-slate-200" />
+            <Settings className="w-4 h-4 text-black" />
           </button>
         )}
         {isLoggedIn ? (

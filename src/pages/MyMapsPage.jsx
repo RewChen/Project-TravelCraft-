@@ -1,12 +1,30 @@
 import { useState } from 'react';
-import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3 } from 'lucide-react';
+import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CreateMapForm from '../components/map/CreateMapForm';
+
+function CardCover({ imageUrl, title }) {
+  const [failed, setFailed] = useState(false);
+  if (!imageUrl || failed) {
+    return (
+      <div className="mb-3 -mx-1 h-28 border-2 border-dashed border-black rounded bg-gray-50 flex flex-col items-center justify-center gap-1 text-gray-400">
+        <ImageOff className="w-6 h-6" />
+        <span className="text-[10px] font-black uppercase">No Cover</span>
+      </div>
+    );
+  }
+  return (
+    <div className="mb-3 -mx-1">
+      <img src={imageUrl} alt={title} onError={() => setFailed(true)} className="w-full h-28 object-cover border-2 border-black rounded bg-gray-100" />
+    </div>
+  );
+}
 
 export default function MyMapsPage() {
 const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, userProfile, deleteCommunityMap } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [publishedSuccess, setPublishedSuccess] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const startDesigning = (data) => {
     setEditorSetup({
@@ -57,7 +75,6 @@ const openMapInEditor = (mapItem) => {
     )
     .map(mapItem => ({
       ...mapItem,
-      spotsCount: mapItem.pins?.length || 0,
       badge: mapItem.privacy === 'private' ? 'Draft' : 'Published',
       color: mapItem.privacy === 'private' ? 'bg-emerald-100' : 'bg-sky-100',
       description: mapItem.details?.lore || 'A custom map.',
@@ -122,13 +139,8 @@ const openMapInEditor = (mapItem) => {
                 <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-black rounded ${map.color}`}>
                   {map.badge}
                 </span>
-                <span className="text-xs font-bold text-gray-500">📍 {map.spotsCount} Spots</span>
               </div>
-              {map.imageUrl && (
-                <div className="mb-3 -mx-1">
-                  <img src={map.imageUrl} alt={map.title} className="w-full h-28 object-cover border-2 border-black rounded" />
-                </div>
-              )}
+              <CardCover imageUrl={map.imageUrl} title={map.title} />
               <h3 className="text-lg font-black mb-1">{map.title}</h3>
               <p className="text-[11px] text-gray-500 font-bold mb-3">{map.region}</p>
               <p className="text-xs text-gray-700 font-sans leading-relaxed mb-6">
@@ -142,7 +154,7 @@ const openMapInEditor = (mapItem) => {
                   onClick={() => handlePublishMap(map)}
                   className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
                 >
-                  <Globe className="w-4 h-4" /> Publish to Community (+150 Coins)
+                  <Globe className="w-4 h-4" /> Publish to Community
                 </button>
               )}
 
@@ -161,11 +173,7 @@ const openMapInEditor = (mapItem) => {
               </button>
 
               <button
-                onClick={() => {
-                  if (window.confirm(`Delete "${map.title}"?`)) {
-                    deleteCommunityMap(map.id);
-                  }
-                }}
+                onClick={() => setDeleteTarget(map)}
                 className="w-full bg-white text-red-600 font-bold py-2 rounded-lg border-2 border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-50 cursor-pointer flex justify-center items-center gap-1.5"
               >
                 <Trash2 className="w-4 h-4" /> Delete Map
@@ -214,6 +222,39 @@ const openMapInEditor = (mapItem) => {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              <h2 className="font-black uppercase tracking-wide">Delete Map?</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-sm font-bold text-gray-800">
+                Are you sure you want to delete "{deleteTarget.title}"? This cannot be undone.
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    deleteCommunityMap(deleteTarget.id);
+                    setDeleteTarget(null);
+                  }}
+                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
