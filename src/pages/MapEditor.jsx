@@ -246,21 +246,58 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     if (!dragging) return undefined;
 
     const handlePointerMove = (event) => {
+      if (dragging.mode === 'rotate') {
+        const viewportRect = viewportRef.current.getBoundingClientRect();
+        // The element's center in client coordinates
+        const elementCenterClientX = viewportRect.left + (dragging.startLeft + dragging.startWidth / 2 + camera.x) * camera.scale;
+        const elementCenterClientY = viewportRect.top + (dragging.startTop + dragging.startHeight / 2 + camera.y) * camera.scale;
+        
+        const dx = event.clientX - elementCenterClientX;
+        const dy = event.clientY - elementCenterClientY;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        // Add -90 because the handle is at the bottom (+90 deg in screen coords)
+        const newRotation = (angle - 90 + 360) % 360;
+
+        setElements((previous) => previous.map((el) => el.id === dragging.id ? { ...el, rotation: newRotation } : el));
+        return;
+      }
+
       const scale = camera.scale;
       const deltaX = (event.clientX - dragging.startX) / scale;
       const deltaY = (event.clientY - dragging.startY) / scale;
 
       setElementPositions((previous) => {
         const element = previous[dragging.id];
-        const maxLeft = CANVAS_WIDTH - element.width;
-        const maxTop = CANVAS_HEIGHT - element.height;
+        
+        if (dragging.mode.startsWith('resize')) {
+          let nextWidth = dragging.startWidth;
+          let nextHeight = dragging.startHeight;
+          let nextLeft = dragging.startLeft;
+          let nextTop = dragging.startTop;
 
-        if (dragging.mode === 'resize') {
-          const nextWidth = Math.max(MIN_ELEMENT_SIZE, Math.min(CANVAS_WIDTH - element.left, dragging.startWidth + deltaX));
-          const nextHeight = Math.max(MIN_ELEMENT_SIZE, Math.min(CANVAS_HEIGHT - element.top, dragging.startHeight + deltaY));
-          return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight } };
+          if (dragging.mode.includes('r')) {
+            nextWidth = Math.max(MIN_ELEMENT_SIZE, dragging.startWidth + deltaX);
+          } else if (dragging.mode.includes('l')) {
+            nextWidth = Math.max(MIN_ELEMENT_SIZE, dragging.startWidth - deltaX);
+            nextLeft = dragging.startLeft + (dragging.startWidth - nextWidth);
+          }
+
+          if (dragging.mode.includes('b')) {
+            nextHeight = Math.max(MIN_ELEMENT_SIZE, dragging.startHeight + deltaY);
+          } else if (dragging.mode.includes('t')) {
+            nextHeight = Math.max(MIN_ELEMENT_SIZE, dragging.startHeight - deltaY);
+            nextTop = dragging.startTop + (dragging.startHeight - nextHeight);
+          }
+
+          // constrain within canvas
+          nextLeft = Math.max(0, Math.min(CANVAS_WIDTH - nextWidth, nextLeft));
+          nextTop = Math.max(0, Math.min(CANVAS_HEIGHT - nextHeight, nextTop));
+
+          return { ...previous, [dragging.id]: { ...element, width: nextWidth, height: nextHeight, left: nextLeft, top: nextTop } };
         }
 
+        const maxLeft = CANVAS_WIDTH - element.width;
+        const maxTop = CANVAS_HEIGHT - element.height;
         return {
           ...previous,
           [dragging.id]: {
@@ -353,6 +390,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const clearBackground = () => setBackgroundImage('');
 
   const handleWorldPointerDown = (event) => {
+    setContextMenuElementId(null);
     if (event.button === 1 || event.target === event.currentTarget) {
       startPan(event.clientX, event.clientY);
     }
@@ -384,6 +422,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     const position = elementPositions[elementId];
     pushHistory();
     setSelectedElement(elementId);
+    setContextMenuElementId(null);
     setDragging({
       id: elementId,
       startX: event.clientX,
@@ -1069,7 +1108,10 @@ if (publishPrivacy === 'private') {
           ref={viewportRef}
           className="flex-1 relative overflow-hidden bg-[#e5e5e5]"
           style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px', cursor: isPanning ? 'grabbing' : 'grab' }}
-          onClick={() => setSelectedElement(null)}
+          onClick={() => {
+            setSelectedElement(null);
+            setContextMenuElementId(null);
+          }}
         >
           {/* Konva background layer — the pannable/zoomable map viewport */}
           <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
@@ -1125,26 +1167,52 @@ if (publishPrivacy === 'private') {
               )}
 
               {contextMenuElement && contextMenuPosition && (
-                <div className="absolute z-30 w-56 rounded-xl border-2 border-black bg-white p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" style={quickActionMenuStyle}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[8px] font-black uppercase tracking-wide text-gray-500">{t('editor.actions')}</span>
-                    <button onClick={() => setContextMenuElementId(null)} className="flex h-5 w-5 items-center justify-center rounded-full border border-black bg-gray-100 text-[10px] font-black">×</button>
-                  </div>
-                  <div className="space-y-1.5">
-                    <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⧉</span>{t('editor.duplicate')}</span>
+                <div className="absolute z-30 w-64 rounded-xl border border-gray-200 bg-white py-2 shadow-2xl" style={quickActionMenuStyle} onClick={(e) => e.stopPropagation()}>
+                  <div className="flex flex-col">
+                    <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
+                        <Copy className="w-4 h-4 text-gray-500" />
+                        {t('editor.duplicate')}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">Ctrl+D</span>
                     </button>
-                    <button onClick={() => { moveLayer('front'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇡</span>{t('editor.bringFront')}</span>
+
+                    <div className="h-px bg-gray-100 my-1.5 mx-3"></div>
+                    
+                    <button onClick={() => { moveLayer('front'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
+                        <BringToFront className="w-4 h-4 text-gray-500" />
+                        {t('editor.bringFront')}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">]</span>
                     </button>
-                    <button onClick={() => { moveLayer('back'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">⇣</span>{t('editor.sendBack')}</span>
+                    
+                    <button onClick={() => { moveLayer('back'); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
+                        <SendToBack className="w-4 h-4 text-gray-500" />
+                        {t('editor.sendBack')}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">[</span>
                     </button>
-                    <button onClick={() => { toggleLockSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-gray-100">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">{selectedData?.locked ? '🔓' : '🔒'}</span>{t(selectedData?.locked ? 'editor.unlock' : 'editor.lock')}</span>
+
+                    <div className="h-px bg-gray-100 my-1.5 mx-3"></div>
+                    
+                    <button onClick={() => { toggleLockSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
+                        {selectedData?.locked ? <Unlock className="w-4 h-4 text-gray-500" /> : <Lock className="w-4 h-4 text-gray-500" />}
+                        {t(selectedData?.locked ? 'editor.unlock' : 'editor.lock')}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">Alt+L</span>
                     </button>
-                    <button onClick={() => { deleteSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-red-50 text-red-600">
-                      <span className="flex items-center gap-2 text-xs font-bold"><span className="text-base">🗑</span>{t('editor.delete')}</span>
+
+                    <div className="h-px bg-gray-100 my-1.5 mx-3"></div>
+                    
+                    <button onClick={() => { deleteSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-red-50 transition-colors group">
+                      <div className="flex items-center gap-3 text-xs font-bold text-red-600">
+                        <Trash2 className="w-4 h-4 text-red-500 group-hover:text-red-600" />
+                        {t('editor.delete')}
+                      </div>
+                      <span className="text-[10px] font-bold text-red-400">Del</span>
                     </button>
                   </div>
                 </div>
@@ -1166,6 +1234,7 @@ if (publishPrivacy === 'private') {
                     else {
                       event.stopPropagation();
                       setSelectedElement(element.id);
+                      setContextMenuElementId(null);
                     }
                   }} onDoubleClick={(event) => {
                     if (element.type === 'text') {
@@ -1198,13 +1267,22 @@ if (publishPrivacy === 'private') {
                       )
                     )}
                     {isSelected && !isEditingText && <>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 100%' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize'); }} className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}></div>
-                      <button type="button" title={t('editor.rotate')} onClick={(event) => { event.stopPropagation(); rotateSelectedElement(); }} className="absolute left-1/2 -translate-x-1/2 -bottom-9 flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50" style={{ transform: `translateX(-50%) scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}>
-                        <RotateCw className="w-4 h-4 text-violet-600" />
-                      </button>
+                      {/* corners */}
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tl'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tr'); }} className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-bl'); }} className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-br'); }} className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}></div>
+                      
+                      {/* edges */}
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-t'); }} className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-b'); }} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-l'); }} className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-4 bg-white border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 50%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-r'); }} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-4 bg-white border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 50%' }}></div>
+                      
+                      {/* rotate */}
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'rotate'); }} title={t('editor.rotate')} className="absolute left-1/2 -translate-x-1/2 -bottom-9 flex h-7 w-7 cursor-grab items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50 active:cursor-grabbing" style={{ transform: `translateX(-50%) scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}>
+                        <RotateCw className="w-3.5 h-3.5 text-violet-600" />
+                      </div>
                     </>}
                   </div>
                 );
