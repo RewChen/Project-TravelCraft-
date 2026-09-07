@@ -194,7 +194,12 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [editingTextId, setEditingTextId] = useState(null);
   const [contextMenuElementId, setContextMenuElementId] = useState(null);
   const [autosaveStatus, setAutosaveStatus] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [selectedUploads, setSelectedUploads] = useState([]);
+  const [customElements, setCustomElements] = useState([]);
+  const [elementUploadError, setElementUploadError] = useState('');
   const fileInputRef = useRef(null);
+  const elementImageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
@@ -737,12 +742,62 @@ if (publishPrivacy === 'private') {
   };
 
   const handleUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => addElement({ type: 'image', label: file.name, content: reader.result });
-    reader.readAsDataURL(file);
+    const files = Array.from(event.target.files || []);
     event.target.value = '';
+    if (!files.length) return;
+    files.forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        nextElementId.current += 1;
+        const id = `upload-${nextElementId.current}`;
+        setUploadedFiles((previous) => [...previous, { id, label: file.name, content: reader.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleElementUpload = (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    let hasInvalid = false;
+    files.forEach((file) => {
+      if (file.type !== 'image/png') {
+        hasInvalid = true;
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        nextElementId.current += 1;
+        const id = `custom-el-${nextElementId.current}`;
+        const content = reader.result;
+        setCustomElements((previous) => [...previous, { id, label: file.name, content }]);
+        setElementUploadError('');
+      };
+      reader.readAsDataURL(file);
+    });
+    if (hasInvalid) setElementUploadError(t('editor.pngOnly'));
+  };
+
+  const addCustomElement = (item) => {
+    addElement({ type: 'image', label: item.label, content: item.content });
+  };
+
+  const toggleUploadSelection = (id) => {
+    setSelectedUploads((previous) => (previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]));
+  };
+
+  const addSelectedUploads = () => {
+    uploadedFiles
+      .filter((file) => selectedUploads.includes(file.id))
+      .forEach((file) => addElement({ type: 'image', label: file.label, content: file.content }));
+    setSelectedUploads([]);
+  };
+
+  const removeUpload = (id) => {
+    setUploadedFiles((previous) => previous.filter((file) => file.id !== id));
+    setSelectedUploads((previous) => previous.filter((item) => item !== id));
   };
 
   const handleVideoUpload = (event) => {
@@ -1091,13 +1146,35 @@ if (publishPrivacy === 'private') {
               </div>
             )}
             {activeTab === 'ELEMENTS' && (
-              <div className="grid grid-cols-2 gap-3">
-                {elementOptions.map((item) => (
-                  <button key={item.labelKey} onClick={() => addElement({ type: 'emoji', labelKey: item.labelKey, content: item.content })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
-                    <span className="text-3xl">{item.content}</span>
-                    <span className="text-[9px] font-black mt-1 uppercase">{t(item.labelKey)}</span>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {elementOptions.map((item) => (
+                    <button key={item.labelKey} onClick={() => addElement({ type: 'emoji', labelKey: item.labelKey, content: item.content })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                      <span className="text-3xl">{item.content}</span>
+                      <span className="text-[9px] font-black mt-1 uppercase">{t(item.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 space-y-2 border-t-2 border-black pt-3">
+                  <input ref={elementImageInputRef} type="file" accept=".png,image/png" multiple onChange={handleElementUpload} className="hidden" />
+                  <button type="button" onClick={() => elementImageInputRef.current?.click()} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5" /> {t('editor.uploadPngElement')}
                   </button>
-                ))}
+                  {elementUploadError && (
+                    <p className="text-[10px] text-red-600 font-black">{elementUploadError}</p>
+                  )}
+                  {customElements.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {customElements.map((item) => (
+                        <button key={item.id} type="button" onClick={() => addCustomElement(item)} title={item.label} className="relative aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 hover:ring-4 hover:ring-[#4895ef] hover:ring-offset-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                          <img src={item.content} alt={item.label} className="w-full h-full object-contain" />
+                          <span className="absolute bottom-0 inset-x-0 bg-white/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.pngHelper')}</p>
+                </div>
               </div>
             )}
             {activeTab === 'TEXT' && (
@@ -1109,8 +1186,36 @@ if (publishPrivacy === 'private') {
             )}
             {activeTab === 'UPLOADS' && (
               <div className="space-y-3">
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
                 <button onClick={() => fileInputRef.current?.click()} className="w-full border-2 border-black bg-[#4895ef] text-white p-3 font-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-blue-600">{t('editor.uploadFile')}</button>
+                {uploadedFiles.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {uploadedFiles.map((file) => {
+                      const isSelected = selectedUploads.includes(file.id);
+                      return (
+                        <div key={file.id} className={`relative border-2 rounded overflow-hidden aspect-square group ${isSelected ? 'border-[#4895ef] ring-4 ring-[#4895ef] ring-offset-1' : 'border-black'}`}>
+                          <button type="button" onClick={() => toggleUploadSelection(file.id)} title={file.label} className="w-full h-full cursor-pointer">
+                            <img src={file.content} alt={file.label} className="w-full h-full object-cover" />
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Check className="w-6 h-6 text-white stroke-[4]" />
+                            </span>
+                          </button>
+                          {isSelected && (
+                            <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>
+                          )}
+                          <button type="button" onClick={() => removeUpload(file.id)} className="absolute top-1 left-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeUpload')}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {selectedUploads.length > 0 && (
+                  <button onClick={addSelectedUploads} className="w-full border-2 border-black bg-amber-300 font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-200 cursor-pointer">
+                    {t('editor.addSelectedUploads', { count: selectedUploads.length })}
+                  </button>
+                )}
                 <p className="text-[10px] text-gray-500 font-bold">{t('editor.uploadInstruction')}</p>
               </div>
             )}
