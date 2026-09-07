@@ -17,7 +17,7 @@ import TrainerMapsModal from '../modals/TrainerMapsModal';
 import { supabase } from '../../../lib/supabaseClient';
 
 export default function UserManagementTab() {
-  const { showAdminToast } = useApp();
+  const { showAdminToast, communityMaps } = useApp();
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,11 +46,9 @@ export default function UserManagementTab() {
           name: u.username || 'Anonymous',
           email: u.email || 'N/A',
           role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
-          avatar: '🧢',
-          mapsCreated: 0,
+          avatar: u.avatar || '🧢',
           joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
           status: u.status || 'active',
-          maps: []
         }));
         setTrainers(mapped);
       }
@@ -98,6 +96,11 @@ export default function UserManagementTab() {
       console.error(e);
     }
   };
+
+  // Derive live map counts from the same communityMaps that the user UI renders — admin sees every user creation.
+  const getTrainerMapCount = (trainer) => (communityMaps || []).filter((m) =>
+    m.ownerId ? m.ownerId === trainer.id : m.discoveredBy === trainer.name
+  ).length;
 
   const filteredTrainers = trainers.filter((t) =>
     t.name.toLowerCase().includes(searchTrainer.toLowerCase()) ||
@@ -236,10 +239,10 @@ export default function UserManagementTab() {
                         </span>
                       </td>
 
-                      {/* Quota & View Maps */}
+                      {/* Quota & View Maps — live count from user-created maps */}
                       <td className="p-3.5">
                         <div className="text-xs font-bold text-gray-800">
-                          {trainer.mapsCreated} Maps Created{' '}
+                          {getTrainerMapCount(trainer)} Maps Created{' '}
                           <button
                             onClick={() => handleOpenMapsModal(trainer)}
                             className="text-[#cc0000] hover:underline font-black text-xs cursor-pointer ml-1 inline-flex items-center gap-0.5"
@@ -289,7 +292,7 @@ export default function UserManagementTab() {
 
         {/* Right Column: SYSTEM STATUS & ROLE MATRIX */}
         <div className="space-y-6">
-          {/* SYSTEM STATUS (Red Card, Image 3) */}
+          {/* SYSTEM STATUS (Red Card, Image 3) — live */}
           <div className="bg-[#cc0000] text-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
             <h3 className="font-black text-sm uppercase tracking-wider mb-6 border-b-2 border-white/40 pb-2 flex items-center justify-between">
               <span>SYSTEM STATUS</span>
@@ -299,12 +302,16 @@ export default function UserManagementTab() {
             <div className="space-y-4 relative z-10">
               <div className="flex items-baseline justify-between">
                 <span className="text-xs font-bold uppercase text-white/80">Total Trainers</span>
-                <span className="text-2xl sm:text-3xl font-black">1,248</span>
+                <span className="text-2xl sm:text-3xl font-black">{trainers.length}</span>
               </div>
 
               <div className="flex items-baseline justify-between border-t border-white/20 pt-3">
-                <span className="text-xs font-bold uppercase text-white/80">Active Connections</span>
-                <span className="text-2xl sm:text-3xl font-black">Live</span>
+                <span className="text-xs font-bold uppercase text-white/80">Community Maps</span>
+                <span className="text-2xl sm:text-3xl font-black">{communityMaps?.length ?? 0}</span>
+              </div>
+              <div className="flex items-baseline justify-between border-t border-white/20 pt-3">
+                <span className="text-xs font-bold uppercase text-white/80">Status</span>
+                <span className="text-lg font-black">Live · Synced</span>
               </div>
             </div>
 

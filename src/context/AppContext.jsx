@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
-import { fetchAllMaps, upsertMap, deleteMapRow } from '../lib/supabaseMaps';
+import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 
 const AppContext = createContext();
@@ -690,6 +690,92 @@ export const AppProvider = ({ children }) => {
   const [reportedLocations, setReportedLocations] = useState(() => loadStored('adminReports', initialReportedLocations));
   const [globalSettings, setGlobalSettings] = useState(() => loadStored('adminSettings', initialGlobalSettings));
   const [adminToast, setAdminToast] = useState(null);
+
+  // Initial hydration of trainer registry from Supabase (keeps admin view in sync with real users table)
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    const hydrateTrainersFromDb = async () => {
+      try {
+        const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(200);
+        if (cancelled || !data) return;
+        // Only replace if we actually got data; keep local fallback otherwise
+        if (data.length) {
+          const mapped = data.map((u) => ({
+            id: u.id,
+            name: u.username || 'Anonymous',
+            email: u.email || 'N/A',
+            role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
+            avatar: u.avatar || '🧢',
+            status: u.status || 'active',
+            joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
+            strikes: u.strikes ?? 0,
+          }));
+          setTrainers(mapped);
+        }
+      } catch (err) {
+        console.warn('Trainer registry hydration skipped:', err);
+      }
+    };
+    hydrateTrainersFromDb();
+    return () => { cancelled = true; };
+  }, [isAuthLoading]);
+
+  // Realtime sync: whenever any user creates/updates/deletes a map or user, keep admin dashboard in sync with the user UI.
+  useEffect(() => {
+    const channel = supabase
+      .channel('maps-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'maps' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old?.id;
+          if (deletedId) setCommunityMaps((prev) => prev.filter((m) => m.id !== deletedId));
+          return;
+        }
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          const row = payload.new;
+          if (!row) return;
+          const item = mapRowToItem(row);
+          setCommunityMaps((prev) => {
+            const idx = prev.findIndex((m) => m.id === item.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = { ...next[idx], ...item };
+              return next;
+            }
+            return [item, ...prev];
+          });
+        }
+      })
+      .subscribe();
+
+    const usersChannel = supabase
+      .channel('users-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async () => {
+        try {
+          const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(200);
+          if (!data) return;
+          const mapped = data.map((u) => ({
+            id: u.id,
+            name: u.username || 'Anonymous',
+            email: u.email || 'N/A',
+            role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
+            avatar: u.avatar || '🧢',
+            status: u.status || 'active',
+            joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
+            strikes: u.strikes ?? 0,
+          }));
+          setTrainers(mapped);
+        } catch (e) {
+          console.warn('users live sync skipped:', e);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(usersChannel);
+    };
+  }, []);
 
   const showAdminToast = (message, type = 'success') => {
     setAdminToast({ message, type });

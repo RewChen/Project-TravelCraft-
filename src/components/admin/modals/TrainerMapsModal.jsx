@@ -6,6 +6,11 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
 
   if (!isOpen || !trainer) return null;
 
+  // Live derivation of maps created by this trainer — same source the user sees in My Maps / Community
+  const trainerMaps = (communityMaps || []).filter((m) =>
+    m.ownerId ? m.ownerId === trainer.id : m.discoveredBy === trainer.name
+  );
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
       <div className="bg-white border-4 border-black rounded-2xl w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
@@ -15,7 +20,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
             <span className="text-xl">{trainer.avatar || '🧢'}</span>
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider">{trainer.name}'s Cartography Roster</h3>
-              <p className="text-[10px] text-gray-700 font-bold">{trainer.email} • {trainer.mapsCreated} Total Maps</p>
+              <p className="text-[10px] text-gray-700 font-bold">{trainer.email} • {trainerMaps.length} Total Maps (Live)</p>
             </div>
           </div>
           <button
@@ -31,30 +36,26 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
           <div className="text-xs font-black uppercase text-gray-600">Created Regional Maps</div>
 
           <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-            {trainer.maps && trainer.maps.length > 0 ? (
-              trainer.maps.map((mapName, idx) => (
+            {trainerMaps.length > 0 ? (
+              trainerMaps.map((mapItem) => (
                 <div
-                  key={idx}
+                  key={mapItem.id}
                   className="bg-gray-50 border-2 border-black rounded-xl p-3 flex items-center justify-between shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-50 transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-amber-200 border-2 border-black rounded-lg flex items-center justify-center text-sm">
-                      🗺️
+                    <div className="w-8 h-8 bg-amber-200 border-2 border-black rounded-lg flex items-center justify-center text-sm overflow-hidden">
+                      {mapItem.imageUrl ? <img src={mapItem.imageUrl} alt={mapItem.title} className="w-full h-full object-cover" /> : '🗺️'}
                     </div>
                     <div>
-                      <div className="text-xs font-black text-black">{mapName}</div>
-                      <div className="text-[10px] text-gray-500 font-bold">Status: Published • Verified</div>
+                      <div className="text-xs font-black text-black">{mapItem.title}</div>
+                      <div className="text-[10px] text-gray-500 font-bold">Status: {mapItem.privacy === 'private' ? 'Draft' : 'Published'} • {mapItem.pins?.length ?? 0} pins</div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => {
                       onClose();
-                      if (communityMaps && communityMaps[0]) {
-                        trackMapOnWorldMap(communityMaps[0]);
-                      } else {
-                        navigateTo('community');
-                      }
+                      trackMapOnWorldMap(mapItem);
                     }}
                     className="px-2.5 py-1.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
                   >
@@ -65,7 +66,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
               ))
             ) : (
               <div className="text-center py-6 text-xs text-gray-500">
-                No active custom maps registered for this trainer.
+                No active custom maps registered for this trainer. New maps created by the user will appear here instantly via live sync.
               </div>
             )}
           </div>

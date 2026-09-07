@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-const mapRowToItem = (row) => ({
+export const mapRowToItem = (row) => ({
   ...(row.data || {}),
   id: row.id,
   ownerId: row.owner_id ?? row.data?.ownerId ?? null,
