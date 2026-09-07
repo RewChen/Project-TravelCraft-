@@ -66,14 +66,6 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
           </button>
         )}
 
-        {/* Profile */}
-        <button 
-          onClick={() => navigateTo('profile')}
-          className={`${currentPage === 'profile' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
-        >
-          {t('nav.profile')}
-        </button>
-
       </nav>
 
       <div className="flex items-center gap-3">
