@@ -558,6 +558,31 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const updateUsername = async (username) => {
+    const cleanName = (username || '').trim();
+    if (!cleanName || cleanName.length > 20) return { success: false, error: 'validation' };
+    const prevName = userProfile?.name;
+    setUserProfile((prev) => (prev ? { ...prev, name: cleanName } : prev));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return { success: true };
+      const { error } = await supabase
+        .from('users')
+        .update({ username: cleanName })
+        .eq('id', session.user.id);
+      if (error) {
+        setUserProfile((prev) => (prev ? { ...prev, name: prevName } : prev));
+        console.warn('Username update rejected:', error);
+        return { success: false, error: error.code === '23505' ? 'taken' : 'db' };
+      }
+      return { success: true };
+    } catch (err) {
+      setUserProfile((prev) => (prev ? { ...prev, name: prevName } : prev));
+      console.warn('Username update skipped:', err);
+      return { success: false, error: 'db' };
+    }
+  };
+
   const createFallbackProfile = (authUser) => {
     const meta = authUser.user_metadata || {};
     // OAuth providers use different keys: google -> full_name/picture, facebook -> full_name/picture
@@ -1482,6 +1507,7 @@ export const AppProvider = ({ children }) => {
         setUserProfile,
         updateUserRole,
         updateUserBadges,
+        updateUsername,
         selectedLocation,
         setSelectedLocation,
         mapBackgroundImage,
