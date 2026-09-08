@@ -42,3 +42,29 @@ export const scaleElementFontSizes = (elements, positions) => {
 };
 
 export const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
+
+// Convert editor canvas elements + positions into world-map pins (percent coords).
+// getLabel(element) resolves the display title (translation-aware at call site).
+export const derivePinsFromElements = (elements, elementPositions, getLabel = null) => {
+  const elementsArr = Array.isArray(elements) ? elements : [];
+  const positions = scaleElementPositions(elementPositions) || {};
+  const scaledElements = scaleElementFontSizes(elementsArr, elementPositions);
+  return scaledElements
+    .map((element) => {
+      const position = positions[element.id];
+      if (!position) return null;
+      const label = getLabel
+        ? getLabel(element)
+        : (element.content || element.label || element.type || 'Spot');
+      return {
+        id: `editor-${element.id}`,
+        title: label,
+        top: `${Math.round(((position.top + position.height / 2) / CANVAS_HEIGHT) * 100)}%`,
+        left: `${Math.round(((position.left + position.width / 2) / CANVAS_WIDTH) * 100)}%`,
+        icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
+        category: 'landmarks',
+        lore: element.type === 'text' ? element.content : element.lore || label
+      };
+    })
+    .filter(Boolean);
+};

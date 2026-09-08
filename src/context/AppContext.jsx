@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
 import { deleteMapAssets } from '../lib/supabaseUploads';
+import { derivePinsFromElements } from '../lib/editorCanvas';
 
 const AppContext = createContext();
 
@@ -748,6 +749,7 @@ export const AppProvider = ({ children }) => {
   const [mapPins, setMapPins] = useState(() => loadStored('mapPins', initialPins));
   const [selectedPin, setSelectedPin] = useState(initialPins[0]);
   const [mapBackgroundImage, setMapBackgroundImage] = useState(() => loadStored('mapBgImage', null));
+  const [mapCanvasStyle, setMapCanvasStyle] = useState(null);
   const [favorites, setFavorites] = useState(() => loadStored('favorites', ['Eiffel Tower']));
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
@@ -1098,23 +1100,90 @@ export const AppProvider = ({ children }) => {
 
   const resetMapBackgroundImage = () => {
     setMapBackgroundImage(null);
+    setMapCanvasStyle(null);
   };
 
   // Launch Community Map onto the World Map View
-  const trackMapOnWorldMap = (communityItem) => {
+  const trackMapOnWorldMap = useCallback((communityItem) => {
     setActiveCommunityMap(communityItem);
-    if (communityItem.bgThemeUrl) {
-      setMapBackgroundImage(communityItem.bgThemeUrl);
+    const editor = communityItem.editorState || {};
+    // The user's editor background (latest edit) wins over any legacy bgThemeUrl.
+    const editorBackground = typeof editor.backgroundImage === 'string' && editor.backgroundImage ? editor.backgroundImage : null;
+    const bg = editorBackground || communityItem.bgThemeUrl || null;
+    if (bg) {
+      setMapBackgroundImage(bg);
     } else {
       setMapBackgroundImage(null);
     }
-    if (communityItem.pins && communityItem.pins.length > 0) {
-      setMapPins(communityItem.pins);
-      setSelectedPin(communityItem.pins[0]);
+    // Template CSS background (used when the map has no uploaded background image).
+    const preview = communityItem.previewBackground || {};
+    if (preview.backgroundColor || (preview.backgroundImage && preview.backgroundImage !== 'none')) {
+      setMapCanvasStyle({
+        backgroundColor: preview.backgroundColor || '#ffffff',
+        backgroundImage: preview.backgroundImage === 'none' ? undefined : preview.backgroundImage
+      });
+    } else {
+      setMapCanvasStyle(null);
     }
+    // Rebuild pins straight from the editor elements so the world map
+    // shows exactly what the user placed (works for drafts too).
+    let pins = Array.isArray(communityItem.pins) && communityItem.pins.length ? communityItem.pins : [];
+    if (!pins.length && editor.elements) {
+      pins = derivePinsFromElements(editor.elements, editor.elementPositions, (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot')));
+    }
+    setMapPins(pins);
+    setSelectedPin(pins.length ? pins[0] : null);
     setCurrentPage('map');
+    if (communityItem?.id) {
+      try {
+        window.history.replaceState(null, '', `#/map/${encodeURIComponent(communityItem.id)}`);
+      } catch (e) {
+        console.warn('URL sync skipped:', e);
+      }
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, [t]);
+
+  // Deep-link routing: every map has its own shareable URL (#/map/<mapId>).
+  // On load or hash change, resolve the map id from communityMaps and open it.
+  const [urlMapId, setUrlMapId] = useState(() => {
+    try {
+      const match = window.location.hash.match(/^#\/map\/(.+)$/);
+      return match ? decodeURIComponent(match[1]) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      try {
+        const match = window.location.hash.match(/^#\/map\/(.+)$/);
+        setUrlMapId(match ? decodeURIComponent(match[1]) : null);
+      } catch {
+        setUrlMapId(null);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!urlMapId) return undefined;
+    const item = communityMaps.find((m) => m.id === urlMapId);
+    if (item) {
+      // Defer the navigation state update so it isn't a synchronous
+      // setState inside the effect body.
+      const timer = setTimeout(() => {
+        trackMapOnWorldMap(item);
+        setUrlMapId(null);
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+    // Keep retrying until the map list finishes hydrating from the DB.
+    const retryTimer = setTimeout(() => setUrlMapId(null), 6000);
+    return () => clearTimeout(retryTimer);
+  }, [urlMapId, communityMaps, trackMapOnWorldMap]);
 
   // Persist the latest Map Editor state for a map owned by the current user.
   const saveEditorMapState = (mapId, editorState) => {
@@ -1209,7 +1278,7 @@ export const AppProvider = ({ children }) => {
       videoUrl: newCommunityMap.videoUrl || null,
       previewBackground: newCommunityMap.previewBackground || null,
       isEditorMap: Boolean(newCommunityMap.isEditorMap),
-      bgThemeUrl: mapBackgroundImage || newCommunityMap.bgThemeUrl,
+      bgThemeUrl: newCommunityMap.bgThemeUrl || newCommunityMap.editorState?.backgroundImage || null,
       selfieUrl: newCommunityMap.selfieUrl || null,
       selfieUrls: newCommunityMap.selfieUrls || (newCommunityMap.selfieUrl ? [newCommunityMap.selfieUrl] : null),
       details: {
@@ -1517,6 +1586,13 @@ export const AppProvider = ({ children }) => {
     if (location) {
       setSelectedLocation(location);
     }
+    if (page !== 'map' || !activeCommunityMap) {
+      try {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      } catch (e) {
+        console.warn('URL sync skipped:', e);
+      }
+    }
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1550,6 +1626,8 @@ export const AppProvider = ({ children }) => {
         mapBackgroundImage,
         setMapBackgroundImage,
         resetMapBackgroundImage,
+        mapCanvasStyle,
+        setMapCanvasStyle,
         mapPins,
         setMapPins,
         selectedPin,

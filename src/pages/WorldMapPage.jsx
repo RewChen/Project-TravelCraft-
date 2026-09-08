@@ -8,7 +8,7 @@ import { Camera, MapPin as MapPinIcon, Map as MapIcon, Image as ImageIcon, ZoomI
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, selectedPin, setSelectedPin, mapBackgroundImage, activeCommunityMap } = useApp();
+  const { t, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, activeCommunityMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
   const [clickCoords, setClickCoords] = useState(null);
@@ -87,11 +87,11 @@ export default function WorldMapPage() {
         </div>
       </div>
 
-      {/* Map Container Viewport */}
+      {/* Map Container Viewport (square to match the editor's square canvas) */}
       <div 
         ref={mapContainerRef}
         onClick={handleMapClick}
-        className="w-full h-[75vh] border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none"
+        className="w-full aspect-square mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none"
       >
         {/* Zoomable Canvas Wrapper */}
         <div 
@@ -104,6 +104,11 @@ export default function WorldMapPage() {
               src={mapBackgroundImage} 
               alt={t('worldMap.bgAlt')} 
               className="absolute inset-0 w-full h-full object-cover z-0" 
+            />
+          ) : mapCanvasStyle ? (
+            <div
+              className="absolute inset-0 z-0"
+              style={{ backgroundColor: mapCanvasStyle.backgroundColor, backgroundImage: mapCanvasStyle.backgroundImage }}
             />
           ) : (
             <>

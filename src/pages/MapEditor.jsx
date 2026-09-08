@@ -13,7 +13,7 @@ import {
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -698,18 +698,7 @@ persistEditorStateToStore(mapId, editorDraftState);
       finalLogs = [...finalLogs, ...selfieLogs];
     }
 
-    const publishedPins = elements.map((element) => {
-      const position = elementPositions[element.id];
-      return {
-        id: `editor-${element.id}`,
-        title: getElementLabel(element),
-        top: `${Math.round(((position.top + position.height / 2) / CANVAS_HEIGHT) * 100)}%`,
-        left: `${Math.round(((position.left + position.width / 2) / CANVAS_WIDTH) * 100)}%`,
-        icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : element.content,
-        category: 'landmarks',
-        lore: element.type === 'text' ? element.content : t('editor.addedLore', { name: getElementLabel(element) })
-      };
-    });
+    const publishedPins = derivePinsFromElements(elements, elementPositions, (el) => (el.labelKey ? t(el.labelKey) : el.label));
 
     const mapData = {
 id: mapId,
@@ -722,6 +711,7 @@ id: mapId,
       imageUrl: editorSetup?.imageUrl || null,
       videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
+      bgThemeUrl: typeof backgroundImage === 'string' && backgroundImage ? backgroundImage : null,
       isEditorMap: true,
       hours: editorSetup?.hours || '24/7',
       fee: editorSetup?.fee || t('editor.freeExploration'),
