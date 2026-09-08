@@ -9,7 +9,7 @@ import {
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2,
-  Utensils, Plane, Trees, Gamepad2, Landmark, Tag
+  Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Link
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
@@ -187,7 +187,7 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo } = useApp();
+const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo, userAssets, addUserAsset, removeUserAsset } = useApp();
   const [mapId] = useState(() => editorSetup?.id || 'comm-user-draft-new');
   const [savedEditorState] = useState(() => {
     try {
@@ -268,7 +268,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [autosaveStatus, setAutosaveStatus] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedUploads, setSelectedUploads] = useState([]);
-  const [customElements, setCustomElements] = useState([]);
   const [elementUploadError, setElementUploadError] = useState('');
   const fileInputRef = useRef(null);
   const elementImageInputRef = useRef(null);
@@ -468,10 +467,10 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       event.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setBackgroundImage(reader.result);
-    reader.readAsDataURL(file);
     event.target.value = '';
+    addUserAsset({ type: 'background', label: file.name, file }).then((asset) => {
+      if (asset?.url) setBackgroundImage(asset.url);
+    });
   };
 
   const clearBackground = () => setBackgroundImage('');
@@ -692,7 +691,7 @@ persistEditorStateToStore(mapId, editorDraftState);
     setSaveStatus(t('editor.statusDraftSaved'));
   };
 
-  const publishMap = () => {
+  const publishMap = async () => {
     const videoUrl = publishVideoUrl.trim();
     if (videoUrl && !videoUrl.startsWith('data:video/')) {
       const youtubeUrl = getYouTubeEmbedUrl(videoUrl);
@@ -754,6 +753,14 @@ if (publishPrivacy === 'private') {
     }
 
     publishMapToCommunity(mapData);
+
+    if (publishPrivacy === 'unlisted') {
+      setShareUrl(`${window.location.origin}${window.location.pathname}#/map/${mapId}`);
+      setShowPublishModal(false);
+      setShowShareModal(true);
+      return;
+    }
+
     const wonBadges = awardPublishBadges();
     setRecentlyWonBadges(wonBadges);
     setShowBadgeCelebration(wonBadges.length > 0);
@@ -762,19 +769,19 @@ if (publishPrivacy === 'private') {
     triggerConfetti();
   };
 
-  const shareUrl = window.location.href;
+  const [shareUrl, setShareUrl] = useState(window.location.href);
   const shareTitle = t('editor.shareTitle');
   const openShareLink = (url) => {
     const shareWindow = window.open(url, '_blank');
     if (!shareWindow) setSaveStatus(t('editor.sharePopupRequired'));
   };
-  const copyShareLink = async () => {
+  const copyText = async (text) => {
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
+        await navigator.clipboard.writeText(text);
       } else {
         const helper = document.createElement('textarea');
-        helper.value = shareUrl;
+        helper.value = text;
         helper.setAttribute('readonly', '');
         helper.style.position = 'fixed';
         helper.style.opacity = '0';
@@ -783,10 +790,18 @@ if (publishPrivacy === 'private') {
         document.execCommand('copy');
         helper.remove();
       }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const copyShareLink = async () => {
+    const ok = await copyText(shareUrl);
+    if (ok) {
       setCopied(true);
       setSaveStatus(t('editor.linkCopied'));
       setTimeout(() => setCopied(false), 1800);
-    } catch {
+    } else {
       setSaveStatus(t('editor.linkCopyFailed'));
     }
   };
@@ -941,21 +956,16 @@ if (publishPrivacy === 'private') {
         hasInvalid = true;
         return;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        nextElementId.current += 1;
-        const id = `custom-el-${nextElementId.current}`;
-        const content = reader.result;
-        setCustomElements((previous) => [...previous, { id, label: file.name, content }]);
-        setElementUploadError('');
-      };
-      reader.readAsDataURL(file);
+      addUserAsset({ type: 'element', label: file.name, file });
     });
     if (hasInvalid) setElementUploadError(t('editor.pngOnly'));
   };
 
+  const myElements = (userAssets || []).filter((asset) => asset.asset_type === 'element' && (asset.url || asset.content));
+  const myBackgrounds = (userAssets || []).filter((asset) => asset.asset_type === 'background' && (asset.url || asset.content));
+
   const addCustomElement = (item) => {
-    addElement({ type: 'image', label: item.label, content: item.content });
+    addElement({ type: 'image', label: item.label, content: item.url || item.content });
   };
 
   const toggleUploadSelection = (id) => {
@@ -1553,10 +1563,23 @@ if (publishPrivacy === 'private') {
                   </label>
                 ))}
               </div>
+              {publishPrivacy === 'unlisted' && (
+                <div className="mt-2 border-2 border-amber-400 bg-amber-50 rounded p-2.5 text-[10px] font-bold text-amber-800 leading-relaxed">
+                  {t('editor.publishUnlistedNotice')}
+                </div>
+              )}
+              {publishPrivacy === 'private' && (
+                <div className="mt-2 border-2 border-red-400 bg-red-50 rounded p-2.5 text-[10px] font-bold text-red-700 leading-relaxed">
+                  {t('editor.publishPrivateNotice')}
+                </div>
+              )}
             </fieldset>
             <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
               <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
-              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{t('editor.publishMap')}</button>
+              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5">
+                {publishPrivacy === 'unlisted' && <Link className="w-3.5 h-3.5" />}
+                {publishPrivacy === 'unlisted' ? t('editor.shareMap') : publishPrivacy === 'private' ? t('editor.saveDraft') : t('editor.publishMap')}
+              </button>
             </div>
           </div>
         </form>
@@ -1668,14 +1691,22 @@ if (publishPrivacy === 'private') {
                   {elementUploadError && (
                     <p className="text-[10px] text-red-600 font-black">{elementUploadError}</p>
                   )}
-                  {customElements.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {customElements.map((item) => (
-                        <button key={item.id} type="button" onClick={() => addCustomElement(item)} title={item.label} className="relative aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 hover:ring-4 hover:ring-[#4895ef] hover:ring-offset-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-                          <img src={item.content} alt={item.label} className="w-full h-full object-contain" />
-                          <span className="absolute bottom-0 inset-x-0 bg-white/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
-                        </button>
-                      ))}
+                  {myElements.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{t('editor.myElements')}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {myElements.map((item) => (
+                          <div key={item.id} className="relative aspect-square border-2 border-black rounded overflow-hidden bg-gray-50 group">
+                            <button type="button" onClick={() => addCustomElement(item)} title={item.label} className="w-full h-full cursor-pointer hover:bg-amber-100">
+                              <img src={item.url || item.content} alt={item.label} className="w-full h-full object-contain" />
+                              <span className="absolute bottom-0 inset-x-0 bg-white/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
+                            </button>
+                            <button type="button" onClick={() => removeUserAsset(item)} className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.pngHelper')}</p>
@@ -1885,6 +1916,23 @@ if (publishPrivacy === 'private') {
                   <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white'}`}>
                     <ImagePlus className="w-3.5 h-3.5" /> {t('editor.uploadBackground')}
                   </button>
+                  {myBackgrounds.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{t('editor.myBackgrounds')}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {myBackgrounds.map((asset) => (
+                          <div key={asset.id} className={`relative aspect-square border-2 overflow-hidden rounded group ${backgroundImage === (asset.url || asset.content) ? 'border-[#4895ef] ring-4 ring-[#4895ef] ring-offset-1' : 'border-black'}`}>
+                            <button type="button" onClick={() => setBackgroundImage(asset.url || asset.content)} title={asset.label} className="w-full h-full cursor-pointer">
+                              <img src={asset.url || asset.content} alt={asset.label} className="w-full h-full object-cover" />
+                            </button>
+                            <button type="button" onClick={() => removeUserAsset(asset)} className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {backgroundImage && (
                     <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
                       <X className="w-3.5 h-3.5" /> {t('editor.clearBackground')}

@@ -5,14 +5,13 @@ import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Camera, MapPin as MapPinIcon, Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
   const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, activeCommunityMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
-  const [clickCoords, setClickCoords] = useState(null);
 
   // Zoom Controls State
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -31,16 +30,7 @@ export default function WorldMapPage() {
     setZoomLevel(1);
   };
 
-  const handleMapClick = (e) => {
-    if (!mapContainerRef.current) return;
-    const rect = mapContainerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const leftPercent = `${Math.round((x / rect.width) * 100)}%`;
-    const topPercent = `${Math.round((y / rect.height) * 100)}%`;
-
-    setClickCoords({ top: topPercent, left: leftPercent });
+  const handleMapClick = () => {
     setSelectedPin(null);
   };
 
@@ -132,25 +122,6 @@ export default function WorldMapPage() {
               <LocationPopupModal pin={selectedPin} onClose={() => { setSelectedPin(null); window.close(); }} />
             </div>
           )}
-
-          {/* Temporary Click Target Marker */}
-          {clickCoords && !selectedPin && (
-            <div 
-              style={{ top: clickCoords.top, left: clickCoords.left }}
-              className="absolute z-30 -translate-x-1/2 -translate-y-1/2 animate-bounce flex flex-col items-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-amber-400 border-2 border-black p-1.5 rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <MapPinIcon className="w-5 h-5 text-black" />
-              </div>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="mt-1 bg-black text-white text-[9px] font-black px-2 py-0.5 rounded border border-white uppercase shadow-md hover:bg-red-600 cursor-pointer whitespace-nowrap"
-              >
-                + {t('worldMap.addSpotHere')}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Sidebar Filters & Action Buttons (Fixed on top of zoom) */}
@@ -208,11 +179,7 @@ export default function WorldMapPage() {
       {/* Upload Photo Pin Spot Modal */}
       {showAddModal && (
         <AddSpotModal 
-          onClose={() => {
-            setShowAddModal(false);
-            setClickCoords(null);
-          }} 
-          defaultCoords={clickCoords}
+          onClose={() => setShowAddModal(false)}
         />
       )}
 

@@ -3,6 +3,13 @@ import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
 import { deleteMapAssets } from '../lib/supabaseUploads';
+import {
+  fetchUserAssets,
+  insertUserAsset,
+  deleteUserAsset,
+  uploadUserAssetFile,
+  dataUrlToFile
+} from '../lib/supabaseUserAssets';
 import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
 
 const AppContext = createContext();
@@ -755,6 +762,133 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
+  // Per-user saved editor Elements & Backgrounds (DB when signed in, localStorage for guests).
+  const USER_ASSETS_KEY = 'pocket_odyssey_userAssets';
+  const [userAssets, setUserAssets] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(USER_ASSETS_KEY)) || [];
+    } catch {
+      return [];
+    }
+  });
+  const persistLocalAssets = (assets) => {
+    try {
+      localStorage.setItem(USER_ASSETS_KEY, JSON.stringify(assets));
+    } catch {
+      // ignore quota failures
+    }
+  };
+  // Keep localStorage mirror in sync for guest/offline reads.
+  useEffect(() => {
+    persistLocalAssets(userAssets);
+  }, [userAssets]);
+
+  const userAssetsRef = useRef(userAssets);
+  useEffect(() => {
+    userAssetsRef.current = userAssets;
+  }, [userAssets]);
+
+  // Migrate guest assets (data URLs in localStorage) into storage + DB once signed in.
+  const loadUserAssets = useCallback(async (uid) => {
+    if (!uid) return;
+    try {
+      const dbAssets = await fetchUserAssets(uid);
+      const guestAssets = userAssetsRef.current.filter((a) => String(a.url || '').startsWith('data:'));
+      if (guestAssets.length) {
+        const migrated = [];
+        for (const asset of guestAssets) {
+          const file = dataUrlToFile(asset.url, asset.label);
+          if (!file) continue;
+          try {
+            const url = await uploadUserAssetFile(uid, asset.asset_type, file);
+            const row = await insertUserAsset(uid, { type: asset.asset_type, label: asset.label, url });
+            if (row) migrated.push(row);
+          } catch {
+            // keep going without this row
+          }
+        }
+        setUserAssets(() => [...migrated, ...(dbAssets || [])]);
+        localStorage.removeItem(USER_ASSETS_KEY);
+      } else {
+        setUserAssets(dbAssets || []);
+      }
+    } catch {
+      // Offline / RLS failure: keep whatever is local.
+    }
+  }, []);
+
+  // Save an uploaded element/background for the current user.
+  // Signed in -> store file in Supabase Storage + a user_assets row.
+  // Guest/offline  -> keep data URL in the localStorage library.
+  const addUserAsset = useCallback(async ({ type, label, file, content }) => {
+    const uid = userProfile?.id;
+    const cleanLabel = String(label || (file && file.name) || 'asset');
+    if (uid) {
+      try {
+        const url = await uploadUserAssetFile(uid, type, file);
+        const row = await insertUserAsset(uid, { type, label: cleanLabel, url });
+        if (row) setUserAssets((previous) => [row, ...previous]);
+        return row;
+      } catch {
+        // Storage/DB unavailable: degrade to a local data URL for this session.
+      }
+    }
+    let localUrl = content || '';
+    if (!localUrl && file) {
+      try {
+        localUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => resolve('');
+          reader.readAsDataURL(file);
+        });
+      } catch {
+        localUrl = '';
+      }
+    }
+    const fallback = {
+      id: `guest-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+      user_id: uid || 'guest',
+      asset_type: type,
+      label: cleanLabel,
+      url: localUrl,
+      created_at: new Date().toISOString()
+    };
+    setUserAssets((previous) => [fallback, ...previous]);
+    return fallback;
+  }, [userProfile]);
+
+  // Remove an asset from the library (DB row + local list). The storage file is
+  // intentionally kept so published maps that embed the URL keep rendering.
+  const removeUserAsset = useCallback(async (asset) => {
+    setUserAssets((previous) => previous.filter((a) => a.id !== asset.id));
+    try {
+      if (String(asset.url || '').startsWith('data:')) return;
+      await deleteUserAsset(asset.id);
+    } catch {
+      // RLS/offline failure is non-fatal; local removal already applied.
+    }
+  }, []);
+
+  // Hydrate the per-user asset library once auth resolves.
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session || cancelled) return;
+        await loadUserAssets(session.user.id);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthLoading]);
+
   // Persist a map to Supabase when a real session exists (guest/offline stays local).
   const persistMapToDb = async (item) => {
     if (!item?.id) return;
@@ -1315,11 +1449,11 @@ export const AppProvider = ({ children }) => {
         rarity,
         logs: newCommunityMap.logs || [],
         tags: newCommunityMap.tags || [],
-        privacy: 'public'
+        privacy: newCommunityMap.privacy || 'public'
       },
       pins: newCommunityMap.pins || mapPins,
       tags: newCommunityMap.tags || [],
-      privacy: 'public',
+      privacy: newCommunityMap.privacy || 'public',
       editorState: newCommunityMap.editorState || null
     };
 
@@ -1332,10 +1466,13 @@ export const AppProvider = ({ children }) => {
       }
       return [publishedItem, ...prev];
     });
-    setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
     persistMapToDb(publishedItem);
-    addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
-    navigateTo('community');
+
+    if (publishedItem.privacy === 'public') {
+      setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
+      addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
+      navigateTo('community');
+    }
   };
 
   const deleteCommunityMap = (mapId) => {
@@ -1657,6 +1794,9 @@ export const AppProvider = ({ children }) => {
         deleteCommunityMap,
         saveEditorMapState,
         registerEditorDraft,
+        userAssets,
+        addUserAsset,
+        removeUserAsset,
         addCustomPin,
         deleteCustomPin,
         favorites,

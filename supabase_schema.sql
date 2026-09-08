@@ -137,3 +137,53 @@ CREATE POLICY "Owners can update their media"
 
 CREATE POLICY "Owners can delete their media"
     ON storage.objects FOR DELETE USING (bucket_id = 'media' AND auth.uid() = owner_id);
+
+-- =========================================
+-- PUBLIC.USER_ASSETS (Per-user saved editor Elements & Backgrounds)
+-- =========================================
+CREATE TABLE public.user_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    asset_type TEXT NOT NULL CHECK (asset_type IN ('element', 'background')),
+    label TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_assets_user ON public.user_assets(user_id, asset_type);
+
+ALTER TABLE public.user_assets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own assets"
+    ON public.user_assets FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own assets"
+    ON public.user_assets FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own assets"
+    ON public.user_assets FOR DELETE USING (auth.uid() = user_id);
+
+-- Restrict media updates/deletes to the current user's own users/<uid>/ folder.
+-- (Insert stays open to any authenticated user so map covers under maps/<mapId>/ keep working.)
+DROP POLICY IF EXISTS "Owners can update their media" ON storage.objects;
+DROP POLICY IF EXISTS "Owners can delete their media" ON storage.objects;
+
+CREATE POLICY "Users can update their own media folders"
+    ON storage.objects FOR UPDATE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (
+            (storage.foldername(name))[1] = 'users'
+            AND (storage.foldername(name))[2] = auth.uid()::text
+        )
+    );
+
+CREATE POLICY "Users can delete their own media folders"
+    ON storage.objects FOR DELETE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (
+            (storage.foldername(name))[1] = 'users'
+            AND (storage.foldername(name))[2] = auth.uid()::text
+        )
+    );

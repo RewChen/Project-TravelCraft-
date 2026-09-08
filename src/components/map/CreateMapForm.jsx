@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   X, ImagePlus, MapPin, Clock3, CircleDollarSign, Sun, Train,
-  Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Check
+  Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Check, ChevronDown
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { uploadMapCover } from '../../lib/supabaseUploads';
@@ -27,26 +27,73 @@ const privacyOptions = [
   { value: 'private', labelKey: 'myMaps.private', descKey: 'myMaps.privateDesc' }
 ];
 
+const countries = [
+  'Thailand', 'Japan', 'South Korea', 'China', 'Vietnam', 'Laos', 'Myanmar (Burma)', 'Cambodia', 'Malaysia',
+  'Singapore', 'Indonesia', 'Philippines', 'India', 'Nepal', 'Sri Lanka', 'Maldives', 'Pakistan', 'Bangladesh',
+  'Afghanistan', 'Taiwan', 'Hong Kong', 'Mongolia', 'Kazakhstan', 'Uzbekistan', 'Turkey', 'Israel', 'Jordan',
+  'United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Oman', 'Kuwait', 'Bahrain', 'Iran', 'Iraq', 'Syria', 'Lebanon',
+  'Georgia', 'Armenia', 'Azerbaijan', 'Russia', 'Ukraine', 'Belarus', 'Poland', 'Germany', 'France', 'United Kingdom',
+  'Ireland', 'Netherlands', 'Belgium', 'Luxembourg', 'Switzerland', 'Austria', 'Italy', 'Spain', 'Portugal', 'Greece',
+  'Czech Republic', 'Slovakia', 'Hungary', 'Romania', 'Bulgaria', 'Serbia', 'Croatia', 'Slovenia', 'Bosnia and Herzegovina',
+  'Montenegro', 'North Macedonia', 'Albania', 'Kosovo', 'Norway', 'Sweden', 'Denmark', 'Finland', 'Iceland', 'Estonia',
+  'Latvia', 'Lithuania', 'Australia', 'New Zealand', 'Fiji', 'Papua New Guinea', 'South Africa', 'Egypt', 'Morocco',
+  'Tunisia', 'Algeria', 'Libya', 'Kenya', 'Tanzania', 'Ethiopia', 'Nigeria', 'Ghana', 'Senegal', 'Madagascar',
+  'United States', 'Canada', 'Mexico', 'Brazil', 'Argentina', 'Chile', 'Peru', 'Colombia', 'Ecuador', 'Bolivia',
+  'Venezuela', 'Paraguay', 'Uruguay', 'Costa Rica', 'Panama', 'Cuba', 'Dominican Republic', 'Puerto Rico', 'Jamaica',
+  'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Greenland'
+];
+
+const hoursOptions = [
+  '24/7',
+  'Open 24 hours',
+  '6:00 AM - 10:00 PM',
+  '7:00 AM - 9:00 PM',
+  '8:00 AM - 6:00 PM',
+  '9:00 AM - 5:00 PM',
+  '10:00 AM - 8:00 PM',
+  '10:00 AM - 10:00 PM',
+  'Sunrise - Sunset',
+  'Weekdays only',
+  'Closed Mondays'
+];
+
+const travelOptions = [
+  '🚶 Walking', '🚲 Bicycle', '🛵 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
+  '🚇 Metro', '🚢 Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
+];
+
 export default function CreateMapForm({ onSubmit, onClose }) {
   const { t } = useApp();
   const fileInputRef = useRef(null);
+  const countryRef = useRef(null);
   const [coverFile, setCoverFile] = useState(null);
   const [coverPreview, setCoverPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [customTagInput, setCustomTagInput] = useState('');
+  const [showCountryList, setShowCountryList] = useState(false);
   const [fields, setFields] = useState({
     locationCity: '',
     title: t('common.untitledMap'),
     description: '',
     hours: '',
     fee: '',
-    bestTime: '',
+    bestTime: t('editor.anytime'),
     travel: '',
     tags: [],
     rarityTier: 'common',
     privacy: 'public'
   });
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (countryRef.current && !countryRef.current.contains(event.target)) {
+        setShowCountryList(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const update = (field, value) => setFields((prev) => ({ ...prev, [field]: value }));
 
@@ -106,6 +153,11 @@ export default function CreateMapForm({ onSubmit, onClose }) {
 
   const selectedRarity = rarityTiers.find((tier) => tier.value === fields.rarityTier) || rarityTiers[0];
 
+  const query = fields.locationCity.trim().toLowerCase();
+  const filteredCountries = query
+    ? countries.filter((country) => country.toLowerCase().includes(query))
+    : countries;
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
       <form onSubmit={handleSubmit} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
@@ -140,9 +192,37 @@ export default function CreateMapForm({ onSubmit, onClose }) {
             </button>
             {uploadError && <p className="mt-1 text-[10px] text-red-600 font-bold">{uploadError}</p>}
 
-            <div className="mt-4">
+            <div className="mt-4 relative" ref={countryRef}>
               <label className="block text-[10px] font-black uppercase mb-1.5 flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-red-600" /> {t('myMaps.locationCity')} *</label>
-              <input value={fields.locationCity} onChange={(event) => update('locationCity', event.target.value)} placeholder={t('myMaps.locationCityPh')} className="w-full border-2 border-black p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+              <div className="flex items-center border-2 border-black bg-gray-50 focus-within:bg-amber-50">
+                <input
+                  value={fields.locationCity}
+                  onChange={(event) => { update('locationCity', event.target.value); setShowCountryList(true); }}
+                  onFocus={() => setShowCountryList(true)}
+                  placeholder={t('myMaps.locationCityPh')}
+                  className="w-full p-2.5 text-sm font-bold bg-transparent focus:outline-none"
+                />
+                <button type="button" onClick={() => setShowCountryList((open) => !open)} className="px-3 text-gray-600 hover:text-black cursor-pointer" aria-label={t('myMaps.searchCountry')}>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+              {showCountryList && (
+                <div className="absolute z-10 mt-1 w-full bg-white border-2 border-black max-h-52 overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {filteredCountries.length === 0 ? (
+                    <div className="p-3 text-[11px] font-bold text-gray-500 text-center">— {t('myMaps.noCountries')} —</div>
+                  ) : filteredCountries.map((country) => (
+                    <button
+                      type="button"
+                      key={country}
+                      onClick={() => { update('locationCity', country); setShowCountryList(false); }}
+                      className={`w-full text-left px-3 py-2 text-xs font-bold flex items-center justify-between hover:bg-amber-100 cursor-pointer ${fields.locationCity === country ? 'bg-amber-200' : ''}`}
+                    >
+                      <span>{country}</span>
+                      {fields.locationCity === country && <Check className="w-3.5 h-3.5 text-red-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-4">
@@ -165,14 +245,27 @@ export default function CreateMapForm({ onSubmit, onClose }) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                [Clock3, 'hours', 'myMaps.hours', '24/7'],
-                [CircleDollarSign, 'fee', 'myMaps.fee', t('editor.freeExploration')],
-                [Sun, 'bestTime', 'myMaps.bestTime', t('editor.anytime')],
-                [Train, 'travel', 'myMaps.travel', t('editor.communityGateway')]
-              ].map(([Icon, field, label, placeholder]) => (
+                [Clock3, 'hours', 'myMaps.hours', '24/7', 'create-hours-options'],
+                [CircleDollarSign, 'fee', 'myMaps.fee', t('editor.freeExploration'), null],
+                [Sun, 'bestTime', 'myMaps.bestTime', t('editor.anytime'), 'create-besttime-options'],
+                [Train, 'travel', 'myMaps.travel', t('editor.communityGateway'), 'create-travel-options']
+              ].map(([Icon, field, label, placeholder, listId]) => (
                 <label key={field} className="border-2 border-black p-2.5 block">
                   <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Icon className="w-3.5 h-3.5" /> {t(label)}</span>
-                  <input value={fields[field]} onChange={(event) => update(field, event.target.value)} placeholder={placeholder} className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                  <input
+                    value={fields[field]}
+                    onChange={(event) => update(field, event.target.value)}
+                    placeholder={placeholder}
+                    list={listId || undefined}
+                    className="w-full mt-1 text-xs font-bold bg-transparent outline-none"
+                  />
+                  {listId && (
+                    <datalist id={listId}>
+                      {(field === 'hours' ? hoursOptions : field === 'bestTime' ? ['Anytime', 'Every season', 'Morning', 'Afternoon', 'Sunset', 'Night'] : travelOptions).map((option) => (
+                        <option key={option} value={option} />
+                      ))}
+                    </datalist>
+                  )}
                 </label>
               ))}
             </div>
