@@ -1,15 +1,19 @@
 
 
 import { useRef, useState } from 'react';
-import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera, Award } from 'lucide-react';
+import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera, Award, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const badgeIcon = (name) => ({ Cartographer: '🗺️', 'Master Builder': '🧱', Storyteller: '📖' }[name] || '🏅');
 
 export default function ProfilePage() {
-  const { t, userProfile, setUserProfile, updateUserRole, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
+  const { t, userProfile, setUserProfile, updateUserRole, updateUsername, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
   const [selectedRole, setSelectedRole] = useState(userProfile?.role || t('auth.roleNovice'));
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameUpdatedMsg, setUsernameUpdatedMsg] = useState(false);
   const fileInputRef = useRef(null);
 
   const availableRoles = [
@@ -22,6 +26,29 @@ export default function ProfilePage() {
     updateUserRole(newRole);
     setRoleUpdatedMsg(true);
     setTimeout(() => setRoleUpdatedMsg(false), 3000);
+  };
+
+  const startEditUsername = () => {
+    setUsernameDraft(userProfile?.name || '');
+    setUsernameError('');
+    setUsernameUpdatedMsg(false);
+    setEditingUsername(true);
+  };
+
+  const handleUsernameSave = async (e) => {
+    e.preventDefault();
+    const result = await updateUsername(usernameDraft);
+    if (result.success) {
+      setEditingUsername(false);
+      setUsernameUpdatedMsg(true);
+      setTimeout(() => setUsernameUpdatedMsg(false), 3000);
+    } else if (result.error === 'taken') {
+      setUsernameError(t('profile.usernameTaken'));
+    } else if (result.error === 'validation') {
+      setUsernameError(t('profile.usernameValidation'));
+    } else {
+      setUsernameError(t('profile.usernameUpdateFailed'));
+    }
   };
 
   const handleAvatarChange = (event) => {
@@ -95,7 +122,55 @@ export default function ProfilePage() {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
-          <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{userProfile.name}</h2>
+          {editingUsername ? (
+            <form onSubmit={handleUsernameSave} className="flex items-center gap-1.5 mb-1">
+              <input
+                type="text"
+                value={usernameDraft}
+                onChange={(e) => setUsernameDraft(e.target.value)}
+                maxLength={20}
+                required
+                autoFocus
+                placeholder={t('profile.usernamePlaceholder')}
+                aria-label={t('profile.editUsername')}
+                className="w-40 text-center text-sm font-black border-2 border-black rounded-lg px-2 py-1 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <button
+                type="submit"
+                className="bg-amber-400 hover:bg-amber-300 text-black font-black px-2.5 py-1.5 border-2 border-black rounded-lg shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-[10px] uppercase cursor-pointer"
+              >
+                {t('profile.saveUsername')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingUsername(false)}
+                className="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-2.5 py-1.5 border-2 border-black rounded-lg text-[10px] uppercase cursor-pointer"
+              >
+                {t('profile.cancel')}
+              </button>
+              {usernameError && (
+                <span className="text-[10px] text-red-600 font-bold">{usernameError}</span>
+              )}
+            </form>
+          ) : (
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{userProfile.name}</h2>
+              <button
+                type="button"
+                onClick={startEditUsername}
+                className="bg-gray-100 hover:bg-amber-100 text-slate-700 border-2 border-black rounded-lg p-1.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors"
+                title={t('profile.editUsername')}
+                aria-label={t('profile.editUsername')}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          {usernameUpdatedMsg && (
+            <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mb-1">
+              <Check className="w-3 h-3 stroke-[3]" /> {t('profile.usernameUpdated')}
+            </span>
+          )}
           <p className="text-xs text-slate-600 dark:text-slate-300 font-bold mb-2">{userProfile.email}</p>
 
           {/* Active Trainer Role Badge */}
