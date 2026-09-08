@@ -2,6 +2,15 @@ import { useState } from 'react';
 import { X, Upload, Camera, Sparkles } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
+const regionPresets = [
+  { name: 'ภาคเหนือ', top: '20%', left: '50%' },
+  { name: 'ภาคตะวันออกเฉียงเหนือ', top: '35%', left: '75%' },
+  { name: 'ภาคกลาง', top: '50%', left: '50%' },
+  { name: 'ภาคตะวันออก', top: '55%', left: '70%' },
+  { name: 'ภาคตะวันตก', top: '55%', left: '30%' },
+  { name: 'ภาคใต้', top: '80%', left: '50%' },
+];
+
 export default function AddSpotModal({ onClose, defaultCoords }) {
   const { t, addCustomPin } = useApp();
 
@@ -156,39 +165,21 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
 
           {/* Position Selector Presets */}
           <div>
-            <label className="block text-xs font-black uppercase mb-1 flex items-center justify-between">
+            <label className="text-xs font-black uppercase mb-1 flex items-center justify-between">
               <span>{t('map.mapPosition')}</span>
               <span className="text-[10px] text-gray-500">{t('map.positionLabel', { top: topPos, left: leftPos })}</span>
             </label>
-            <div className="grid grid-cols-4 gap-2 text-[10px] font-extrabold">
-              <button
-                type="button"
-                onClick={() => { setTopPos('30%'); setLeftPos('35%'); }}
-                className={`py-1.5 border-2 border-black rounded ${topPos === '30%' ? 'bg-amber-400' : 'bg-gray-100'}`}
-              >
-                {t('map.posNW')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTopPos('25%'); setLeftPos('65%'); }}
-                className={`py-1.5 border-2 border-black rounded ${topPos === '25%' ? 'bg-amber-400' : 'bg-gray-100'}`}
-              >
-                {t('map.posNE')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTopPos('55%'); setLeftPos('50%'); }}
-                className={`py-1.5 border-2 border-black rounded ${topPos === '55%' ? 'bg-amber-400' : 'bg-gray-100'}`}
-              >
-                {t('map.posCenter')}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setTopPos('70%'); setLeftPos('30%'); }}
-                className={`py-1.5 border-2 border-black rounded ${topPos === '70%' ? 'bg-amber-400' : 'bg-gray-100'}`}
-              >
-                {t('map.posSW')}
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[10px] font-extrabold">
+              {regionPresets.map((region) => (
+                <button
+                  key={region.name}
+                  type="button"
+                  onClick={() => { setTopPos(region.top); setLeftPos(region.left); }}
+                  className={`min-h-8 px-1 border-2 border-black rounded ${topPos === region.top && leftPos === region.left ? 'bg-amber-400' : 'bg-gray-100'}`}
+                >
+                  {region.name}
+                </button>
+              ))}
             </div>
           </div>
 

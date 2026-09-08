@@ -1087,10 +1087,10 @@ if (publishPrivacy === 'private') {
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
   const selectionToolbarStyle = selectedPosition ? {
-    top: Math.max(10, selectedPosition.top - 50),
+    top: Math.max(12, selectedPosition.top - 12),
     left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2, CANVAS_WIDTH - 20)),
-    transform: `translateX(-50%) scale(${1 / camera.scale})`,
-    transformOrigin: 'top center'
+    transform: `translate(-50%, -100%) scale(${1 / camera.scale})`,
+    transformOrigin: 'bottom center'
   } : {};
   const getShapeStyle = (element) => {
     const color = element.color ?? drawingColor ?? '#111111';
@@ -1906,19 +1906,24 @@ if (publishPrivacy === 'private') {
               </div>
 
               {selectedElement && selectedData && selectedPosition && (
-                <div className="absolute z-40 flex items-center gap-1 rounded-full border-2 border-black bg-white px-1.5 py-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
-                  <button type="button" title={t('editor.move')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
-                    <MousePointer2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button type="button" title={t(selectedData.locked ? 'editor.unlock' : 'editor.lock')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
-                    {selectedData.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                  </button>
-                  <button type="button" title={t('editor.duplicate')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                  <button type="button" title={t('editor.deleteSelected')} className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div className="absolute z-40 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
+                  <div className="flex items-center gap-1">
+                    <button type="button" title={t('editor.move')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
+                      <MousePointer2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button type="button" title={t(selectedData.locked ? 'editor.unlock' : 'editor.lock')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
+                      {selectedData.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <div className="h-7 w-px bg-gray-300" />
+                  <div className="flex items-center gap-1">
+                    <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    <button type="button" title={t('editor.deleteSelected')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
 
