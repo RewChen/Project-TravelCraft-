@@ -400,6 +400,25 @@ const rarityColorForTier = (tier) => {
   }
 };
 
+const stripMediaFromMap = (item) => {
+  if (!item || typeof item !== 'object') return item;
+  const clone = { ...item };
+  for (const key of ['imageUrl', 'bgThemeUrl', 'previewBackground', 'selfieUrl', 'videoUrl']) {
+    if (typeof clone[key] === 'string' && clone[key].startsWith('data:')) clone[key] = null;
+  }
+  if (Array.isArray(clone.selfieUrls)) {
+    clone.selfieUrls = clone.selfieUrls.map((u) => (typeof u === 'string' && u.startsWith('data:') ? null : u));
+  }
+  if (clone.details && typeof clone.details === 'object') {
+    clone.details = stripMediaFromMap(clone.details);
+  }
+  delete clone.editorState;
+  return clone;
+};
+
+const serializeCommunityMapsForStorage = (items, trimMedia) =>
+  Array.isArray(items) ? (trimMedia ? items.map(stripMediaFromMap) : items) : items;
+
 export const AppProvider = ({ children }) => {
   // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth', 'admin'
   const [currentPage, setCurrentPage] = useState('home');
@@ -763,8 +782,9 @@ export const AppProvider = ({ children }) => {
     let cancelled = false;
     const hydrateMapsFromDb = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
         const dbMaps = await fetchAllMaps();
-        if (cancelled || !dbMaps?.length) return;
+        if (cancelled) return;
         setCommunityMaps((previous) => {
           const merged = [];
           const seen = new Set();
@@ -775,6 +795,8 @@ export const AppProvider = ({ children }) => {
           }
           for (const localItem of previous) {
             if (seen.has(localItem.id)) continue;
+            // Signed-in: drop local copies of maps the current user owns that no longer exist in the DB
+            if (session && localItem.ownerId === session.user.id) continue;
             seen.add(localItem.id);
             merged.push(localItem);
           }
@@ -967,21 +989,36 @@ export const AppProvider = ({ children }) => {
 
   // Sync to LocalStorage on State Changes (Only non-auth data)
   useEffect(() => {
-    try {
-      localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
-      localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
-      localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
-      localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(communityMaps));
-      localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
-      localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
-      localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
-      localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
-      localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
-      localStorage.setItem('pocket_odyssey_language', language);
-      localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
-    } catch (err) {
-      console.warn('LocalStorage save error:', err);
-    }
+    const persistToLocalStorage = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const trimMedia = Boolean(session);
+        localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
+        localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
+        localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
+        localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(serializeCommunityMapsForStorage(communityMaps, trimMedia)));
+        localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
+        localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
+        localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
+        localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
+        localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
+        localStorage.setItem('pocket_odyssey_language', language);
+        localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
+      } catch (err) {
+        if (err && err.name === 'QuotaExceededError') {
+          try {
+            localStorage.removeItem('pocket_odyssey_communityMaps');
+            localStorage.removeItem('pocket_odyssey_mapPins');
+            console.warn('LocalStorage quota exceeded; cleared map caches.');
+          } catch (clearErr) {
+            console.warn('LocalStorage clear error:', clearErr);
+          }
+        } else {
+          console.warn('LocalStorage save error:', err);
+        }
+      }
+    };
+    persistToLocalStorage();
   }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language, notifications]);
 
   useEffect(() => {
