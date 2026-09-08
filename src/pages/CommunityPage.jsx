@@ -1,6 +1,14 @@
 import { useState } from 'react';
-import { Search, Mountain, Trees, Building2, Target, Trash2 } from 'lucide-react';
+import { Search, Mountain, Trees, Building2, Target, Trash2, Utensils, Plane, Gamepad2, Landmark } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+
+const presetTagMeta = {
+  restaurant: { labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
+  travel: { labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
+  park: { labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
+  game: { labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
+  attraction: { labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
+};
 
 export default function CommunityPage() {
   const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, t } = useApp();
@@ -96,7 +104,13 @@ export default function CommunityPage() {
               className="h-56 bg-sky-200 border-b-4 border-black relative overflow-hidden flex items-center justify-center cursor-pointer group"
               title={t('community.trackTooltip')}
             >
-              {mapItem.previewBackground ? (
+              {mapItem.imageUrl ? (
+                <img
+                  src={mapItem.imageUrl}
+                  alt={mapItem.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : mapItem.previewBackground ? (
                 <div
                   role="img"
                   aria-label={t('community.mapPreviewAlt', { title: mapItem.title })}
@@ -104,11 +118,7 @@ export default function CommunityPage() {
                   style={mapItem.previewBackground}
                 />
               ) : (
-                <img
-                  src={mapItem.imageUrl}
-                  alt={mapItem.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
+                <div className="w-full h-full bg-sky-200 flex items-center justify-center text-4xl">🗺️</div>
               )}
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                 <span className="bg-amber-400 border-2 border-black px-3 py-1 text-xs font-black text-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -128,6 +138,21 @@ export default function CommunityPage() {
                 <h3 className="text-xl font-black uppercase tracking-tight mb-2">
                   {mapItem.title}
                 </h3>
+
+                {/* Tags (same style as tag selection in the map creation form) */}
+                {Array.isArray(mapItem.tags) && mapItem.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-4">
+                    {mapItem.tags.map((tag) => {
+                      const meta = presetTagMeta[tag];
+                      const Icon = meta?.icon;
+                      return (
+                        <span key={tag} className={`px-2 py-1 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded ${meta ? 'bg-gray-100' : 'bg-amber-100'}`}>
+                          {Icon && <Icon className="w-3 h-3" />} {meta?.emoji} {meta ? t(meta.labelKey) : tag}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 
                 {/* Author Info & Role */}
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-4">

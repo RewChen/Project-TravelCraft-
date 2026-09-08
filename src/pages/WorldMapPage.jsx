@@ -1,14 +1,15 @@
 import { useState, useRef } from 'react';
 import KeyItemsSidebar from '../components/map/KeyItemsSidebar';
 import MapPins from '../components/map/MapPins';
+import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Camera, MapPin as MapPinIcon, Map as MapIcon, Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Camera, MapPin as MapPinIcon, Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, activeCommunityMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, activeCommunityMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
   const [clickCoords, setClickCoords] = useState(null);
@@ -53,45 +54,36 @@ export default function WorldMapPage() {
             🗺️
           </div>
           <div>
-            <h2 className="text-base font-black uppercase flex items-center gap-2">
-              {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black uppercase">
+                {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
+              </h2>
               {mapBackgroundImage && (
                 <span className="text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full">
                   {t('worldMap.customMapActive')}
                 </span>
               )}
-            </h2>
+            </div>
             <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans">
-              {t('worldMap.helperText')}
+              {t('worldMap.clickDetailsHint')}
             </p>
           </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
+        {activeCommunityMap && (
           <button
-            onClick={() => setShowBgModal(true)}
+            onClick={() => navigateTo('details', activeCommunityMap)}
             className="bg-amber-400 hover:bg-amber-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
           >
-            <MapIcon className="w-4 h-4" /> {t('worldMap.changeMapImage')}
+            {t('worldMap.viewDetails')}
           </button>
-
-          <button
-            onClick={() => {
-              setClickCoords(null);
-              setShowAddModal(true);
-            }}
-            className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-          >
-            <Camera className="w-4 h-4" /> {t('worldMap.photoPin')}
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Map Container Viewport (square to match the editor's square canvas) */}
       <div 
         ref={mapContainerRef}
         onClick={handleMapClick}
-        className="w-full aspect-square mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none"
+        className="w-full aspect-square mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none [container-type:inline-size]"
       >
         {/* Zoomable Canvas Wrapper */}
         <div 
@@ -123,6 +115,9 @@ export default function WorldMapPage() {
               </div>
             </>
           )}
+
+          {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
+          <MapElementsLayer items={mapElements} />
 
           {/* Render Map Markers */}
           <MapPins />

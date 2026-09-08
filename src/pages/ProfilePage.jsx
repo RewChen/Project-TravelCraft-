@@ -1,10 +1,8 @@
 
 
 import { useRef, useState } from 'react';
-import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera, Award, Pencil } from 'lucide-react';
+import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-
-const badgeIcon = (name) => ({ Cartographer: '🗺️', 'Master Builder': '🧱', Storyteller: '📖' }[name] || '🏅');
 
 export default function ProfilePage() {
   const { t, userProfile, setUserProfile, updateUserRole, updateUsername, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
@@ -211,26 +209,6 @@ export default function ProfilePage() {
                   </li>
                 ))}
               </ul>
-            )}
-          </div>
-
-          {/* My Badges */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-black uppercase flex items-center gap-1">
-                <Award className="w-3.5 h-3.5" /> {t('profile.myBadges')}
-              </h4>
-            </div>
-            {Array.isArray(userProfile.badges) && userProfile.badges.length ? (
-              <div className="flex flex-wrap gap-2">
-                {userProfile.badges.map((badge) => (
-                  <span key={badge} className="inline-flex items-center gap-1.5 bg-amber-50 border-2 border-black rounded-full px-3 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <span>{badgeIcon(badge)}</span> {badge}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 font-sans">{t('profile.noBadges')}</p>
             )}
           </div>
 

@@ -8,12 +8,14 @@ import {
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
-  PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2
+  PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2,
+  Utensils, Plane, Trees, Gamepad2, Landmark, Tag
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
+import { getShapeStyle, getImageFilterStyle } from '../lib/editorElements';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -116,6 +118,14 @@ const privacyOptions = [
   { value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' },
   { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' },
   { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }
+];
+
+const publishPresetTags = [
+  { value: 'restaurant', labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
+  { value: 'travel', labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
+  { value: 'park', labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
+  { value: 'game', labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
+  { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
 ];
 
 const elementOptions = [
@@ -245,6 +255,12 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     return [];
   });
   const [publishSelfieError, setPublishSelfieError] = useState('');
+  const [publishCoverImage, setPublishCoverImage] = useState(() => {
+    if (typeof savedEditorState?.publishCoverImage === 'string' && savedEditorState.publishCoverImage) return savedEditorState.publishCoverImage;
+    return editorSetup?.imageUrl || '';
+  });
+  const [publishCoverError, setPublishCoverError] = useState('');
+  const [customTagInput, setCustomTagInput] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
@@ -258,6 +274,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const elementImageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
+  const coverInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
   const photosInputRef = useRef(null);
   const nextElementId = useRef(0);
@@ -289,6 +306,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     publishPrivacy,
     publishVideoUrl,
     publishSelfieUrls,
+    publishCoverImage,
     // keep legacy single for backwards compat
     publishSelfieUrl: publishSelfieUrls[0] || ''
   };
@@ -481,12 +499,13 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         publishPrivacy,
         publishVideoUrl,
         publishSelfieUrls,
+        publishCoverImage,
         publishSelfieUrl: publishSelfieUrls[0] || ''
       });
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, mapId]);
+  }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
 
   useEffect(() => {
     try {
@@ -708,7 +727,7 @@ id: mapId,
         user: userProfile?.name || 'a TravelCraft traveler',
         name: t(activeTemplate.labelKey)
       }),
-      imageUrl: editorSetup?.imageUrl || null,
+      imageUrl: publishCoverImage || editorSetup?.imageUrl || null,
       videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
       previewBackground: activeTemplate.canvas,
       bgThemeUrl: typeof backgroundImage === 'string' && backgroundImage ? backgroundImage : null,
@@ -1073,6 +1092,50 @@ if (publishPrivacy === 'private') {
     setPublishSelfieUrls((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const handleCoverUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPublishCoverError(t('editor.onlyImage'));
+      event.target.value = '';
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setPublishCoverError(t('editor.imageTooLarge'));
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPublishCoverImage(reader.result);
+      setPublishCoverError('');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const publishTagList = () => (publishTags || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const hasPublishTag = (tag) => publishTagList().some((existing) => existing.toLowerCase() === tag.toLowerCase());
+  const togglePublishTag = (tag) => {
+    const current = publishTagList();
+    const next = hasPublishTag(tag)
+      ? current.filter((existing) => existing.toLowerCase() !== tag.toLowerCase())
+      : [...current, tag];
+    setPublishTags(next.join(', '));
+  };
+  const addPublishCustomTag = () => {
+    const tag = customTagInput.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!tag) return;
+    if (!hasPublishTag(tag)) setPublishTags([...publishTagList(), tag].join(', '));
+    setCustomTagInput('');
+  };
+  const removePublishTag = (tag) => {
+    setPublishTags(publishTagList().filter((existing) => existing.toLowerCase() !== tag.toLowerCase()).join(', '));
+  };
+
   const selectedData = elements.find((element) => element.id === selectedElement);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
@@ -1082,49 +1145,6 @@ if (publishPrivacy === 'private') {
     transform: `translate(-50%, -100%) scale(${1 / camera.scale})`,
     transformOrigin: 'bottom center'
   } : {};
-  const getShapeStyle = (element) => {
-    const color = element.color ?? drawingColor ?? '#111111';
-
-    if (element.shape === 'line') {
-      return { borderTop: `4px solid ${color}`, background: 'transparent', borderColor: color };
-    }
-
-    if (element.shape === 'highlight') {
-      return {
-        backgroundColor: `${color}55`,
-        border: `2px solid ${color}`,
-        boxShadow: `inset 0 0 0 1px ${color}`
-      };
-    }
-
-    if (element.shape === 'rectangle') {
-      return { border: `4px solid ${color}`, background: 'transparent', borderColor: color };
-    }
-
-    if (element.shape === 'circle') {
-      return { border: `4px solid ${color}`, borderRadius: '9999px', background: 'transparent', borderColor: color };
-    }
-
-    if (element.shape === 'grid') {
-      return {
-        backgroundImage: `linear-gradient(90deg, transparent 9px, ${color} 10px), linear-gradient(transparent 9px, ${color} 10px)`,
-        backgroundSize: '10px 10px',
-        backgroundColor: 'transparent'
-      };
-    }
-
-    return { borderColor: color };
-  };
-  const getImageFilterStyle = (element) => {
-    const filterMap = {
-      sepia: 'sepia(0.85)',
-      vintage: 'sepia(0.45) contrast(1.1) brightness(0.95)',
-      bw: 'grayscale(1) contrast(1.05)',
-      polaroid: 'sepia(0.15) contrast(1.05)',
-      sticker: 'none'
-    };
-    return filterMap[element.filter] ? { filter: filterMap[element.filter] } : {};
-  };
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
@@ -1385,10 +1405,79 @@ if (publishPrivacy === 'private') {
               <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">{t('editor.description')}</label>
               <textarea id="publish-description" rows="3" value={publishDescription} onChange={(event) => setPublishDescription(event.target.value)} placeholder={t('editor.descriptionPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
             </div>
+            {/* Cover Image — used as the map cover shown in the Community feed */}
             <div>
-              <label htmlFor="publish-tags" className="block text-xs font-black uppercase mb-1.5">{t('editor.tags')}</label>
-              <input id="publish-tags" value={publishTags} onChange={(event) => setPublishTags(event.target.value)} placeholder={t('editor.tagsPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
-              <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.tagsHelp')}</p>
+              <label className="block text-xs font-black uppercase mb-1.5">{t('editor.mapCover')}</label>
+              <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverUpload} className="hidden" />
+              <div className="flex gap-2 items-start">
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="shrink-0 border-2 border-black rounded bg-amber-400 hover:bg-amber-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                >
+                  <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')}
+                </button>
+                <div className="flex-1 min-w-0">
+                  {publishCoverImage ? (
+                    <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
+                      <img src={publishCoverImage} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPublishCoverImage('')}
+                        className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
+                        title={t('editor.removeCover')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.coverHelper')}</p>
+                  )}
+                  {publishCoverError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishCoverError}</p>}
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1"><Tag className="w-3.5 h-3.5 text-[#cc0000]" /> {t('myMaps.tagsTitle')}</label>
+              <p className="mb-2 text-[10px] text-gray-500 font-bold">{t('myMaps.tagsHelp')}</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {publishPresetTags.map(({ value, labelKey, emoji, icon: Icon }) => {
+                  const active = hasPublishTag(value);
+                  return (
+                    <button
+                      type="button"
+                      key={value}
+                      onClick={() => togglePublishTag(value)}
+                      className={`px-2.5 py-1.5 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded cursor-pointer ${active ? 'bg-amber-300' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    >
+                      {active ? <Check className="w-3 h-3" /> : <span className="text-[11px]">+</span>} <Icon className="w-3 h-3" /> {emoji} {t(labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1 flex items-center gap-1 border-2 border-black bg-gray-50 p-1.5">
+                  <Tag className="w-4 h-4 text-[#cc0000] shrink-0" />
+                  <input
+                    value={customTagInput}
+                    onChange={(event) => setCustomTagInput(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addPublishCustomTag(); } }}
+                    placeholder={t('myMaps.customTagPh')}
+                    className="w-full text-xs font-bold bg-transparent outline-none"
+                  />
+                </div>
+                <button type="button" onClick={addPublishCustomTag} className="shrink-0 px-4 py-2 bg-[#cc0000] text-white border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{t('myMaps.addTag')}</button>
+              </div>
+              {publishTagList().filter((tag) => !publishPresetTags.some((preset) => preset.value === tag)).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {publishTagList().filter((tag) => !publishPresetTags.some((preset) => preset.value === tag)).map((tag) => (
+                    <span key={tag} className="px-2 py-1 border-2 border-black bg-amber-100 text-[9px] font-black uppercase flex items-center gap-1">
+                      {tag}
+                      <button type="button" onClick={() => removePublishTag(tag)} className="text-red-600 font-black cursor-pointer">&times;</button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="publish-video-url" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapVideo')}</label>
@@ -2021,7 +2110,7 @@ if (publishPrivacy === 'private') {
                       ) : (
                         <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
                       )
-                    ) : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} /> : (
+                    ) : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element, drawingColor)} /> : (
                       isEditingText ? (
                         <textarea
                           autoFocus

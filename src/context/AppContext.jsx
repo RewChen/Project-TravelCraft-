@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
 import { deleteMapAssets } from '../lib/supabaseUploads';
-import { derivePinsFromElements } from '../lib/editorCanvas';
+import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
 
 const AppContext = createContext();
 
@@ -750,6 +750,7 @@ export const AppProvider = ({ children }) => {
   const [selectedPin, setSelectedPin] = useState(initialPins[0]);
   const [mapBackgroundImage, setMapBackgroundImage] = useState(() => loadStored('mapBgImage', null));
   const [mapCanvasStyle, setMapCanvasStyle] = useState(null);
+  const [mapElements, setMapElements] = useState([]);
   const [favorites, setFavorites] = useState(() => loadStored('favorites', ['Eiffel Tower']));
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
@@ -1101,6 +1102,10 @@ export const AppProvider = ({ children }) => {
   const resetMapBackgroundImage = () => {
     setMapBackgroundImage(null);
     setMapCanvasStyle(null);
+    setMapElements([]);
+    setMapPins(initialPins);
+    setSelectedPin(initialPins[0]);
+    setActiveCommunityMap(null);
   };
 
   // Launch Community Map onto the World Map View
@@ -1127,9 +1132,20 @@ export const AppProvider = ({ children }) => {
     }
     // Rebuild pins straight from the editor elements so the world map
     // shows exactly what the user placed (works for drafts too).
-    let pins = Array.isArray(communityItem.pins) && communityItem.pins.length ? communityItem.pins : [];
-    if (!pins.length && editor.elements) {
-      pins = derivePinsFromElements(editor.elements, editor.elementPositions, (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot')));
+    const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
+    const rawPositions = editor.elementPositions || {};
+    const scaledPositions = scaleElementPositions(rawPositions) || {};
+    const scaledElements = scaleElementFontSizes(rawElements, rawPositions);
+    const layerItems = scaledElements
+      .map((element) => ({ element, position: scaledPositions[element.id] }))
+      .filter((item) => item.position);
+    setMapElements(layerItems);
+
+    // Elements are rendered faithfully instead of as pins — only use pins
+    // when there is no element layer to draw.
+    let pins = layerItems.length ? [] : (Array.isArray(communityItem.pins) && communityItem.pins.length ? communityItem.pins : []);
+    if (!layerItems.length && !pins.length && rawElements.length) {
+      pins = derivePinsFromElements(rawElements, rawPositions, (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot')));
     }
     setMapPins(pins);
     setSelectedPin(pins.length ? pins[0] : null);
@@ -1628,6 +1644,7 @@ export const AppProvider = ({ children }) => {
         resetMapBackgroundImage,
         mapCanvasStyle,
         setMapCanvasStyle,
+        mapElements,
         mapPins,
         setMapPins,
         selectedPin,

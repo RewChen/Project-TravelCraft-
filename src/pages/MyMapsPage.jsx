@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff, Eye, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CreateMapForm from '../components/map/CreateMapForm';
-
-const badgeIcon = (name) => ({ Cartographer: '🗺️', 'Master Builder': '🧱', Storyteller: '📖' }[name] || '🏅');
+import PublishMapModal from '../components/map/PublishMapModal';
 
 function CardCover({ imageUrl, title }) {
   const [failed, setFailed] = useState(false);
@@ -98,9 +97,10 @@ const openMapInEditor = (mapItem) => {
       region: mapItem.details?.region || 'Custom Realm'
     }));
 
-  const handlePublishMap = (mapItem) => {
-    publishMapToCommunity(mapItem);
-    setPublishedSuccess(t('myMaps.publishedMsg', { title: mapItem.title }));
+  const handlePublishMap = (mapItem, updates) => {
+    const updatedItem = { ...mapItem, ...updates, updatedAt: Date.now() };
+    publishMapToCommunity(updatedItem);
+    setPublishedSuccess(t('myMaps.publishedMsg', { title: updatedItem.title }));
   };
 
   return (
@@ -116,15 +116,6 @@ const openMapInEditor = (mapItem) => {
           <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">
             {t('myMaps.subtitle')}
           </p>
-          {Array.isArray(userProfile?.badges) && userProfile.badges.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {userProfile.badges.map((b) => (
-                <span key={b} className="inline-flex items-center gap-1 bg-amber-50 border-2 border-black rounded-full px-2 py-0.5 text-[9px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                  <span>{badgeIcon(b)}</span> {b}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         <button 
@@ -175,14 +166,12 @@ const openMapInEditor = (mapItem) => {
             </div>
             
             <div className="space-y-2">
-              {map.privacy === 'private' && (
-                <button 
-                  onClick={() => setPublishTarget(map)}
-                  className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
-                >
-                  <Globe className="w-4 h-4" /> Publish to Community
-                </button>
-              )}
+              <button 
+                onClick={() => setPublishTarget(map)}
+                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
+              >
+                <Globe className="w-4 h-4" /> {t('myMaps.pushToCommunity')}
+              </button>
 
               <button 
                 onClick={() => setPreviewTarget(map)}
@@ -250,36 +239,14 @@ const openMapInEditor = (mapItem) => {
       </div>
 
       {publishTarget && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-            <div className="bg-amber-400 text-black p-4 border-b-4 border-black flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              <h2 className="font-black uppercase tracking-wide">Publish to Community?</h2>
-            </div>
-            <div className="p-5">
-              <p className="text-sm font-bold text-gray-800">
-                Publish "{publishTarget.title}" to Community Discoveries? Everyone will be able to see and track this map.
-              </p>
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  onClick={() => setPublishTarget(null)}
-                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    handlePublishMap(publishTarget);
-                    setPublishTarget(null);
-                  }}
-                  className="px-5 py-2.5 bg-amber-400 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
-                >
-                  <Globe className="w-4 h-4" /> Publish
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PublishMapModal
+          mapItem={publishTarget}
+          onClose={() => setPublishTarget(null)}
+          onPublish={(updates) => {
+            handlePublishMap(publishTarget, updates);
+            setPublishTarget(null);
+          }}
+        />
       )}
 
       {previewTarget && (
