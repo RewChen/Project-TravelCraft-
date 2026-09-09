@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { uploadMapCover } from '../../lib/supabaseUploads';
+import { compressForUpload } from '../../lib/imageUtils';
 
 const presetTags = [
   { value: 'restaurant', labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
@@ -136,7 +137,8 @@ export default function CreateMapForm({ onSubmit, onClose }) {
     if (coverFile) {
       setUploading(true);
       try {
-        imageUrl = await uploadMapCover(mapId, coverFile);
+        const small = await compressForUpload(coverFile, { maxWidth: 1280, quality: 0.8 });
+        imageUrl = await uploadMapCover(mapId, small || coverFile);
       } catch (err) {
         console.warn('Cover upload failed; continuing without image:', err);
         setUploadError(t('myMaps.coverUploadFailed'));

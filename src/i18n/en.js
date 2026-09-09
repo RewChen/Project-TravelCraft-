@@ -408,6 +408,7 @@ export default {
     defaultTitle: 'Kyoto World Map',
     customMapActive: 'Custom Map Active',
     viewDetails: 'VIEW DETAILS',
+    loadingMap: 'Loading Map…',
     helperText: 'Click anywhere on the map to add photo spots, zoom, or upload a new map image!',
     clickDetailsHint: 'Click on a photo to see location details, or zoom to explore!',
     changeMapImage: '🗺️ Change Map Image',

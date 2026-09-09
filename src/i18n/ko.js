@@ -408,6 +408,7 @@ export default {
     defaultTitle: '교토 세계 지도',
     customMapActive: '사용자 지정 지도 활성',
     viewDetails: '상세 보기',
+    loadingMap: '지도 불러오는 중…',
     helperText: '지도의 아무 곳이나 클릭하여 사진 지점을 추가하고, 확대/축소하거나 새 지도 이미지를 업로드하세요!',
     changeMapImage: '🗺️ 지도 이미지 변경',
     photoPin: '📷 사진 핀 (+50 코인)',

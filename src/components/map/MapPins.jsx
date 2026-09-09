@@ -31,7 +31,7 @@ export default function MapPins() {
               <div className="relative group">
                 <div className="w-11 h-11 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center bg-cover bg-center">
                   {pin.imageUrl ? (
-                    <img src={pin.imageUrl} alt={pin.title} className="w-full h-full object-cover" />
+                    <img src={pin.imageUrl} alt={pin.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-lg">📷</span>
                   )}

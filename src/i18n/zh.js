@@ -408,6 +408,7 @@ export default {
     defaultTitle: '京都世界地图',
     customMapActive: '自定义地图已启用',
     viewDetails: '查看详情',
+    loadingMap: '正在加载地图…',
     helperText: '单击地图任意位置即可添加照片点、缩放或上传新地图图片！',
     changeMapImage: '🗺️ 更换地图图片',
     photoPin: '📷 照片图钉（+50 金币）',

@@ -9,7 +9,7 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, activeCommunityMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, activeCommunityMap, mapViewLoading } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -81,7 +81,14 @@ export default function WorldMapPage() {
           style={{ transform: `scale(${zoomLevel})` }}
         >
           {/* Custom Uploaded Map Image Background */}
-          {mapBackgroundImage ? (
+          {mapViewLoading ? (
+            <div className="absolute inset-0 z-30 bg-[#e2f0d9]/70 flex items-center justify-center">
+              <div className="bg-white border-4 border-black rounded-xl px-4 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs font-black uppercase">
+                <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
+                {t('worldMap.loadingMap')}
+              </div>
+            </div>
+          ) : mapBackgroundImage ? (
             <img 
               src={mapBackgroundImage} 
               alt={t('worldMap.bgAlt')} 

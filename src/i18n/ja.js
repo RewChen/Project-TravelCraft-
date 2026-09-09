@@ -408,6 +408,7 @@ export default {
     defaultTitle: '京都ワールドマップ',
     customMapActive: 'カスタムマップ有効',
     viewDetails: '詳細を見る',
+    loadingMap: 'マップを読み込み中…',
     helperText: 'マップ上の任意の場所をクリックして写真スポットを追加、ズーム、または新しいマップ画像をアップロード！',
     clickDetailsHint: '写真をクリックすると場所の詳細を見られます。ズームで探索もできます！',
     changeMapImage: '🗺️ マップ画像を変更',

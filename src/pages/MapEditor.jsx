@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
+import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle } from '../lib/editorElements';
@@ -461,14 +462,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     return () => clearTimeout(timer);
   }, [ready, viewportSize.width, viewportSize.height, fitView]);
 
-  const handleBackgroundUpload = (event) => {
+  const handleBackgroundUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) {
       event.target.value = '';
       return;
     }
     event.target.value = '';
-    addUserAsset({ type: 'background', label: file.name, file }).then((asset) => {
+    const small = await compressForUpload(file, { maxWidth: 1280, quality: 0.8 });
+    addUserAsset({ type: 'background', label: file.name, file: small || file }).then((asset) => {
       if (asset?.url) setBackgroundImage(asset.url);
     });
   };
@@ -946,18 +948,19 @@ if (publishPrivacy === 'private') {
     });
   };
 
-  const handleElementUpload = (event) => {
+  const handleElementUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     event.target.value = '';
     if (!files.length) return;
     let hasInvalid = false;
-    files.forEach((file) => {
+    for (const file of files) {
       if (file.type !== 'image/png') {
         hasInvalid = true;
-        return;
+        continue;
       }
-      addUserAsset({ type: 'element', label: file.name, file });
-    });
+      const small = await compressForUpload(file, { maxWidth: 512, quality: 0.92, mime: 'image/png' }, 'png');
+      addUserAsset({ type: 'element', label: file.name, file: small || file });
+    }
     if (hasInvalid) setElementUploadError(t('editor.pngOnly'));
   };
 

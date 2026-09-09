@@ -44,11 +44,11 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 bg-amber-200 border-2 border-black rounded-lg flex items-center justify-center text-sm overflow-hidden">
-                      {mapItem.imageUrl ? <img src={mapItem.imageUrl} alt={mapItem.title} className="w-full h-full object-cover" /> : '🗺️'}
+                      {mapItem.imageUrl ? <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : '🗺️'}
                     </div>
                     <div>
                       <div className="text-xs font-black text-black">{mapItem.title}</div>
-                      <div className="text-[10px] text-gray-500 font-bold">Status: {mapItem.privacy === 'private' ? 'Draft' : 'Published'} • {mapItem.pins?.length ?? 0} pins</div>
+                      <div className="text-[10px] text-gray-500 font-bold">Status: {mapItem.privacy === 'private' ? 'Draft' : 'Published'} • {mapItem.pinCount ?? mapItem.pins?.length ?? 0} pins</div>
                     </div>
                   </div>
 

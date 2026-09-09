@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Search, Mountain, Trees, Building2, Target, Trash2, Utensils, Plane, Gamepad2, Landmark } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { fetchMapById } from '../lib/supabaseMaps';
 
 const presetTagMeta = {
   restaurant: { labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
@@ -30,6 +31,21 @@ export default function CommunityPage() {
   ];
 
   const seenIds = new Set();
+  const openDetails = async (mapItem) => {
+    // Fetch the full map so the details page has logs/selfies, not just the summary.
+    if (mapItem._summaryOnly) {
+      try {
+        const full = await fetchMapById(mapItem.id);
+        if (full) {
+          navigateTo('details', full.details);
+          return;
+        }
+      } catch {
+        // fall through to the summary details
+      }
+    }
+    navigateTo('details', mapItem.details);
+  };
   const filteredMaps = (communityMaps || []).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
     if (!item?.id || seenIds.has(item.id)) return false;
     seenIds.add(item.id);
@@ -108,6 +124,8 @@ export default function CommunityPage() {
                 <img
                   src={mapItem.imageUrl}
                   alt={mapItem.title}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               ) : mapItem.previewBackground ? (
@@ -170,7 +188,7 @@ export default function CommunityPage() {
               {/* Action Buttons */}
               <div className="space-y-2 pt-2">
                 <button
-                  onClick={() => navigateTo('details', mapItem.details)}
+                  onClick={() => openDetails(mapItem)}
                   className="w-full bg-black text-white hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer text-center"
                 >
                   {t('community.viewDetails')}

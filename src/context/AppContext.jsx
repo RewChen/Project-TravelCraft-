@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
-import { fetchAllMaps, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
+import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import {
   fetchUserAssets,
@@ -913,26 +913,39 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Once auth is resolved, hydrate community maps from the database (fallback stays local).
+  // Once auth is resolved, hydrate community maps with a lightweight feed
+  // (summary rows only); full map data is fetched on demand via fetchMapById.
   useEffect(() => {
     if (isAuthLoading) return undefined;
     let cancelled = false;
     const hydrateMapsFromDb = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const dbMaps = await fetchAllMaps();
+        const dbMaps = await fetchMapFeed();
         if (cancelled) return;
         setCommunityMaps((previous) => {
           const merged = [];
           const seen = new Set();
+          const toMs = (value) => {
+            const n = Number(value);
+            if (value !== null && value !== '' && Number.isFinite(n)) return n;
+            const t = Date.parse(value);
+            return Number.isFinite(t) ? t : 0;
+          };
           for (const dbMap of dbMaps) {
             if (seen.has(dbMap.id)) continue;
+            const localItem = previous.find((item) => item.id === dbMap.id);
+            // Keep a full local copy when it is at least as fresh as the DB row.
+            if (localItem && !localItem._summaryOnly && toMs(localItem.updatedAt) >= toMs(dbMap.updatedAt)) {
+              seen.add(dbMap.id);
+              merged.push(localItem);
+              continue;
+            }
             seen.add(dbMap.id);
             merged.push(dbMap);
           }
           for (const localItem of previous) {
             if (seen.has(localItem.id)) continue;
-            // Signed-in: drop local copies of maps the current user owns that no longer exist in the DB
             if (session && localItem.ownerId === session.user.id) continue;
             seen.add(localItem.id);
             merged.push(localItem);
@@ -1124,39 +1137,65 @@ export const AppProvider = ({ children }) => {
     }, 3500);
   };
 
-  // Sync to LocalStorage on State Changes (Only non-auth data)
-  useEffect(() => {
-    const persistToLocalStorage = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const trimMedia = Boolean(session);
-        localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
-        localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
-        localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
-        localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(serializeCommunityMapsForStorage(communityMaps, trimMedia)));
-        localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
-        localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
-        localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
-        localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
-        localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
-        localStorage.setItem('pocket_odyssey_language', language);
-        localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
-      } catch (err) {
-        if (err && err.name === 'QuotaExceededError') {
-          try {
-            localStorage.removeItem('pocket_odyssey_communityMaps');
-            localStorage.removeItem('pocket_odyssey_mapPins');
-            console.warn('LocalStorage quota exceeded; cleared map caches.');
-          } catch (clearErr) {
-            console.warn('LocalStorage clear error:', clearErr);
-          }
-        } else {
-          console.warn('LocalStorage save error:', err);
+  // Sync to LocalStorage on State Changes (Only non-auth data).
+  // Debounced so typing/autosaves don't re-serialize the whole state on every
+  // keystroke; flushed synchronously on pagehide so nothing is lost on close.
+  const persistSnapshot = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const trimMedia = Boolean(session);
+      localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
+      localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
+      localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
+      localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(serializeCommunityMapsForStorage(communityMaps, trimMedia)));
+      localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
+      localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
+      localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
+      localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
+      localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
+      localStorage.setItem('pocket_odyssey_language', language);
+      localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
+    } catch (err) {
+      if (err && err.name === 'QuotaExceededError') {
+        try {
+          localStorage.removeItem('pocket_odyssey_communityMaps');
+          localStorage.removeItem('pocket_odyssey_mapPins');
+          console.warn('LocalStorage quota exceeded; cleared map caches.');
+        } catch (clearErr) {
+          console.warn('LocalStorage clear error:', clearErr);
         }
+      } else {
+        console.warn('LocalStorage save error:', err);
       }
-    };
-    persistToLocalStorage();
+    }
   }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language, notifications]);
+
+  const persistSnapshotRef = useRef(persistSnapshot);
+  useEffect(() => {
+    persistSnapshotRef.current = persistSnapshot;
+  }, [persistSnapshot]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      persistSnapshotRef.current();
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [persistSnapshot]);
+
+  // Flush the debounced snapshot when the page is being closed/hidden.
+  useEffect(() => {
+    const flush = () => {
+      persistSnapshotRef.current();
+    };
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+    });
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('visibilitychange', flush);
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
@@ -1243,19 +1282,46 @@ export const AppProvider = ({ children }) => {
   };
 
   // Launch Community Map onto the World Map View
-  const trackMapOnWorldMap = useCallback((communityItem) => {
-    setActiveCommunityMap(communityItem);
-    const editor = communityItem.editorState || {};
+  const [mapViewLoading, setMapViewLoading] = useState(false);
+
+  // Fetch the full map row (data JSONB) when only a summary row is available, and
+  // cache the result back into communityMaps so subsequent opens are instant.
+  const resolveFullMap = useCallback(async (communityItem) => {
+    if (!communityItem || !communityItem._summaryOnly) return communityItem;
+    try {
+      const full = await fetchMapById(communityItem.id);
+      if (full) {
+        setCommunityMaps((previous) =>
+          previous.some((item) => item.id === full.id)
+            ? previous.map((item) => (item.id === full.id ? full : item))
+            : [full, ...previous]
+        );
+        return full;
+      }
+    } catch (err) {
+      console.warn('Full map fetch failed; using summary row:', err);
+    }
+    return communityItem;
+  }, []);
+
+  const trackMapOnWorldMap = useCallback(async (communityItem) => {
+    const isSummary = Boolean(communityItem && communityItem._summaryOnly);
+    if (isSummary) setMapViewLoading(true);
+    const item = await resolveFullMap(communityItem);
+    if (isSummary) setMapViewLoading(false);
+    if (!item) return;
+    setActiveCommunityMap(item);
+    const editor = item.editorState || {};
     // The user's editor background (latest edit) wins over any legacy bgThemeUrl.
     const editorBackground = typeof editor.backgroundImage === 'string' && editor.backgroundImage ? editor.backgroundImage : null;
-    const bg = editorBackground || communityItem.bgThemeUrl || null;
+    const bg = editorBackground || item.bgThemeUrl || null;
     if (bg) {
       setMapBackgroundImage(bg);
     } else {
       setMapBackgroundImage(null);
     }
     // Template CSS background (used when the map has no uploaded background image).
-    const preview = communityItem.previewBackground || {};
+    const preview = item.previewBackground || {};
     if (preview.backgroundColor || (preview.backgroundImage && preview.backgroundImage !== 'none')) {
       setMapCanvasStyle({
         backgroundColor: preview.backgroundColor || '#ffffff',
@@ -1277,22 +1343,22 @@ export const AppProvider = ({ children }) => {
 
     // Elements are rendered faithfully instead of as pins — only use pins
     // when there is no element layer to draw.
-    let pins = layerItems.length ? [] : (Array.isArray(communityItem.pins) && communityItem.pins.length ? communityItem.pins : []);
+    let pins = layerItems.length ? [] : (Array.isArray(item.pins) && item.pins.length ? item.pins : []);
     if (!layerItems.length && !pins.length && rawElements.length) {
       pins = derivePinsFromElements(rawElements, rawPositions, (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot')));
     }
     setMapPins(pins);
     setSelectedPin(pins.length ? pins[0] : null);
     setCurrentPage('map');
-    if (communityItem?.id) {
+    if (item?.id) {
       try {
-        window.history.replaceState(null, '', `#/map/${encodeURIComponent(communityItem.id)}`);
+        window.history.replaceState(null, '', `#/map/${encodeURIComponent(item.id)}`);
       } catch (e) {
         console.warn('URL sync skipped:', e);
       }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [t]);
+  }, [t, resolveFullMap]);
 
   // Deep-link routing: every map has its own shareable URL (#/map/<mapId>).
   // On load or hash change, resolve the map id from communityMaps and open it.
@@ -1323,16 +1389,37 @@ export const AppProvider = ({ children }) => {
     const item = communityMaps.find((m) => m.id === urlMapId);
     if (item) {
       // Defer the navigation state update so it isn't a synchronous
-      // setState inside the effect body.
+      // setState inside the effect body. Summary rows are resolved to their
+      // full data inside trackMapOnWorldMap.
       const timer = setTimeout(() => {
         trackMapOnWorldMap(item);
         setUrlMapId(null);
       }, 0);
       return () => clearTimeout(timer);
     }
-    // Keep retrying until the map list finishes hydrating from the DB.
-    const retryTimer = setTimeout(() => setUrlMapId(null), 6000);
-    return () => clearTimeout(retryTimer);
+    // Not in the local list yet (cold open / someone else's map): fetch directly.
+    let cancelled = false;
+    (async () => {
+      let full = null;
+      try {
+        full = await fetchMapById(urlMapId);
+      } catch {
+        full = null;
+      }
+      if (cancelled) return;
+      if (full) {
+        setCommunityMaps((previous) =>
+          previous.some((m) => m.id === full.id)
+            ? previous.map((m) => (m.id === full.id ? full : m))
+            : [full, ...previous]
+        );
+        trackMapOnWorldMap(full);
+      }
+      setUrlMapId(null);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [urlMapId, communityMaps, trackMapOnWorldMap]);
 
   // Persist the latest Map Editor state for a map owned by the current user.
@@ -1787,8 +1874,10 @@ export const AppProvider = ({ children }) => {
         selectedPin,
         setSelectedPin,
         communityMaps,
+        setCommunityMaps,
         activeCommunityMap,
         setActiveCommunityMap,
+        mapViewLoading,
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Map, Plus, Star, MapPin, Globe, Check, Trash2, Edit3, ImageOff, Eye, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { fetchMapById } from '../lib/supabaseMaps';
 import CreateMapForm from '../components/map/CreateMapForm';
 import PublishMapModal from '../components/map/PublishMapModal';
 
@@ -16,7 +17,7 @@ function CardCover({ imageUrl, title }) {
   }
   return (
     <div className="mb-3 -mx-1">
-      <img src={imageUrl} alt={title} onError={() => setFailed(true)} className="w-full h-28 object-cover border-2 border-black rounded bg-gray-100" />
+      <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-28 object-cover border-2 border-black rounded bg-gray-100" />
     </div>
   );
 }
@@ -26,7 +27,7 @@ function PreviewCover({ imageUrl, title }) {
   return (
     <div className="mb-3 h-44 border-2 border-black rounded bg-[#a2d2ff] overflow-hidden flex items-center justify-center">
       {imageUrl && !failed ? (
-        <img src={imageUrl} alt={title} onError={() => setFailed(true)} className="w-full h-full object-cover" />
+        <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-full object-cover" />
       ) : (
         <span className="font-black uppercase text-xs text-gray-700">No Cover</span>
       )}
@@ -35,7 +36,7 @@ function PreviewCover({ imageUrl, title }) {
 }
 
 export default function MyMapsPage() {
-const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, userProfile, deleteCommunityMap, trackMapOnWorldMap } = useApp();
+const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, setCommunityMaps, userProfile, deleteCommunityMap, trackMapOnWorldMap } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [publishedSuccess, setPublishedSuccess] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -63,22 +64,40 @@ const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSe
     navigateTo('editor');
   };
 
-const openMapInEditor = (mapItem) => {
+const openMapInEditor = async (mapItem) => {
+    // Summary rows need the full data before the editor can load.
+    let source = mapItem;
+    if (mapItem._summaryOnly) {
+      try {
+        const full = await fetchMapById(mapItem.id);
+        if (full) {
+          source = full;
+          // Cache the full copy so autosaves keep pins/details/logs intact.
+          setCommunityMaps((previous) =>
+            previous.some((m) => m.id === full.id)
+              ? previous.map((m) => (m.id === full.id ? full : m))
+              : [full, ...previous]
+          );
+        }
+      } catch {
+        // keep the summary row; editor will start fresh
+      }
+    }
     setEditorSetup({
-      id: mapItem.id,
-      title: mapItem.details?.title || mapItem.title,
-      description: mapItem.details?.lore || mapItem.description,
-      hours: mapItem.details?.hours || '',
-      fee: mapItem.details?.fee || '',
-      bestTime: mapItem.details?.bestTime || '',
-      travel: mapItem.details?.travel || '',
-      logs: mapItem.details?.logs || [],
-      tags: mapItem.tags || [],
-      privacy: mapItem.privacy || 'public',
-      imageUrl: mapItem.imageUrl || '',
-      rarity: mapItem.rarity || 'common',
+      id: source.id,
+      title: source.details?.title || source.title,
+      description: source.details?.lore || source.description,
+      hours: source.details?.hours || '',
+      fee: source.details?.fee || '',
+      bestTime: source.details?.bestTime || '',
+      travel: source.details?.travel || '',
+      logs: source.details?.logs || [],
+      tags: source.tags || [],
+      privacy: source.privacy || 'public',
+      imageUrl: source.imageUrl || '',
+      rarity: source.rarity || 'common',
       isExistingMap: true,
-      editorState: mapItem.editorState || null
+      editorState: source.editorState || null
     });
     navigateTo('editor');
   };
@@ -97,8 +116,18 @@ const openMapInEditor = (mapItem) => {
       region: mapItem.details?.region || 'Custom Realm'
     }));
 
-  const handlePublishMap = (mapItem, updates) => {
-    const updatedItem = { ...mapItem, ...updates, updatedAt: Date.now() };
+  const handlePublishMap = async (mapItem, updates) => {
+    // Publishing rebuilds the item from its fields, so summary rows must be resolved first.
+    let source = mapItem;
+    if (mapItem._summaryOnly) {
+      try {
+        const full = await fetchMapById(mapItem.id);
+        if (full) source = full;
+      } catch {
+        // keep the summary row
+      }
+    }
+    const updatedItem = { ...source, ...updates, updatedAt: Date.now() };
     publishMapToCommunity(updatedItem);
     setPublishedSuccess(t('myMaps.publishedMsg', { title: updatedItem.title }));
   };
