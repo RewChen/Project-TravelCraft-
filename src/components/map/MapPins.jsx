@@ -1,5 +1,6 @@
 import { Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { getShapeStyle } from '../../lib/editorElements';
 
 export default function MapPins() {
   const { mapPins, selectedPin, setSelectedPin, mapFilters } = useApp();
@@ -26,8 +27,28 @@ export default function MapPins() {
               setSelectedPin(pin);
             }}
           >
-            {/* Custom Photo Pin */}
-            {pin.isUserUploaded || pin.imageUrl ? (
+            {/* Editor Element Pin — the marker IS the element the creator made (no circle) */}
+            {pin.elementType ? (
+              <div className="relative group">
+                {pin.elementType === 'image' || pin.previewUrl ? (
+                  <div className="w-11 h-11 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center">
+                    <img src={pin.previewUrl || pin.imageUrl} alt={pin.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  </div>
+                ) : pin.elementType === 'shape' ? (
+                  <div className="w-10 h-10 bg-white border-2 border-black rounded flex items-center justify-center p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                    <div className="w-full h-full pointer-events-none" style={getShapeStyle({ shape: pin.shape, color: pin.shapeColor })} />
+                  </div>
+                ) : (
+                  /* emoji / text element — the content itself, without any circle badge */
+                  <span className="block text-3xl leading-none select-none drop-shadow-[2px_2px_0px_rgba(0,0,0,0.35)]">
+                    {pin.icon || '📍'}
+                  </span>
+                )}
+                <div className="absolute top-[52px] left-1/2 -translate-x-1/2 bg-black text-white text-[9px] font-extrabold px-2 py-0.5 rounded border border-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-40">
+                  {pin.title}
+                </div>
+              </div>
+            ) : pin.isUserUploaded || pin.imageUrl ? (
               <div className="relative group">
                 <div className="w-11 h-11 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center bg-cover bg-center">
                   {pin.imageUrl ? (

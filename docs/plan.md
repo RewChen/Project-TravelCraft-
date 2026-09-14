@@ -58,7 +58,7 @@ TravelCraft รวบรวมการค้นหาสถานที่ท�
 | 4 | พัฒนา Frontend: หน้าแรก, Auth (สมัคร/ล็อกอิน), หน้า Home | 2 | ✅ เสร็จ |
 | 5 | พัฒนาแผนที่ Interactive + หน้า Details + Map Editor | 2 | ✅ เสร็จ |
 | 6 | Backend/DB (Supabase), เชื่อมต่อ Auth/โปรไฟล์จริง | 3 | 🚧 กำลังทำ |
-| 7 | ระบบค้นหาและกรองตามหมวด + Favorite | 3 | 🚧 กำลังทำ |
+| 7 | ระบบค้นหาและกรองตามหมวด + Favorite | 0 | ✅ เสร็จ |
 | 8 | รีวิวและให้คะแนน + YouTube Embed + Google Maps เส้นทาง | 4 | ⏳ เหลือ |
 | 9 | Admin Dashboard + สถิติการใช้งานจริง | 5 | ⏳ เหลือ |
 | 10 | ทดสอบระบบ (Unit, Integration, System) + แก้บั๊ก | 6 | ⏳ เหลือ |

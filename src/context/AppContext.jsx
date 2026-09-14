@@ -10,7 +10,7 @@ import {
   uploadUserAssetFile,
   dataUrlToFile
 } from '../lib/supabaseUserAssets';
-import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes } from '../lib/editorCanvas';
+import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps } from '../lib/editorCanvas';
 
 const AppContext = createContext();
 
@@ -1274,8 +1274,9 @@ export const AppProvider = ({ children }) => {
       isUserUploaded: true,
       ...newPinData
     };
-    setMapPins((prev) => [newPin, ...prev]);
-    setSelectedPin(newPin);
+    const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
+    setMapPins(resolvedPins);
+    setSelectedPin(resolvedPins[0]);
     setUserProfile((prev) => ({ ...prev, coins: prev.coins + 50 }));
   };
 
@@ -1355,13 +1356,22 @@ export const AppProvider = ({ children }) => {
       .filter((item) => item.position);
     setMapElements(layerItems);
 
-    // Elements are rendered faithfully instead of as pins — only use pins
-    // when there is no element layer to draw.
-    let pins = layerItems.length ? [] : (Array.isArray(item.pins) && item.pins.length ? item.pins : []);
-    if (!layerItems.length && !pins.length && rawElements.length) {
-      pins = derivePinsFromElements(rawElements, rawPositions, (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot')));
+    // Elements marked as Location become clickable pins on the map (the pin
+    // marker is the element itself). Unmarked elements stay as decorations in
+    // the element layer. Legacy maps (no element layer / no marked locations)
+    // fall back to the stored pins so nothing regresses.
+    const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot'));
+    const hasMarkedLocations = layerItems.some((item) => item.element.isLocation === true);
+    let pins = [];
+    if (hasMarkedLocations) {
+      pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
+    } else if (!layerItems.length) {
+      pins = Array.isArray(item.pins) && item.pins.length ? item.pins : [];
+      if (!pins.length && rawElements.length) {
+        pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
+      }
     }
-    setMapPins(pins);
+    setMapPins(resolvePinOverlaps(pins));
     setSelectedPin(pins.length ? pins[0] : null);
     setCurrentPage('map');
     if (item?.id) {

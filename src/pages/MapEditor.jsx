@@ -5,7 +5,7 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize,
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize, MapPin,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2,
@@ -432,6 +432,22 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     };
   }, [dragging, camera.scale]);
 
+  const updateSelectedLocationData = (key, value) => {
+    pushHistory();
+    setElements((previous) => previous.map((element) => {
+      if (element.id === selectedElement) {
+        return {
+          ...element,
+          locationDetails: {
+            ...(element.locationDetails || {}),
+            [key]: value
+          }
+        };
+      }
+      return element;
+    }));
+  };
+
   const commitLiveDrawing = (draw) => {
     if (!draw || (draw.tool === 'pen' || draw.tool === 'highlight') && draw.points.length < 2) return;
     pushHistory();
@@ -505,6 +521,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   useEffect(() => {
     const handleDeleteKey = (event) => {
       if (!selectedElement || (event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement)) return;
+      if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        setHistory((previous) => [...previous, { elements, elementPositions }]);
+        setFuture([]);
+        setElements((previous) => previous.map((element) =>
+          element.id === selectedElement ? { ...element, isLocation: !element.isLocation } : element
+        ));
+        return;
+      }
       if (event.key !== 'Delete' && event.key !== 'Backspace') return;
       event.preventDefault();
       setHistory((previous) => [...previous, { elements, elementPositions }]);
@@ -789,6 +814,14 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     if (!selectedElement) return;
     setElements((previous) => previous.map((element) =>
       element.id === selectedElement ? { ...element, locked: !element.locked } : element
+    ));
+  };
+
+  const togglePinSelectedElement = () => {
+    if (!selectedElement) return;
+    pushHistory();
+    setElements((previous) => previous.map((element) =>
+      element.id === selectedElement ? { ...element, isLocation: !element.isLocation } : element
     ));
   };
 
@@ -2158,8 +2191,8 @@ if (publishPrivacy === 'private') {
         {/* CENTER CANVAS AREA */}
         <div
           ref={viewportRef}
-          className="flex-1 relative overflow-hidden bg-[#e5e5e5]"
-          style={{ backgroundImage: 'radial-gradient(#9ca3af 1.5px, transparent 1.5px)', backgroundSize: '32px 32px', cursor: isPanning ? 'grabbing' : 'grab' }}
+          className="flex-1 relative overflow-hidden bg-gray-100"
+          style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onClick={() => {
             setSelectedElement(null);
             setContextMenuElementId(null);
@@ -2216,6 +2249,9 @@ if (publishPrivacy === 'private') {
                     <button type="button" title={t('editor.editText')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-amber-50" onClick={(event) => { event.stopPropagation(); if (selectedData?.type === 'text') { setSelectedElement(selectedElement); setEditingTextId(selectedElement); } }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
+                    <button type="button" title={selectedData.isLocation ? t('editor.unpinElement') : t('editor.pinElement')} className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black ${selectedData.isLocation ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white hover:bg-amber-50'}`} onClick={(event) => { event.stopPropagation(); togglePinSelectedElement(); }}>
+                      <MapPin className={`w-3.5 h-3.5 ${selectedData.isLocation ? 'fill-white' : ''}`} />
+                    </button>
                     <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -2263,6 +2299,16 @@ if (publishPrivacy === 'private') {
                         {t(selectedData?.locked ? 'editor.unlock' : 'editor.lock')}
                       </div>
                       <span className="text-[10px] font-bold text-gray-400">Alt+L</span>
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1.5 mx-3"></div>
+
+                    <button onClick={() => { togglePinSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-red-50 transition-colors">
+                      <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
+                        <MapPin className={`w-4 h-4 ${selectedData?.isLocation ? 'fill-red-500 text-red-600' : 'text-gray-500'}`} />
+                        {selectedData?.isLocation ? t('editor.unpinElement') : t('editor.pinElement')}
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-400">P</span>
                     </button>
 
                     <div className="h-px bg-gray-100 my-1.5 mx-3"></div>
@@ -2397,6 +2443,14 @@ if (publishPrivacy === 'private') {
                         </span>
                       )
                     )}
+                    {/* Location pin badge — shown for ANY element type marked as location */}
+                    {element.isLocation && (
+                      <div className="absolute -top-1 -right-1 pointer-events-none z-10" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}>
+                        <div className="w-7 h-7 rounded-full bg-red-600 border-2 border-black flex items-center justify-center text-[11px] font-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                          {elements.filter(e => e.isLocation).findIndex(e => e.id === element.id) + 1}
+                        </div>
+                      </div>
+                    )}
                     {isSelected && !isEditingText && <>
                       {/* corners */}
                       <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tl'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
@@ -2522,6 +2576,48 @@ if (publishPrivacy === 'private') {
                 </div>
               </div>
 
+              {/* MARK AS LOCATION TOGGLE */}
+              <div>
+                {selectedData.isLocation ? (
+                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
+                    <X className="w-3.5 h-3.5" /> {t('editor.unmarkLocation')}
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: true } : el)); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-emerald-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none">
+                    {t('editor.markAsLocation')}
+                  </button>
+                )}
+              </div>
+
+              {selectedData.isLocation && (
+                <div className="space-y-3 border-2 border-red-500 p-3 bg-red-50/50 rounded shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+                  <h3 className="font-black text-xs uppercase border-b-2 border-red-300 pb-2 text-red-600 flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locName')}</label>
+                    <input type="text" value={selectedData.locationDetails?.name || ''} onChange={(e) => updateSelectedLocationData('name', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none rounded" placeholder="Starting Town" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locDescription')}</label>
+                    <textarea value={selectedData.locationDetails?.description || ''} onChange={(e) => updateSelectedLocationData('description', e.target.value)} className="w-full h-16 px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none resize-none rounded" placeholder="Where the journey begins." />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locYoutube')}</label>
+                    <input type="url" value={selectedData.locationDetails?.youtubeUrl || ''} onChange={(e) => updateSelectedLocationData('youtubeUrl', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none rounded" placeholder="https://youtube.com/..." />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locOpen')}</label>
+                      <input type="time" value={selectedData.locationDetails?.openTime || ''} onChange={(e) => updateSelectedLocationData('openTime', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-[10px] font-bold outline-none rounded" />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locClose')}</label>
+                      <input type="time" value={selectedData.locationDetails?.closeTime || ''} onChange={(e) => updateSelectedLocationData('closeTime', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-[10px] font-bold outline-none rounded" />
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => setSelectedElement(null)} className="w-full bg-amber-400 border-2 border-black mt-1 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none transition-all rounded">{t('editor.saveLocation')}</button>
+                </div>
+              )}
+
               {selectedData.type === 'text' && (
                 <div>
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.text')}</label>
@@ -2613,6 +2709,35 @@ if (publishPrivacy === 'private') {
               </p>
             </div>
           )}
+
+          {/* ADDED LOCATIONS LIST */}
+          <div className="mt-auto border-t-4 border-black bg-gray-50 flex flex-col min-h-[160px] max-h-[30vh]">
+            <div className="p-3 border-b-2 border-black border-dashed shrink-0">
+              <h3 className="font-black text-xs uppercase text-gray-700 tracking-wider flex items-center gap-1.5">{t('editor.addedLocations')} <span className="text-[10px] text-gray-400 font-bold normal-case">({elements.filter(e => e.isLocation).length})</span></h3>
+            </div>
+            <div className="p-3 space-y-2 overflow-y-auto flex-1">
+              {elements.filter(e => e.isLocation).length === 0 ? (
+                 <p className="text-[10px] text-gray-400 font-bold text-center italic py-4 border-2 border-dashed border-gray-300 rounded">{t('editor.markLocationHint')}</p>
+              ) : elements.filter(e => e.isLocation).map((loc, idx) => (
+                <div key={loc.id} className={`flex items-center justify-between bg-white border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-amber-50 transition-colors ${selectedElement === loc.id ? 'border-amber-400 bg-amber-50' : ''}`} onClick={() => setSelectedElement(loc.id)}>
+                  <div className="flex items-center gap-2 overflow-hidden flex-1">
+                    <div className="w-6 h-6 rounded-full bg-red-600 border-2 border-black flex items-center justify-center text-[10px] font-black text-white shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div className="w-6 h-6 bg-gray-100 border border-black rounded flex items-center justify-center text-sm overflow-hidden shrink-0">
+                      {loc.type === 'image' ? <img src={loc.content} alt="" className="w-full h-full object-cover" /> : <span className="text-xs">{loc.content?.slice(0, 2)}</span>}
+                    </div>
+                    <span className="font-black text-[10px] truncate">{loc.locationDetails?.name || getElementLabel(loc)}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedElement(loc.id); }} className="p-1 hover:bg-gray-100 rounded border border-transparent hover:border-black"><Pencil className="w-3 h-3 text-blue-600" /></button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); pushHistory(); setElements(prev => prev.map(el => el.id === loc.id ? { ...el, isLocation: false, locationDetails: undefined } : el)); if (selectedElement === loc.id) setSelectedElement(null); }} className="p-1 hover:bg-red-50 rounded border border-transparent hover:border-black" title={t('editor.unmarkLocationTitle')}><X className="w-3 h-3 text-red-600" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
