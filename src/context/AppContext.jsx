@@ -727,8 +727,18 @@ export const AppProvider = ({ children }) => {
         setUserProfile(createFallbackProfile(session.user));
         await fetchUserProfile(session.user.id);
       } else {
-        setIsLoggedIn(false);
-        setUserProfile(null);
+        const saved = loadStored('session', null);
+        if (saved && saved.profile) {
+          setIsLoggedIn(true);
+          setIsAdminLoggedIn(saved.type === 'admin');
+          setUserProfile(saved.profile);
+          if (saved.adminUser) {
+            setAdminUser(saved.adminUser);
+          }
+        } else {
+          setIsLoggedIn(false);
+          setUserProfile(null);
+        }
       }
       setIsAuthLoading(false); // Done loading
     };
@@ -1748,6 +1758,7 @@ export const AppProvider = ({ children }) => {
     try {
       localStorage.setItem('pocket_odyssey_isAdmin', 'true');
       sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
+      localStorage.setItem('pocket_odyssey_session', JSON.stringify({ type: 'admin', profile, adminUser: { name: profile.name, email: profile.email, role: 'SUPERUSER', badge: 'A1', clearanceLevel: 5 } }));
     } catch (e) {
       console.warn(e);
     }
@@ -1758,7 +1769,7 @@ export const AppProvider = ({ children }) => {
   const loginAsTrainer = (customTrainer) => {
     setIsLoggedIn(true);
     setIsAdminLoggedIn(false);
-    setUserProfile({
+    const profile = {
       id: customTrainer?.id || 'trainer-local',
       name: customTrainer?.name || 'Ash K.',
       email: customTrainer?.email || '',
@@ -1768,10 +1779,12 @@ export const AppProvider = ({ children }) => {
       level: 1,
       badges: ['Pioneer'],
       visitedCount: 4
-    });
+    };
+    setUserProfile(profile);
     try {
       localStorage.removeItem('pocket_odyssey_isAdmin');
       sessionStorage.removeItem('pocket_odyssey_isAdmin');
+      localStorage.setItem('pocket_odyssey_session', JSON.stringify({ type: 'trainer', profile }));
     } catch (e) {
       console.warn(e);
     }
@@ -1815,6 +1828,7 @@ export const AppProvider = ({ children }) => {
     try {
       localStorage.removeItem('pocket_odyssey_isAdmin');
       sessionStorage.removeItem('pocket_odyssey_isAdmin');
+      localStorage.removeItem('pocket_odyssey_session');
     } catch (e) {
       console.warn(e);
     }
