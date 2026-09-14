@@ -752,8 +752,12 @@ export const AppProvider = ({ children }) => {
         setUserProfile(createFallbackProfile(session.user));
         await fetchUserProfile(session.user.id);
       } else {
-        setIsLoggedIn(false);
-        setUserProfile(null);
+        // Do not wipe local (non-Supabase) sessions restored from storage on SIGNED_OUT / INITIAL_SESSION events.
+        const saved = loadStored('session', null);
+        if (!(saved && saved.profile)) {
+          setIsLoggedIn(false);
+          setUserProfile(null);
+        }
       }
     });
 

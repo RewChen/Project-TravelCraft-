@@ -42,7 +42,7 @@ const editorTabs = [
   { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates', defaultLabel: 'เทมเพลต' },
   { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements', defaultLabel: 'องค์ประกอบ' },
   { id: 'TEXT', icon: Type, labelKey: 'editor.text', defaultLabel: 'ข้อความ' },
-  { id: 'BRAND', icon: Crown, labelKey: 'editor.brand', defaultLabel: 'Brand', isPremium: true },
+  { id: 'BRAND', icon: Crown, labelKey: 'editor.brand', defaultLabel: 'Brand' },
   { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads', defaultLabel: 'อัพโหลด' },
   { id: 'TOOLS', icon: PenTool, labelKey: 'editor.tools', defaultLabel: 'เครื่องมือ' },
   { id: 'PROJECTS', icon: Folder, labelKey: 'editor.projects', defaultLabel: 'โปรเจ็คต์' },
@@ -162,6 +162,26 @@ const textGradientPresets = [
   { id: 'neon', labelKey: 'editor.gradientNeon', css: 'linear-gradient(135deg,#22c55e 0%,#eab308 50%,#ef4444 100%)' }
 ];
 
+const textAnimations = [
+  { id: 'none', labelKey: 'editor.textAnimNone' },
+  { id: 'bounce', labelKey: 'editor.textAnimBounce' },
+  { id: 'pulse', labelKey: 'editor.textAnimPulse' },
+  { id: 'wave', labelKey: 'editor.textAnimWave' },
+  { id: 'shake', labelKey: 'editor.textAnimShake' },
+  { id: 'float', labelKey: 'editor.textAnimFloat' },
+  { id: 'spin', labelKey: 'editor.textAnimSpin' }
+];
+
+const textAnimationClass = (animation) => {
+  if (animation === 'bounce') return 'animate-bounce';
+  if (animation === 'pulse') return 'animate-pulse';
+  if (animation === 'spin') return 'animate-spin';
+  if (animation === 'wave') return 'editor-anim-wave';
+  if (animation === 'shake') return 'editor-anim-shake';
+  if (animation === 'float') return 'editor-anim-float';
+  return '';
+};
+
 const photoFilters = [
   { id: 'none', labelKey: 'editor.filterNone' },
   { id: 'sepia', labelKey: 'editor.filterSepia' },
@@ -207,6 +227,11 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updat
   const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null); 
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
+  const [showTextAnimMenu, setShowTextAnimMenu] = useState(false);
+  const [showTextPositionMenu, setShowTextPositionMenu] = useState(false);
+  const [liveDrawing, setLiveDrawing] = useState(null);
+  const liveDrawingRef = useRef(null);
+  const lastClickRef = useRef(0);
   const {
     viewportRef,
     viewportSize,
@@ -407,6 +432,76 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     };
   }, [dragging, camera.scale]);
 
+  const commitLiveDrawing = (draw) => {
+    if (!draw || (draw.tool === 'pen' || draw.tool === 'highlight') && draw.points.length < 2) return;
+    pushHistory();
+    nextElementId.current += 1;
+    const isShapeTool = ['rectangle', 'circle', 'grid'].includes(draw.tool);
+    if (isShapeTool) {
+      const id = `shape-${nextElementId.current}`;
+      const box = {
+        left: Math.min(draw.minX, draw.maxX),
+        top: Math.min(draw.minY, draw.maxY),
+        width: Math.max(MIN_ELEMENT_SIZE, Math.abs(draw.maxX - draw.minX)),
+        height: Math.max(MIN_ELEMENT_SIZE, Math.abs(draw.maxY - draw.minY))
+      };
+      setElements((prev) => [...prev, { id, type: 'shape', shape: draw.tool, labelKey: `editor.${draw.tool}`, content: '', color: drawingColor, rotation: 0 }]);
+      setElementPositions((prev) => ({ ...prev, [id]: box }));
+      setSelectedElement(id);
+    } else {
+      const points = draw.points;
+      const minX = Math.min(...points.map((p) => p.x));
+      const maxX = Math.max(...points.map((p) => p.x));
+      const minY = Math.min(...points.map((p) => p.y));
+      const maxY = Math.max(...points.map((p) => p.y));
+      const id = `draw-${nextElementId.current}`;
+      const box = {
+        left: minX - 20,
+        top: minY - 20,
+        width: Math.max(MIN_ELEMENT_SIZE, maxX - minX + 40),
+        height: Math.max(MIN_ELEMENT_SIZE, maxY - minY + 40)
+      };
+      setElements((prev) => [...prev, {
+        id, type: 'drawing', shape: draw.tool === 'highlight' ? 'highlight' : 'line',
+        labelKey: draw.tool === 'highlight' ? 'editor.highlight' : 'editor.drawLine',
+        points, color: drawingColor, thickness: draw.tool === 'highlight' ? 60 : 8, rotation: 0
+      }]);
+      setElementPositions((prev) => ({ ...prev, [id]: box }));
+      setSelectedElement(id);
+    }
+  };
+
+  useEffect(() => {
+    liveDrawingRef.current = liveDrawing;
+  }, [liveDrawing]);
+
+  useEffect(() => {
+    if (!liveDrawing) return undefined;
+    const handlePointerMove = (event) => {
+      const rect = viewportRef.current.getBoundingClientRect();
+      const x = (event.clientX - rect.left - camera.x) / camera.scale;
+      const y = (event.clientY - rect.top - camera.y) / camera.scale;
+      setLiveDrawing((prev) => prev ? {
+        ...prev,
+        points: [...prev.points, { x, y }],
+        minX: Math.min(prev.minX, x), maxX: Math.max(prev.maxX, x),
+        minY: Math.min(prev.minY, y), maxY: Math.max(prev.maxY, y)
+      } : prev);
+    };
+
+    const handlePointerUp = () => {
+      commitLiveDrawing(liveDrawingRef.current);
+      setLiveDrawing(null);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [liveDrawing, camera.scale]);
+
   useEffect(() => {
     const handleDeleteKey = (event) => {
       if (!selectedElement || (event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement)) return;
@@ -480,6 +575,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const handleWorldPointerDown = (event) => {
     setTourActive(false);
     setContextMenuElementId(null);
+    const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool);
+    if (isDrawTool && event.target === event.currentTarget) {
+      event.stopPropagation();
+      const rect = viewportRef.current.getBoundingClientRect();
+      const x = (event.clientX - rect.left - camera.x) / camera.scale;
+      const y = (event.clientY - rect.top - camera.y) / camera.scale;
+      setLiveDrawing({ tool: activeTool, points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y });
+      return;
+    }
     // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
     if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
       startPan(event.clientX, event.clientY);
@@ -863,6 +967,16 @@ if (publishPrivacy === 'private') {
     updateSelectedTextStyle(updates);
   };
 
+  const applyBrandToSelection = () => {
+    if (!selectedElement) return;
+    pushHistory();
+    setElements((previous) => previous.map((element) => element.id === selectedElement ? {
+      ...element,
+      color: drawingColor,
+      ...(element.type === 'text' ? { fontWeight: brandFontWeight, fontSize: brandFontSize } : {})
+    } : element));
+  };
+
   const startTour = () => {
     if (!tourStops.length) return;
     setShowShareModal(false);
@@ -915,18 +1029,6 @@ if (publishPrivacy === 'private') {
     }
     if (tool === 'select') {
       setActiveTool('select');
-      return;
-    }
-    const toolElements = {
-      pen: { type: 'shape', shape: 'line', labelKey: 'editor.drawLine', content: '', color: drawingColor },
-      highlight: { type: 'shape', shape: 'highlight', labelKey: 'editor.highlight', content: '', color: drawingColor },
-      rectangle: { type: 'shape', shape: 'rectangle', labelKey: 'editor.rectangle', content: '', color: drawingColor },
-      circle: { type: 'shape', shape: 'circle', labelKey: 'editor.circle', content: '', color: drawingColor },
-      grid: { type: 'shape', shape: 'grid', labelKey: 'editor.grid', content: '', color: drawingColor }
-    };
-    if (toolElements[tool]) {
-      setActiveTool(tool);
-      addElement(toolElements[tool]);
       return;
     }
     setActiveTool(tool);
@@ -1166,7 +1268,10 @@ if (publishPrivacy === 'private') {
     transformOrigin: 'top left'
   } : {};
   const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
-  const selectTemplate = (templateId) => setSelectedTemplate(templateId);
+  const selectTemplate = (templateId) => {
+    setSelectedTemplate(templateId);
+    setBackgroundImage('');
+  };
 
   const savedProjects = getSavedProjects();
 
@@ -1198,6 +1303,14 @@ if (publishPrivacy === 'private') {
 
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
+      <style>{`
+        .editor-anim-wave { animation: editorWave 1.2s ease-in-out infinite; transform-origin: 50% 50%; }
+        @keyframes editorWave { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-8px); } }
+        .editor-anim-shake { animation: editorShake .5s ease-in-out infinite; }
+        @keyframes editorShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+        .editor-anim-float { animation: editorFloat 2.4s ease-in-out infinite; }
+        @keyframes editorFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+      `}</style>
       
       {/* TOP NAVBAR */}
       <header className="h-14 bg-white border-b-4 border-black flex items-center justify-between px-4 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] z-20 relative">
@@ -1351,8 +1464,12 @@ if (publishPrivacy === 'private') {
           <button onClick={() => setShowTextStyleMenu((value) => !value)} className={`px-3 py-1 text-xs font-bold rounded shrink-0 whitespace-nowrap flex items-center gap-1 ${showTextStyleMenu ? 'bg-amber-200 border-2 border-black' : 'hover:bg-gray-100'}`}>
             <Wand2 className="w-3.5 h-3.5" />{t('editor.textEffects')}
           </button>
-          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textAnimate')}</button>
-          <button className="px-3 py-1 text-xs font-bold hover:bg-gray-100 rounded shrink-0 whitespace-nowrap">{t('editor.textPosition')}</button>
+          <button onClick={() => setShowTextAnimMenu((value) => !value)} className={`px-3 py-1 text-xs font-bold rounded shrink-0 whitespace-nowrap flex items-center gap-1 ${showTextAnimMenu ? 'bg-emerald-200 border-2 border-black' : 'hover:bg-gray-100'}`}>
+            <Play className="w-3 h-3 fill-black" />{t('editor.textAnimate')}
+          </button>
+          <button onClick={() => setShowTextPositionMenu((value) => !value)} className={`px-3 py-1 text-xs font-bold rounded shrink-0 whitespace-nowrap flex items-center gap-1 ${showTextPositionMenu ? 'bg-sky-200 border-2 border-black' : 'hover:bg-gray-100'}`}>
+            <AlignCenter className="w-3 h-3" />{t('editor.textPosition')}
+          </button>
         </div>
 
         {showTextStyleMenu && (
@@ -1374,6 +1491,55 @@ if (publishPrivacy === 'private') {
               {(selectedData.textGradient || selectedData.textStroke || selectedData.textGlow) && (
                 <button type="button" onClick={() => applyTextStyle({ textGradient: undefined, textStroke: undefined, textGlow: undefined })} className="w-full border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase text-red-600 bg-white hover:bg-red-50">{t('editor.textStyleClear')}</button>
               )}
+            </div>
+          </div>
+        )}
+
+        {showTextAnimMenu && (
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+            <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textAnimate')}</label>
+            <div className="grid grid-cols-2 gap-2">
+              {textAnimations.map((anim) => (
+                <button key={anim.id} type="button" onClick={() => {
+                  applyTextStyle({ textAnimation: anim.id === 'none' ? undefined : anim.id });
+                  setShowTextAnimMenu(false);
+                }} className={`border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${(selectedData.textAnimation || 'none') === anim.id ? 'bg-emerald-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                  {t(anim.labelKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {showTextPositionMenu && (
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+            <div className="space-y-3">
+              <div>
+                <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textPositionH')}</label>
+                <div className="flex gap-2">
+                  {[['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight], ['justify', AlignJustify]].map(([align, Icon]) => (
+                    <button key={align} type="button" onClick={() => {
+                      applyTextStyle({ textAlign: align === 'center' ? undefined : align });
+                      setShowTextPositionMenu(false);
+                    }} title={align} className={`flex-1 flex items-center justify-center border-2 border-black rounded-lg px-1 py-1.5 ${(selectedData.textAlign || 'center') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                      <Icon className="w-4 h-4" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textPositionV')}</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[['top', 'editor.textAlignTop'], ['middle', 'editor.textAlignMiddle'], ['bottom', 'editor.textAlignBottom']].map(([align, labelKey]) => (
+                    <button key={align} type="button" onClick={() => {
+                      applyTextStyle({ verticalAlign: align === 'middle' ? undefined : align });
+                      setShowTextPositionMenu(false);
+                    }} className={`border-2 border-black rounded-lg px-1 py-1.5 font-black text-[10px] uppercase ${(selectedData.verticalAlign || 'middle') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                      {t(labelKey)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1760,10 +1926,7 @@ if (publishPrivacy === 'private') {
             )}
             {activeTab === 'BRAND' && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 bg-amber-50 border-2 border-amber-300 rounded px-3 py-2">
-                  <Crown className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  <span className="text-[10px] font-black text-amber-700 uppercase">{t('editor.premiumBadge')}</span>
-                </div>
+                <p className="text-[10px] text-gray-600 font-bold leading-tight">{t('editor.brandAvailable')}</p>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.brandColor')}</label>
                   <div className="grid grid-cols-5 gap-2">
@@ -1789,8 +1952,11 @@ if (publishPrivacy === 'private') {
                     <span>{brandFontSize}px</span>
                     <span>320px</span>
                   </div>
-                  <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.brandHelper')}</p>
                 </div>
+                <button type="button" onClick={applyBrandToSelection} disabled={!selectedElement} className={`w-full border-2 border-black rounded px-3 py-2 font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedElement ? 'bg-amber-300 hover:bg-amber-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                  {t('editor.brandApplySelected')}
+                </button>
+                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.brandHelper')}</p>
               </div>
             )}
             {activeTab === 'TOOLS' && (
@@ -1803,7 +1969,7 @@ if (publishPrivacy === 'private') {
                     </button>
                   ))}
                 </div>
-                <div className="border-t-2 border-black pt-3 space-y-2">
+<div className="border-t-2 border-black pt-3 space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.color')}</label>
                   <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
                     <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.chooseColor')}</span>
@@ -2010,7 +2176,7 @@ if (publishPrivacy === 'private') {
               scaleY={camera.scale}
               listening={false}
             >
-              <BackgroundLayer templateId={selectedTemplate} backgroundImage={backgroundImage} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+              <BackgroundLayer key={selectedTemplate} templateId={selectedTemplate} backgroundImage={backgroundImage} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
             </Stage>
           </div>
 
@@ -2047,6 +2213,9 @@ if (publishPrivacy === 'private') {
                   </div>
                   <div className="h-7 w-px bg-gray-300" />
                   <div className="flex items-center gap-1">
+                    <button type="button" title={t('editor.editText')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-amber-50" onClick={(event) => { event.stopPropagation(); if (selectedData?.type === 'text') { setSelectedElement(selectedElement); setEditingTextId(selectedElement); } }}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                     <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
                       <Copy className="w-3.5 h-3.5" />
                     </button>
@@ -2124,6 +2293,7 @@ if (publishPrivacy === 'private') {
                       height: `${position.height}px`,
                       backgroundColor: element.overlay ? `${element.overlay}00` : 'transparent',
                       opacity: 1,
+                      alignItems: element.verticalAlign === 'top' ? 'flex-start' : element.verticalAlign === 'bottom' ? 'flex-end' : 'center',
                       transform: `rotate(${element.rotation ?? 0}deg)`
                     }}
                     onContextMenu={(event) => {
@@ -2132,6 +2302,15 @@ if (publishPrivacy === 'private') {
                     setSelectedElement(element.id);
                     setContextMenuElementId(element.id);
                   }} onPointerDown={(event) => {
+                    const now = Date.now();
+                    const quickRepeat = now - lastClickRef.current < 350;
+                    lastClickRef.current = now;
+                    if (quickRepeat && element.type === 'text') {
+                      event.stopPropagation();
+                      setSelectedElement(element.id);
+                      setContextMenuElementId(null);
+                      return;
+                    }
                     if (!element.locked) startDragging(element.id, event);
                     else {
                       event.stopPropagation();
@@ -2161,6 +2340,18 @@ if (publishPrivacy === 'private') {
                       ) : (
                         <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
                       )
+                    ) : element.type === 'drawing' ? (
+                      <svg className="w-full h-full pointer-events-none" viewBox={`0 0 ${position.width} ${position.height}`} preserveAspectRatio="none">
+                        <polyline
+                          points={element.points.map((p) => `${p.x - position.left},${p.y - position.top}`).join(' ')}
+                          fill="none"
+                          stroke={element.color}
+                          strokeWidth={element.thickness}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          opacity={element.shape === 'highlight' ? 0.4 : 1}
+                        />
+                      </svg>
                     ) : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element, drawingColor)} /> : (
                       isEditingText ? (
                         <textarea
@@ -2184,7 +2375,7 @@ if (publishPrivacy === 'private') {
                           }}
                         />
                       ) : (
-                        <span className="filter drop-shadow-md px-2 w-full"
+                        <span className={`filter drop-shadow-md px-2 w-full ${element.textAnimation ? textAnimationClass(element.textAnimation) : ''}`}
                           style={{
                             fontSize: element.type === 'emoji' ? `${Math.min(position.width, position.height) * 0.8}px` : `${element.fontSize ?? 160}px`,
                             fontWeight: element.fontWeight ?? 900,
@@ -2227,6 +2418,31 @@ if (publishPrivacy === 'private') {
                   </div>
                 );
               })}
+
+              {liveDrawing && (
+                <svg className="absolute z-20 pointer-events-none overflow-visible"
+                  style={{ left: Math.min(liveDrawing.minX, liveDrawing.maxX), top: Math.min(liveDrawing.minY, liveDrawing.maxY), width: Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX)), height: Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY)) }}>
+                  {liveDrawing.tool === 'rectangle' || liveDrawing.tool === 'circle' || liveDrawing.tool === 'grid' ? (
+                    <rect x={0} y={0} width={Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX))} height={Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY))}
+                      fill={liveDrawing.tool === 'grid' ? 'none' : 'none'}
+                      stroke={drawingColor}
+                      strokeWidth={4 / camera.scale}
+                      strokeDasharray={liveDrawing.tool === 'grid' ? '6 6' : undefined}
+                      rx={liveDrawing.tool === 'circle' ? '9999' : 0}
+                    />
+                  ) : (
+                    <polyline
+                      points={liveDrawing.points.map((p) => `${p.x - Math.min(liveDrawing.minX, liveDrawing.maxX)},${p.y - Math.min(liveDrawing.minY, liveDrawing.maxY)}`).join(' ')}
+                      fill="none"
+                      stroke={drawingColor}
+                      strokeWidth={(liveDrawing.tool === 'highlight' ? 60 : 8) / camera.scale}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity={liveDrawing.tool === 'highlight' ? 0.4 : 1}
+                    />
+                  )}
+                </svg>
+              )}
             </div>
           </div>
 
@@ -2246,7 +2462,7 @@ if (publishPrivacy === 'private') {
 
           {/* Pan hint */}
           <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
-            {t('editor.panHint')}
+            {['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool) ? t('editor.drawHint') : t('editor.panHint')}
           </div>
 
           {/* Zoom Control */}
