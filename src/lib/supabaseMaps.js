@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { isSchemaMissing, markSchemaMissing, clearSchemaMissing, isMissingSchemaError } from './schemaGuard';
 
 // Lightweight rows (from fetchMapFeed) carry only `summary` — the full `data`
 // JSONB (background/element/photo base64) is fetched on demand via fetchMapById.
@@ -88,15 +89,38 @@ const summaryToItem = (row) => {
 
 export const FEED_LIMIT = 200;
 
+// Once the lean feed query fails (older schema missing `summary`/`is_editor_map`),
+// stop sending it on later calls until the cache TTL expires after migration.
+const LEAN_FEED_KEY = 'maps_lean_feed';
+
 // Feed = tiny metadata rows (no data JSONB). Use for lists/feeds/counts.
 export const fetchMapFeed = async () => {
-  const { data, error } = await supabase
-    .from('maps')
-    .select('id, owner_id, title, privacy, is_editor_map, created_at, updated_at, summary')
-    .order('updated_at', { ascending: false })
-    .limit(FEED_LIMIT);
+  let data;
+  if (!isSchemaMissing(LEAN_FEED_KEY)) {
+    const lean = await supabase
+      .from('maps')
+      .select('id, owner_id, title, privacy, is_editor_map, created_at, updated_at, summary')
+      .order('updated_at', { ascending: false })
+      .limit(FEED_LIMIT);
+    if (!lean.error) {
+      data = lean.data;
+      clearSchemaMissing(LEAN_FEED_KEY);
+    } else {
+      // Older database schema missing `summary`/`is_editor_map`: fall back to
+      // full rows so the community feed still works until the migration runs.
+      if (isMissingSchemaError(lean.error)) markSchemaMissing(LEAN_FEED_KEY);
+    }
+  }
+  if (data === undefined) {
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('maps')
+      .select('*')
+      .order('updated_at', { ascending: false })
+      .limit(FEED_LIMIT);
+    if (fallbackError) throw fallbackError;
+    data = fallbackData;
+  }
 
-  if (error) throw error;
   return (data || []).map(summaryToItem);
 };
 
@@ -119,8 +143,19 @@ export const upsertMap = async (item) => {
     .from('maps')
     .upsert(row, { onConflict: 'id' });
 
+  // Older database still missing the `summary` column (migration not applied):
+  // retry without `summary` so the map still saves instead of hard-failing.
+  if (error && isMissingSchemaError(error)) {
+    const minimalRow = Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'summary'));
+    const { data: retryData, error: retryError } = await supabase
+      .from('maps')
+      .upsert(minimalRow, { onConflict: 'id' });
+    if (retryError) throw retryError;
+    return { data: retryData, degraded: true };
+  }
+
   if (error) throw error;
-  return data;
+  return { data, degraded: false };
 };
 
 export const deleteMapRow = async (mapId) => {

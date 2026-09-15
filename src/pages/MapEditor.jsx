@@ -208,8 +208,16 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo, userAssets, addUserAsset, removeUserAsset } = useApp();
-  const [mapId] = useState(() => editorSetup?.id || 'comm-user-draft-new');
+const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo, userAssets, addUserAsset, removeUserAsset, globalSettings, showAdminToast } = useApp();
+  const generateDraftId = () => {
+    // Unique per draft so two users/editors never collide on the same map id.
+    const rand = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+    return `comm-user-draft-${rand}`;
+  };
+
+  const [mapId] = useState(() => editorSetup?.id || generateDraftId());
   const [savedEditorState] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('pocket_odyssey_editorSaves')) || {};
@@ -789,8 +797,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setElementPositions((previous) => ({
       ...previous,
       [duplicateId]: {
-        left: Math.min(position.left + 24, 760),
-        top: Math.min(position.top + 24, 540),
+        left: Math.min(position.left + 24, CANVAS_WIDTH - position.width),
+        top: Math.min(position.top + 24, CANVAS_HEIGHT - position.height),
         width: position.width,
         height: position.height
       }
@@ -826,7 +834,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   };
 
   const saveDraft = () => {
-persistEditorStateToStore(mapId, editorDraftState);
+    persistEditorStateToStore(mapId, editorDraftState);
     setSaveStatus(t('editor.statusDraftSaved'));
   };
 
@@ -959,6 +967,11 @@ if (publishPrivacy === 'private') {
   };
 
   const addElement = (element) => {
+    const limit = globalSettings?.maxPinsPerMap;
+    if (limit && elements.length >= limit) {
+      showAdminToast?.(`Map reached the max limit of ${limit} elements.`, 'error');
+      return;
+    }
     pushHistory();
     nextElementId.current += 1;
     const id = `${element.type}-${nextElementId.current}`;

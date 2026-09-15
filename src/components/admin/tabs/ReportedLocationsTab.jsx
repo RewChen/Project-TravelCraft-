@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   AlertTriangle,
   Trash2,
@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
-  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
@@ -19,12 +18,25 @@ export default function ReportedLocationsTab() {
     resolveReport,
     hideReportedLocation,
     deleteReportedLocation,
-    warnTrainer,
-    banTrainer,
+    globalSettings,
     t
   } = useApp();
 
   const [currentPage, setCurrentPage] = useState(1);
+
+  const pendingReports = useMemo(() => (reportedLocations || []).filter((r) => r.status === 'pending'), [reportedLocations]);
+  const resolvedReports = useMemo(() => (reportedLocations || []).filter((r) => r.status === 'resolved'), [reportedLocations]);
+
+  const topOffenders = useMemo(() => {
+    const counts = {};
+    for (const r of pendingReports) {
+      if (!r.creator) continue;
+      counts[r.creator] = (counts[r.creator] || 0) + 1;
+    }
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2);
+  }, [pendingReports]);
 
   return (
     <div className="space-y-6 font-mono">
@@ -180,77 +192,59 @@ export default function ReportedLocationsTab() {
           </div>
         </div>
 
-        {/* Right Column: CREATOR MOD & SYSTEM NOTICE (Matching Image 4) */}
+        {/* Right Column: REPORT MOD & SYSTEM NOTICE */}
         <div className="space-y-6">
-          {/* CREATOR MOD (Yellow Header Box) */}
+          {/* REPORT MOD (Yellow Header Box) — dynamic from real reports */}
           <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="bg-[#eab308] border-b-4 border-black p-3.5 px-4 flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-black" />
-              <h3 className="font-black text-xs uppercase tracking-wider text-black">{t('admin.creatorMod')}</h3>
+              <h3 className="font-black text-xs uppercase tracking-wider text-black">Top Offenders</h3>
             </div>
 
             <div className="p-4 space-y-4">
-              {/* TOP OFFENDER: Grunt #42 */}
-              <div className="border-2 border-dashed border-black rounded-xl p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-gray-500">{t('admin.topOffender')}</span>
-                  <span className="bg-[#cc0000] text-white text-[9px] font-black px-2 py-0.5 rounded border border-black uppercase">
-                    24 {t('admin.strikes')}
-                  </span>
+              {topOffenders.length === 0 ? (
+                <div className="text-xs text-gray-500 font-bold text-center py-4">
+                  No pending offenders at this time.
                 </div>
-                <div className="font-black text-base text-[#cc0000]">Grunt #42</div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    onClick={() => warnTrainer('Grunt #42')}
-                    className="py-1.5 bg-white hover:bg-gray-100 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-                  >
-                    {t('admin.warn')}
-                  </button>
-                  <button
-                    onClick={() => banTrainer('Grunt #42')}
-                    className="py-1.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-                  >
-                    {t('admin.ban')}
-                  </button>
-                </div>
-              </div>
-
-              {/* RECENT OFFENDER: Trainer Blue */}
-              <div className="border-2 border-dashed border-black rounded-xl p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-gray-500">{t('admin.recentOffender')}</span>
-                  <span className="bg-amber-400 text-black text-[9px] font-black px-2 py-0.5 rounded border border-black uppercase">
-                    2 {t('admin.strikes')}
-                  </span>
-                </div>
-                <div className="font-black text-base text-black">Trainer Blue</div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    onClick={() => warnTrainer('Trainer Blue')}
-                    className="py-1.5 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-                  >
-                    {t('admin.warn')}
-                  </button>
-                  <button
-                    onClick={() => banTrainer('Trainer Blue')}
-                    className="py-1.5 bg-white hover:bg-red-50 text-red-600 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-                  >
-                    {t('admin.ban')}
-                  </button>
-                </div>
-              </div>
+              ) : (
+                topOffenders.map(([name, count]) => (
+                  <div key={name} className="border-2 border-dashed border-black rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase text-gray-500">Offender</span>
+                      <span className="bg-[#cc0000] text-white text-[9px] font-black px-2 py-0.5 rounded border border-black uppercase">
+                        {count} {count === 1 ? 'report' : 'reports'}
+                      </span>
+                    </div>
+                    <div className="font-black text-base text-[#cc0000] truncate">{name}</div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
-          {/* SYSTEM NOTICE (Light Blue Box, Matching Image 4) */}
+          {/* Summary Stats */}
+          <div className="bg-white border-4 border-black rounded-2xl p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-3">
+            <div className="flex items-center justify-between text-[10px] font-black uppercase">
+              <span className="text-gray-500">Pending</span>
+              <span className="bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-400">{pendingReports.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-black uppercase">
+              <span className="text-gray-500">Resolved</span>
+              <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-400">{resolvedReports.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-black uppercase">
+              <span className="text-gray-500">Total</span>
+              <span className="text-black">{reportedLocations?.length ?? 0}</span>
+            </div>
+          </div>
+
+          {/* SYSTEM NOTICE */}
           <div className="bg-[#dbeafe] border-4 border-black rounded-2xl p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-start gap-3">
             <Info className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
             <div>
               <div className="text-[11px] font-black uppercase text-indigo-950 mb-1">{t('admin.systemNotice')}</div>
               <p className="text-[10px] font-sans font-bold text-indigo-900 leading-relaxed">
-                {t('admin.autoBanNotice')}
+                Auto-ban threshold is currently set to {globalSettings?.autoBanStrikeThreshold ?? 5} reports within a 7-day period.
               </p>
             </div>
           </div>

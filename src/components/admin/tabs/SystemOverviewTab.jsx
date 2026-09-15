@@ -5,31 +5,26 @@ import {
   Users,
   Compass,
   MapPin,
-  Settings,
-  ArrowUpRight,
-  ArrowDownRight,
   CheckCircle2,
   AlertCircle,
   Eye,
-  Trash2,
-  Sparkles,
   RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function SystemOverviewTab({ onOpenDeployModal }) {
-  const { mapPins, communityMaps, baseMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap, t } = useApp();
+  const { mapPins, communityMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap, t } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Live stats derived from the same communityMaps & trainers that the user UI uses.
+  // Live stats derived from the same communityMaps, trainers & reports that the user UI uses.
   const totalTrainers = trainers?.length ?? 0;
-  const activeMaps = communityMaps?.length ?? 0;
-  const totalLocations = (mapPins?.length ?? 0) + (communityMaps?.reduce((acc, c) => acc + (c.pins?.length ?? 0), 0) ?? 0);
-  const serverCapacity = Math.min(95, 12 + activeMaps * 3 + (totalLocations % 23));
-  const milestonePct = Math.min(100, Math.round((totalLocations / 50) * 100));
+  const publishedMaps = (communityMaps || []).filter((m) => m.privacy && m.privacy !== 'private').length;
+  const draftMaps = (communityMaps || []).filter((m) => m.privacy === 'private').length;
+  const totalLocations = (mapPins?.length ?? 0) + (communityMaps || []).reduce((acc, c) => acc + (c.pinCount ?? c.pins?.length ?? 0), 0);
+  const pendingReports = (reportedLocations || []).filter((r) => r.status === 'pending').length;
 
   // Filtered Pins / Locations from current network — admin sees ALL privacy levels so no creation is hidden.
   const allNetworkLocations = [
@@ -173,9 +168,9 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           </div>
           <div className="p-4">
             <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.activeMaps')}</div>
-            <div className="text-3xl font-black text-black">{activeMaps.toLocaleString()}</div>
+            <div className="text-3xl font-black text-black">{publishedMaps.toLocaleString()}</div>
             <div className="mt-2 text-xs font-black text-gray-600 flex items-center gap-1">
-              <span>{communityMaps.filter(m=>m.privacy==='private').length} {t('admin.drafts')} · {communityMaps.filter(m=>m.privacy!=='private').length} {t('admin.published')}</span>
+              <span>{draftMaps} {t('admin.drafts')} · {publishedMaps} {t('admin.published')}</span>
             </div>
           </div>
         </div>
@@ -189,28 +184,23 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           <div className="p-4">
             <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.locationsFound')}</div>
             <div className="text-3xl font-black text-black">{totalLocations.toLocaleString()}</div>
-            {/* Milestone Progress Bar */}
-            <div className="mt-2 space-y-1">
-              <div className="w-full bg-gray-200 border border-black rounded-full h-2 overflow-hidden">
-                <div className="bg-[#cc0000] h-full" style={{ width: `${milestonePct}%` }}></div>
-              </div>
-              <div className="text-[10px] font-bold text-gray-500 text-right">{t('admin.toMilestone', { pct: milestonePct })}</div>
+            <div className="mt-2 text-xs font-black text-gray-600 flex items-center gap-1">
+              <span>{mapPins?.length ?? 0} World Pins · {totalLocations - (mapPins?.length ?? 0)} Map Pins</span>
             </div>
           </div>
         </div>
 
-        {/* SERVER_LOAD: derived live */}
+        {/* STAT_04: Pending Reports — live from reported locations */}
         <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:8px_8px]">
-          <div className="bg-gray-200 text-gray-800 px-3 py-1.5 border-b-2 border-black flex items-center justify-between font-black text-[11px] uppercase tracking-wider">
-            <span>SERVER_LOAD</span>
-            <Settings className="w-3.5 h-3.5 animate-spin [animation-duration:8s]" />
+          <div className="bg-[#eab308] text-black px-3 py-1.5 border-b-2 border-black flex items-center justify-between font-black text-[11px] uppercase tracking-wider">
+            <span>STAT_04</span>
+            <AlertCircle className="w-3.5 h-3.5" />
           </div>
           <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.capacity')}</div>
-            <div className="text-3xl font-black text-black">{serverCapacity}%</div>
-            <div className="mt-2 text-xs font-black text-emerald-600 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>{t('admin.stableSynced')}</span>
+            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.pendingReports')}</div>
+            <div className="text-3xl font-black text-black">{pendingReports.toLocaleString()}</div>
+            <div className="mt-2 text-xs font-black text-gray-600 flex items-center gap-1">
+              <span>{t('admin.pendingReportsDesc')}</span>
             </div>
           </div>
         </div>

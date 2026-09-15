@@ -38,13 +38,85 @@ CREATE INDEX idx_admins_email ON public.admins(email);
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 
--- Allow anyone to read user profiles
-CREATE POLICY "Public profiles are viewable by everyone" 
-ON public.users FOR SELECT USING (true);
+-- =========================================
+-- HELPER: is_admin()
+-- Returns true when the current Supabase Auth user
+-- is an active admin (admins table) OR has role 'admin' in users.
+-- (Also defined in supabase_admin_schema.sql / setup_all; CREATE OR REPLACE is safe.)
+-- =========================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.admins
+    WHERE id = auth.uid() AND is_active = true
+  ) OR EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
+
+-- Profiles are visible to the owner and admins only (emails are not public).
+CREATE POLICY "Users can view their own profiles" 
+ON public.users FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Admins can view all users"
+ON public.users FOR SELECT USING (public.is_admin());
 
 -- Allow users to update their own profile
 CREATE POLICY "Users can update own profile" 
 ON public.users FOR UPDATE USING (auth.uid() = id);
+
+-- Admin user management (the admin Users tab updates other users).
+CREATE POLICY "Admins can update any user"
+    ON public.users FOR UPDATE
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- =========================================
+-- TRIGGER: prevent direct self role changes by non-admins.
+-- (Role changes go through public.update_own_role or an admin.)
+-- =========================================
+CREATE OR REPLACE FUNCTION public.guard_role_change()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NOT public.is_admin() AND NEW.role IS DISTINCT FROM OLD.role THEN
+    RAISE EXCEPTION 'Role changes require admin approval or the update_own_role API';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_self_role_change ON public.users;
+CREATE TRIGGER prevent_self_role_change
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE PROCEDURE public.guard_role_change();
+
+-- RPC: safe own-role change limited to non-admin roles.
+CREATE OR REPLACE FUNCTION public.update_own_role(p_role text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  allowed text[] := ARRAY[
+    'novice traveler', 'cartographer', 'gym leader',
+    'game master', 'member', 'novice', 'player'
+  ];
+BEGIN
+  IF lower(coalesce(p_role, '')) = ANY(allowed) THEN
+    UPDATE public.users SET role = p_role WHERE id = auth.uid();
+  ELSE
+    RAISE EXCEPTION 'Role not allowed for self-assignment';
+  END IF;
+END;
+$$;
 
 -- =========================================
 -- TRIGGER: Auto-create public.users profile on auth signup
@@ -226,4 +298,22 @@ CREATE POLICY "Users can delete their own media folders"
             (storage.foldername(name))[1] = 'users'
             AND (storage.foldername(name))[2] = auth.uid()::text
         )
+    );
+
+-- Map asset management: the owner who uploaded (or an admin) may update/delete
+-- assets under maps/<mapId>/ — required for deleteMapAssets to actually work.
+CREATE POLICY "Map owners and admins can update map assets"
+    ON storage.objects FOR UPDATE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (storage.foldername(name))[1] = 'maps'
+        AND (auth.uid() = owner_id OR public.is_admin())
+    );
+
+CREATE POLICY "Map owners and admins can delete map assets"
+    ON storage.objects FOR DELETE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (storage.foldername(name))[1] = 'maps'
+        AND (auth.uid() = owner_id OR public.is_admin())
     );

@@ -11,9 +11,10 @@ import SettingsPage from './pages/SettingsPage';
 import AuthPage from './pages/AuthPage';
 import MapEditor from './pages/MapEditor';
 import AdminDashboard from './pages/AdminDashboard';
+import GlobalToast from './components/common/GlobalToast';
 
 function AppContent() {
-  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo, themeMode } = useApp();
+  const { currentPage, isAuthLoading, isLoggedIn, isAdminLoggedIn, globalSettings, navigateTo, setAuthMode, themeMode, t } = useApp();
   const isDarkMode = themeMode === 'dark';
 
   // Show loading screen while Supabase checks session
@@ -28,6 +29,27 @@ function AppContent() {
             <span className="w-2 h-2 bg-[#cc0000] rounded-full animate-bounce [animation-delay:150ms]"></span>
             <span className="w-2 h-2 bg-[#cc0000] rounded-full animate-bounce [animation-delay:300ms]"></span>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Maintenance gate: block non-admin users from accessing the app
+  if (!isAuthLoading && isLoggedIn && !isAdminLoggedIn && globalSettings?.maintenanceMode && currentPage !== 'admin') {
+    return (
+      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} flex items-center justify-center font-mono p-4`}>
+        <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900' : 'bg-white'} border-4 border-black rounded-2xl p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4`}>
+          <div className="text-4xl">🛠️</div>
+          <h2 className="text-xl font-black uppercase">{t('maintenance.title')}</h2>
+          <p className="text-xs text-gray-600 font-sans font-bold leading-relaxed">
+            {t('maintenance.message')}
+          </p>
+          <button
+            onClick={() => navigateTo('auth')}
+            className="bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer"
+          >
+            {t('admin.logOutSystem')}
+          </button>
         </div>
       </div>
     );
@@ -50,7 +72,29 @@ function AppContent() {
   }
 
   if (currentPage === 'editor') {
-    return <MapEditor onBack={() => navigateTo('mymaps')} />;
+    // Map creation/production requires a real account — redirect guests to login.
+    if (!isLoggedIn) {
+      return (
+        <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} flex items-center justify-center font-mono p-4`}>
+          <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900' : 'bg-white'} border-4 border-black rounded-2xl p-8 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4`}>
+            <div className="text-4xl">🗺️</div>
+            <h2 className="text-xl font-black uppercase">{t('myMaps.loginRequired')}</h2>
+            <button
+              onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
+              className="bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-4 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer"
+            >
+              {t('auth.submitLogin')}
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <>
+        <MapEditor onBack={() => navigateTo('mymaps')} />
+        <GlobalToast />
+      </>
+    );
   }
 
   return (
@@ -73,6 +117,7 @@ function AppContent() {
       </div>
 
       <Footer />
+      <GlobalToast />
     </div>
   );
 }

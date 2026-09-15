@@ -36,14 +36,21 @@ function PreviewCover({ imageUrl, title }) {
 }
 
 export default function MyMapsPage() {
-const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSetup, communityMaps, setCommunityMaps, userProfile, deleteCommunityMap, trackMapOnWorldMap } = useApp();
+const { t, navigateTo, favorites, publishMapToCommunity, setEditorSetup, communityMaps, setCommunityMaps, userProfile, deleteCommunityMap, isOwnMap, trackMapOnWorldMap, setAuthMode, showAdminToast } = useApp();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [publishedSuccess, setPublishedSuccess] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [publishTarget, setPublishTarget] = useState(null);
   const [previewTarget, setPreviewTarget] = useState(null);
 
+  const requireLogin = () => {
+    showAdminToast(t('myMaps.loginRequired'), 'info');
+    setAuthMode('login');
+    navigateTo('auth');
+  };
+
   const startDesigning = (data) => {
+    if (!userProfile) { requireLogin(); return; }
     setEditorSetup({
       id: data.id,
       title: data.title,
@@ -65,6 +72,7 @@ const { t, navigateTo, favorites, publishMapToCommunity, isLoggedIn, setEditorSe
   };
 
 const openMapInEditor = async (mapItem) => {
+    if (!userProfile) { requireLogin(); return; }
     // Summary rows need the full data before the editor can load.
     let source = mapItem;
     if (mapItem._summaryOnly) {
@@ -103,11 +111,7 @@ const openMapInEditor = async (mapItem) => {
   };
 
   const myMapsList = (communityMaps || [])
-    .filter(mapItem => 
-      mapItem.ownerId 
-        ? mapItem.ownerId === userProfile?.id 
-        : mapItem.discoveredBy === userProfile?.name
-    )
+    .filter(isOwnMap)
     .map(mapItem => ({
       ...mapItem,
       badge: mapItem.privacy === 'private' ? 'Draft' : 'Published',
@@ -148,14 +152,14 @@ const openMapInEditor = async (mapItem) => {
         </div>
 
         <button 
-          onClick={() => isLoggedIn ? setShowCreateModal(true) : navigateTo('auth')}
+          onClick={() => (userProfile ? setShowCreateModal(true) : requireLogin())}
           className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs uppercase cursor-pointer"
         >
           <Plus className="w-4 h-4" /> {t('myMaps.createNewMap')}
         </button>
       </div>
 
-      {showCreateModal && <CreateMapForm onSubmit={startDesigning} onClose={() => setShowCreateModal(false)} />}
+      {showCreateModal && userProfile && <CreateMapForm onSubmit={startDesigning} onClose={() => setShowCreateModal(false)} />}
 
       {/* Success Alert Banner */}
       {publishedSuccess && (
@@ -165,11 +169,20 @@ const openMapInEditor = async (mapItem) => {
         </div>
       )}
 
-      {/* Map List Grid */}
-      {myMapsList.length === 0 ? (
+      {/* Map List Grid — only the logged-in user's own maps. Guests see a
+          login prompt instead of other people's maps. */}
+      {!userProfile ? (
+        <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <div className="text-4xl mb-2">🗺️</div>
+          <p className="text-slate-600 dark:text-slate-300 font-bold mb-4">{t('myMaps.loginRequired')}</p>
+          <button onClick={requireLogin} className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            {t('auth.submitLogin')}
+          </button>
+        </div>
+      ) : myMapsList.length === 0 ? (
         <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
           <p className="text-slate-600 dark:text-slate-300 font-bold mb-4">You haven't created any maps yet.</p>
-          <button onClick={() => isLoggedIn ? setShowCreateModal(true) : navigateTo('auth')} className="bg-[#cc0000] text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <button onClick={() => (userProfile ? setShowCreateModal(true) : requireLogin())} className="bg-[#cc0000] text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             Create Your First Map
           </button>
         </div>
@@ -228,7 +241,8 @@ const openMapInEditor = async (mapItem) => {
       </div>
       )}
 
-      {/* Favorites Quick Access */}
+      {/* Favorites Quick Access — account-only, hidden from guests */}
+      {userProfile && (
       <div className="bg-amber-50 border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <h2 className="text-lg font-black uppercase mb-3 flex items-center gap-2 text-amber-900">
           <Star className="w-5 h-5 fill-amber-500 text-amber-600" /> {t('myMaps.favoritesTitle')} ({favorites.length})
@@ -266,6 +280,7 @@ const openMapInEditor = async (mapItem) => {
           </div>
         )}
       </div>
+      )}
 
       {publishTarget && (
         <PublishMapModal

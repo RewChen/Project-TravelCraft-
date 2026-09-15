@@ -17,11 +17,25 @@ export default function CommunityPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const canDeleteMap = (mapItem) => Boolean(userProfile && (
+  const canDeleteMap = (mapItem) =>
+    (mapItem.isEditorMap === true && !mapItem._summaryOnly) ||
+    Boolean(userProfile && (
     mapItem.ownerId
       ? mapItem.ownerId === userProfile.id
       : mapItem.discoveredBy === userProfile.name
   ));
+
+  // Only show maps that really came from the database or from this browser's
+  // editor. Feed rows from supabaseMaps carry `_summaryOnly`; maps
+  // created/published locally (guest sessions) keep `isEditorMap`. The demo
+  // seed data has neither, so it is excluded from Community Discoveries.
+  const isRealDbMap = (mapItem) =>
+    mapItem._summaryOnly === true ||
+    mapItem.isEditorMap === true ||
+    Boolean(mapItem.ownerId && (
+      mapItem.privacy === 'public' ||
+      (userProfile?.id && mapItem.ownerId === userProfile.id)
+    ));
 
   const categories = [
     { id: 'ALL', label: 'community.all', icon: null },
@@ -46,7 +60,7 @@ export default function CommunityPage() {
     }
     navigateTo('details', mapItem.details);
   };
-  const filteredMaps = (communityMaps || []).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
+  const filteredMaps = (communityMaps || []).filter(isRealDbMap).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
     if (!item?.id || seenIds.has(item.id)) return false;
     seenIds.add(item.id);
     const title = item.title || t('common.untitledMap');
@@ -215,6 +229,14 @@ export default function CommunityPage() {
           </div>
         ))}
       </div>
+
+      {filteredMaps.length === 0 && (
+        <div className="text-center py-16 space-y-3 font-mono">
+          <div className="text-5xl">🗺️</div>
+          <div className="text-lg font-black uppercase tracking-tight">{t('community.noMaps')}</div>
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{t('community.noMapsHint')}</p>
+        </div>
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
