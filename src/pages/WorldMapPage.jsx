@@ -9,7 +9,7 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, activeCommunityMap, mapViewLoading } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -114,10 +114,16 @@ export default function WorldMapPage() {
           )}
 
           {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
-          <MapElementsLayer items={mapElements.filter(({ element }) => !element.isLocation)} />
+          <MapElementsLayer
+            items={mapElements}
+            onLocationClick={(elementId) => {
+              const pin = mapPins.find((item) => item.id === `editor-${elementId}`);
+              if (pin) setSelectedPin(pin);
+            }}
+          />
 
           {/* Render Map Markers */}
-          <MapPins />
+          <MapPins hideElementPins />
 
           {/* Selected Location Popup */}
           {selectedPin && (
@@ -126,7 +132,7 @@ export default function WorldMapPage() {
               style={{ top: selectedPin.top || '50%', left: selectedPin.left || '50%' }}
               className="absolute z-40 -translate-x-1/2 translate-y-3"
             >
-              <LocationPopupModal pin={selectedPin} onClose={() => { setSelectedPin(null); window.close(); }} />
+              <LocationPopupModal pin={selectedPin} onClose={() => setSelectedPin(null)} />
             </div>
           )}
         </div>

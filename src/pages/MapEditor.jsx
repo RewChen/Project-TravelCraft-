@@ -8,7 +8,7 @@ import {
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize, MapPin,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
-  PanelLeftClose, PanelLeftOpen, Play, ChevronLeft, ChevronRight, Wand2,
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, ChevronLeft, ChevronRight, Wand2,
   Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Link
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -16,7 +16,7 @@ import useCanvasControls from '../hooks/useCanvasControls';
 import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
-import { getShapeStyle, getImageFilterStyle } from '../lib/editorElements';
+import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -228,12 +228,14 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updat
   });
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [panelOpen, setPanelOpen] = useState(true);
+  const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
   const [tourActive, setTourActive] = useState(false);
   const [tourIndex, setTourIndex] = useState(0);
   const [showTextStyleMenu, setShowTextStyleMenu] = useState(false);
   const [recentlyWonBadges, setRecentlyWonBadges] = useState([]);
   const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null); 
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
   const [showTextAnimMenu, setShowTextAnimMenu] = useState(false);
   const [showTextPositionMenu, setShowTextPositionMenu] = useState(false);
@@ -765,12 +767,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     });
   };
 
-  const setOverlay = (color) => {
-    if (!selectedElement) return;
-    pushHistory();
-    setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, overlay: color } : element));
-  };
-
   const moveLayer = (direction) => {
     if (!selectedElement) return;
     pushHistory();
@@ -783,6 +779,22 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       reordered.splice(nextIndex, 0, item);
       return reordered;
     });
+  };
+
+  const changeSelectedShape = (shape) => {
+    if (!selectedElement || selectedData?.type !== 'shape') return;
+    pushHistory();
+    setElements((previous) => previous.map((element) => (
+      element.id === selectedElement ? { ...element, shape } : element
+    )));
+  };
+
+  const changeSelectedFrameShape = (frameShape) => {
+    if (!selectedElement || selectedData?.type === 'shape' || selectedData?.type === 'drawing') return;
+    pushHistory();
+    setElements((previous) => previous.map((element) => (
+      element.id === selectedElement ? { ...element, frameShape: frameShape || undefined } : element
+    )));
   };
 
   const duplicateSelectedElement = () => {
@@ -831,6 +843,13 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setElements((previous) => previous.map((element) =>
       element.id === selectedElement ? { ...element, isLocation: !element.isLocation } : element
     ));
+  };
+
+  const handlePinToolbarClick = () => {
+    if (!selectedElement) return;
+    const isAlreadyLocation = selectedData?.isLocation;
+    togglePinSelectedElement();
+    setLocationModalOpen(!isAlreadyLocation);
   };
 
   const saveDraft = () => {
@@ -1003,6 +1022,42 @@ if (publishPrivacy === 'private') {
     setSelectedElement(id);
   };
 
+  const startPaletteDrag = (event, element) => {
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('application/x-travelcraft-element', JSON.stringify(element));
+  };
+
+  const placeElementIntoShape = (source, shapeElement) => {
+    if (!elementPositions[shapeElement.id] || !source?.type) return;
+    pushHistory();
+    setElements((previous) => previous.map((element) => (
+      element.id === shapeElement.id
+        ? { ...element, isFrame: true, frameImage: { type: source.type, content: source.content, label: source.label } }
+        : element
+    )));
+    setSelectedElement(shapeElement.id);
+  };
+
+  const addElementIntoShape = (event, shapeElement) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const raw = event.dataTransfer.getData('application/x-travelcraft-element');
+    if (!raw) return;
+    let source;
+    try {
+      source = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    placeElementIntoShape(source, shapeElement);
+  };
+
+  const addPaletteElement = (source) => {
+    const selectedShape = selectedData?.type === 'shape' ? selectedData : null;
+    if (selectedShape) placeElementIntoShape(source, selectedShape);
+    else addElement(source);
+  };
+
   const updateSelectedTextStyle = (updates) => {
     if (!selectedElement) return;
     setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, ...updates } : element));
@@ -1114,10 +1169,6 @@ if (publishPrivacy === 'private') {
 
   const myElements = (userAssets || []).filter((asset) => asset.asset_type === 'element' && (asset.url || asset.content));
   const myBackgrounds = (userAssets || []).filter((asset) => asset.asset_type === 'background' && (asset.url || asset.content));
-
-  const addCustomElement = (item) => {
-    addElement({ type: 'image', label: item.label, content: item.url || item.content });
-  };
 
   const toggleUploadSelection = (id) => {
     setSelectedUploads((previous) => (previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]));
@@ -1892,11 +1943,22 @@ if (publishPrivacy === 'private') {
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   {elementOptions.map((item) => (
-                    <button key={item.labelKey} onClick={() => addElement({ type: 'emoji', labelKey: item.labelKey, content: item.content })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                    <button key={item.labelKey} draggable onDragStart={(event) => startPaletteDrag(event, { type: 'emoji', content: item.content, label: t(item.labelKey) })} onClick={() => addPaletteElement({ type: 'emoji', labelKey: item.labelKey, content: item.content, label: t(item.labelKey) })} className="aspect-square bg-gray-50 border-2 border-black rounded hover:bg-amber-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
                       <span className="text-3xl">{item.content}</span>
                       <span className="text-[9px] font-black mt-1 uppercase">{t(item.labelKey)}</span>
                     </button>
                   ))}
+                </div>
+                <div className="border-t-2 border-black pt-3">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{t('editor.frameTemplates')}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[['circle', t('editor.circleFrame')], ['rectangle', t('editor.rectangleFrame')], ['grid', t('editor.gridFrame')]].map(([shape, label]) => (
+                      <button key={shape} type="button" onClick={() => addElement({ type: 'shape', shape, isFrame: true, content: '', label })} className="border-2 border-black rounded p-2 bg-gray-50 hover:bg-amber-100 font-black text-[9px] uppercase">
+                        <span className="block h-8 mb-1" style={{ ...getShapeStyle({ shape, color: '#111111' }), ...getFramePlaceholderStyle({ isFrame: true, shape }) }} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="mt-2 space-y-2 border-t-2 border-black pt-3">
                   <input ref={elementImageInputRef} type="file" accept=".png,image/png" multiple onChange={handleElementUpload} className="hidden" />
@@ -1911,8 +1973,8 @@ if (publishPrivacy === 'private') {
                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">{t('editor.myElements')}</p>
                       <div className="grid grid-cols-2 gap-2">
                         {myElements.map((item) => (
-                          <div key={item.id} className="relative aspect-square border-2 border-black rounded overflow-hidden bg-gray-50 group">
-                            <button type="button" onClick={() => addCustomElement(item)} title={item.label} className="w-full h-full cursor-pointer hover:bg-amber-100">
+                          <div key={item.id} draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: item.label, content: item.url || item.content })} className="relative aspect-square border-2 border-black rounded overflow-hidden bg-gray-50 group">
+                            <button type="button" draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: item.label, content: item.url || item.content })} onClick={() => addPaletteElement({ type: 'image', label: item.label, content: item.url || item.content })} title={item.label} className="w-full h-full cursor-pointer hover:bg-amber-100">
                               <img src={item.url || item.content} alt={item.label} className="w-full h-full object-contain" />
                               <span className="absolute bottom-0 inset-x-0 bg-white/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
                             </button>
@@ -1944,8 +2006,8 @@ if (publishPrivacy === 'private') {
                     {uploadedFiles.map((file) => {
                       const isSelected = selectedUploads.includes(file.id);
                       return (
-                        <div key={file.id} className={`relative border-2 rounded overflow-hidden aspect-square group ${isSelected ? 'border-[#4895ef] ring-4 ring-[#4895ef] ring-offset-1' : 'border-black'}`}>
-                          <button type="button" onClick={() => toggleUploadSelection(file.id)} title={file.label} className="w-full h-full cursor-pointer">
+                        <div key={file.id} draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: file.label, content: file.content })} className={`relative border-2 rounded overflow-hidden aspect-square group ${isSelected ? 'border-[#4895ef] ring-4 ring-[#4895ef] ring-offset-1' : 'border-black'}`}>
+                          <button type="button" draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: file.label, content: file.content })} onClick={() => toggleUploadSelection(file.id)} title={file.label} className="w-full h-full cursor-pointer">
                             <img src={file.content} alt={file.label} className="w-full h-full object-cover" />
                             <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Check className="w-6 h-6 text-white stroke-[4]" />
@@ -2262,7 +2324,7 @@ if (publishPrivacy === 'private') {
                     <button type="button" title={t('editor.editText')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-amber-50" onClick={(event) => { event.stopPropagation(); if (selectedData?.type === 'text') { setSelectedElement(selectedElement); setEditingTextId(selectedElement); } }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    <button type="button" title={selectedData.isLocation ? t('editor.unpinElement') : t('editor.pinElement')} className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black ${selectedData.isLocation ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white hover:bg-amber-50'}`} onClick={(event) => { event.stopPropagation(); togglePinSelectedElement(); }}>
+                    <button type="button" title={selectedData.isLocation ? t('editor.unpinElement') : t('editor.pinElement')} className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black ${selectedData.isLocation ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white hover:bg-amber-50'}`} onClick={(event) => { event.stopPropagation(); handlePinToolbarClick(); }}>
                       <MapPin className={`w-3.5 h-3.5 ${selectedData.isLocation ? 'fill-white' : ''}`} />
                     </button>
                     <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
@@ -2350,7 +2412,6 @@ if (publishPrivacy === 'private') {
                       left: `${position.left}px`,
                       width: `${position.width}px`,
                       height: `${position.height}px`,
-                      backgroundColor: element.overlay ? `${element.overlay}00` : 'transparent',
                       opacity: 1,
                       alignItems: element.verticalAlign === 'top' ? 'flex-start' : element.verticalAlign === 'bottom' ? 'flex-end' : 'center',
                       transform: `rotate(${element.rotation ?? 0}deg)`
@@ -2360,7 +2421,9 @@ if (publishPrivacy === 'private') {
                     event.stopPropagation();
                     setSelectedElement(element.id);
                     setContextMenuElementId(element.id);
-                  }} onPointerDown={(event) => {
+                  }} onDragOver={element.type === 'shape' ? (event) => event.preventDefault() : undefined}
+                  onDrop={element.type === 'shape' ? (event) => addElementIntoShape(event, element) : undefined}
+                  onPointerDown={(event) => {
                     const now = Date.now();
                     const quickRepeat = now - lastClickRef.current < 350;
                     lastClickRef.current = now;
@@ -2383,6 +2446,7 @@ if (publishPrivacy === 'private') {
                       setEditingTextId(element.id);
                     }
                   }}>
+                    <div className="w-full h-full flex items-center justify-center" style={getElementFrameStyle(element)}>
                     {element.type === 'image' ? (
                       element.filter === 'polaroid' ? (
                         <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">
@@ -2411,7 +2475,11 @@ if (publishPrivacy === 'private') {
                           opacity={element.shape === 'highlight' ? 0.4 : 1}
                         />
                       </svg>
-                    ) : element.type === 'shape' ? <div className="w-full h-full pointer-events-none" style={getShapeStyle(element, drawingColor)} /> : (
+                    ) : element.type === 'shape' ? (
+                      <div className="w-full h-full pointer-events-auto" onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDrop={(event) => addElementIntoShape(event, element)} style={{ ...getShapeStyle(element, drawingColor), ...getFramePlaceholderStyle(element), overflow: element.frameImage || element.isFrame ? 'hidden' : undefined }}>
+                        {element.frameImage && (element.frameImage.type === 'image' ? <img src={element.frameImage.content} alt={element.frameImage.label || 'framed element'} className="w-full h-full object-cover" /> : <span className="flex w-full h-full items-center justify-center text-[min(18cqw,180px)]">{element.frameImage.content}</span>)}
+                      </div>
+                    ) : (
                       isEditingText ? (
                         <textarea
                           autoFocus
@@ -2456,6 +2524,7 @@ if (publishPrivacy === 'private') {
                         </span>
                       )
                     )}
+                    </div>
                     {/* Location pin badge — shown for ANY element type marked as location */}
                     {element.isLocation && (
                       <div className="absolute -top-1 -right-1 pointer-events-none z-10" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}>
@@ -2569,10 +2638,16 @@ if (publishPrivacy === 'private') {
         </div>
 
         {/* RIGHT PANEL (PROPERTIES) */}
+        {propertiesPanelOpen ? (
         <div className="w-72 bg-white border-l-4 border-black flex flex-col z-10 shadow-[-4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden xl:flex">
-          <div className="p-4 border-b-2 border-black flex items-center gap-2">
-            <Settings className="w-4 h-4" />
-            <h2 className="font-black text-sm uppercase">{t('editor.properties')}</h2>
+          <div className="p-4 border-b-2 border-black flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              <h2 className="font-black text-sm uppercase">{t('editor.properties')}</h2>
+            </div>
+            <button type="button" onClick={() => setPropertiesPanelOpen(false)} title={t('editor.collapsePanel')} className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100 shrink-0">
+              <PanelRightClose className="w-4 h-4" />
+            </button>
           </div>
           
           {selectedElement ? (
@@ -2592,19 +2667,23 @@ if (publishPrivacy === 'private') {
               {/* MARK AS LOCATION TOGGLE */}
               <div>
                 {selectedData.isLocation ? (
-                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
+                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); setLocationModalOpen(false); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
                     <X className="w-3.5 h-3.5" /> {t('editor.unmarkLocation')}
                   </button>
                 ) : (
-                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: true } : el)); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-emerald-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none">
+                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: true } : el)); setLocationModalOpen(true); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-emerald-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none">
                     {t('editor.markAsLocation')}
                   </button>
                 )}
               </div>
 
-              {selectedData.isLocation && (
-                <div className="space-y-3 border-2 border-red-500 p-3 bg-red-50/50 rounded shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
-                  <h3 className="font-black text-xs uppercase border-b-2 border-red-300 pb-2 text-red-600 flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
+              {selectedData.isLocation && locationModalOpen && (
+                <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLocationModalOpen(false)}>
+                  <div className="w-full max-w-md space-y-3 border-4 border-black p-5 bg-white rounded-2xl shadow-[8px_8px_0_0_rgba(0,0,0,1)]" onClick={(event) => event.stopPropagation()}>
+                    <div className="flex items-center justify-between border-b-2 border-black pb-3">
+                      <h3 className="font-black text-sm uppercase text-red-600 flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
+                      <button type="button" onClick={() => setLocationModalOpen(false)} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded bg-red-50 hover:bg-red-100"><X className="w-4 h-4" /></button>
+                    </div>
                   <div>
                     <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locName')}</label>
                     <input type="text" value={selectedData.locationDetails?.name || ''} onChange={(e) => updateSelectedLocationData('name', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none rounded" placeholder="Starting Town" />
@@ -2627,7 +2706,8 @@ if (publishPrivacy === 'private') {
                       <input type="time" value={selectedData.locationDetails?.closeTime || ''} onChange={(e) => updateSelectedLocationData('closeTime', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-[10px] font-bold outline-none rounded" />
                     </div>
                   </div>
-                  <button type="button" onClick={() => setSelectedElement(null)} className="w-full bg-amber-400 border-2 border-black mt-1 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none transition-all rounded">{t('editor.saveLocation')}</button>
+                    <button type="button" onClick={() => setLocationModalOpen(false)} className="w-full bg-amber-400 border-2 border-black mt-1 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none transition-all rounded">{t('editor.saveLocation')}</button>
+                  </div>
                 </div>
               )}
 
@@ -2657,6 +2737,56 @@ if (publishPrivacy === 'private') {
                       <button key={filter.id} type="button" onClick={() => { pushHistory(); setElements((previous) => previous.map((element) => element.id === selectedElement ? { ...element, filter: filter.id === 'none' ? undefined : filter.id } : element)); }}
                         className={`border-2 border-black rounded-lg px-1 py-1.5 font-black text-[9px] uppercase text-center ${(selectedData.filter || 'none') === filter.id ? 'bg-amber-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
                         {t(filter.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedData.type === 'shape' && (
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.shape')}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['rectangle', t('editor.toolRect')],
+                      ['circle', t('editor.toolCircle')],
+                      ['grid', t('editor.toolGrid')],
+                      ['line', t('editor.toolLine')],
+                      ['highlight', t('editor.toolHighlight')]
+                    ].map(([shape, label]) => (
+                      <button
+                        key={shape}
+                        type="button"
+                        onClick={() => changeSelectedShape(shape)}
+                        className={`border-2 border-black rounded px-2 py-2 text-[9px] font-black uppercase ${selectedData.shape === shape ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}
+                      >
+                        <span className="block h-5 mb-1" style={getShapeStyle({ shape, color: selectedData.color })} />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedData.type !== 'shape' && selectedData.type !== 'drawing' && (
+                <div>
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.frameShape')}</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      ['', t('editor.frameNone')],
+                      ['circle', t('editor.frameCircle')],
+                      ['rounded', t('editor.frameRounded')],
+                      ['diamond', t('editor.frameDiamond')],
+                      ['hexagon', t('editor.frameHexagon')]
+                    ].map(([frameShape, label]) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => changeSelectedFrameShape(frameShape)}
+                        className={`border-2 border-black rounded px-2 py-2 text-[9px] font-black uppercase ${ (selectedData.frameShape || '') === frameShape ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}
+                      >
+                        <span className="block h-5 mb-1 border-2 border-black bg-gray-200" style={getElementFrameStyle({ frameShape })} />
+                        {label}
                       </button>
                     ))}
                   </div>
@@ -2696,14 +2826,6 @@ if (publishPrivacy === 'private') {
                   <button onClick={() => moveLayer('back')} title={t('editor.sendBack')} className="flex-1 flex items-center justify-center gap-1 border-2 border-black bg-gray-50 hover:bg-gray-200 py-2 rounded font-bold text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                     <SendToBack className="w-4 h-4" /> 
                   </button>
-                </div>
-              </div>
-
-              {/* Color Overlay */}
-              <div>
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.colorOverlay')}</label>
-                <div className="flex gap-2">
-                  {['#ffffff', '#ef4444', '#3b82f6', '#10b981', '#fbbf24'].map((color) => <button key={color} onClick={() => setOverlay(color)} title={t('editor.overlayColor', { color })} className="w-6 h-6 rounded-full border-2 border-black cursor-pointer hover:scale-110" style={{ backgroundColor: color }} />)}
                 </div>
               </div>
 
@@ -2752,6 +2874,13 @@ if (publishPrivacy === 'private') {
           </div>
 
         </div>
+        ) : (
+        <div className="w-10 bg-white border-l-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden xl:flex">
+          <button type="button" onClick={() => setPropertiesPanelOpen(true)} title={t('editor.expandPanel')} className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
+            <PanelRightOpen className="w-4 h-4" />
+          </button>
+        </div>
+        )}
       </div>
     </div>
   );

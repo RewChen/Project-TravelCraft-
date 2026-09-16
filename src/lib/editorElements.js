@@ -42,3 +42,27 @@ export const getImageFilterStyle = (element) => {
   };
   return filterMap[element.filter] ? { filter: filterMap[element.filter] } : {};
 };
+
+export const getElementFrameStyle = (element) => {
+  const frameStyles = {
+    circle: { borderRadius: '9999px', overflow: 'hidden', clipPath: 'circle(50% at 50% 50%)' },
+    rounded: { borderRadius: '18%', overflow: 'hidden' },
+    diamond: { overflow: 'hidden', clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' },
+    hexagon: { overflow: 'hidden', clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }
+  };
+  return frameStyles[element.frameShape] || {};
+};
+
+export const getFramePlaceholderStyle = (element) => {
+  if (!element?.isFrame || element.frameImage) return {};
+  return {
+    backgroundColor: '#d9f1f8',
+    backgroundImage: [
+      'radial-gradient(circle at 50% 22%, #ffffff 0 7%, transparent 7.5%)',
+      'radial-gradient(circle at 43% 25%, #ffffff 0 5%, transparent 5.5%)',
+      'radial-gradient(circle at 58% 25%, #ffffff 0 5%, transparent 5.5%)',
+      'linear-gradient(168deg, transparent 0 58%, #c5df83 58.5% 72%, #85a900 72.5%)',
+      'linear-gradient(#c9edf8, #eefbff 58%, #b8d96d 58.5%)'
+    ].join(', ')
+  };
+};

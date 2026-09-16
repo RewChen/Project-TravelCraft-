@@ -2,13 +2,14 @@ import { Camera } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getShapeStyle } from '../../lib/editorElements';
 
-export default function MapPins() {
+export default function MapPins({ hideElementPins = false }) {
   const { mapPins, selectedPin, setSelectedPin, mapFilters } = useApp();
 
   return (
     <>
       {/* Render Map Pins */}
       {mapPins.map((pin) => {
+        if (hideElementPins && pin.elementType) return null;
         // Filter check
         const categoryKey = pin.category || 'photos';
         if (mapFilters[categoryKey] === false) return null;

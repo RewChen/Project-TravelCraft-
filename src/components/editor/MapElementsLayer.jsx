@@ -1,10 +1,10 @@
 import { CANVAS_WIDTH } from '../../lib/editorCanvas';
-import { getShapeStyle, getImageFilterStyle } from '../../lib/editorElements';
+import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../../lib/editorElements';
 
 const toPct = (value) => `${((value / CANVAS_WIDTH) * 100).toFixed(4)}%`;
 const toCqw = (value) => `${((value / CANVAS_WIDTH) * 100).toFixed(4)}cqw`;
 
-export default function MapElementsLayer({ items }) {
+export default function MapElementsLayer({ items, onLocationClick }) {
   if (!items || !items.length) return null;
   return (
     <div className="absolute inset-0 z-[5] overflow-hidden pointer-events-none select-none">
@@ -13,7 +13,11 @@ export default function MapElementsLayer({ items }) {
         return (
           <div
             key={element.id}
-            className="absolute flex items-center justify-center pointer-events-auto"
+            className={`absolute flex items-center justify-center pointer-events-auto ${element.isLocation && onLocationClick ? 'cursor-pointer' : ''}`}
+            onClick={element.isLocation && onLocationClick ? (event) => {
+              event.stopPropagation();
+              onLocationClick(element.id);
+            } : undefined}
             style={{
               top: toPct(position.top),
               left: toPct(position.left),
@@ -22,7 +26,7 @@ export default function MapElementsLayer({ items }) {
               transform: `rotate(${element.rotation ?? 0}deg)`
             }}
           >
-            <div className="w-full h-full flex items-center justify-center transition-transform duration-200 hover:animate-soft-bounce">
+            <div className="w-full h-full flex items-center justify-center transition-transform duration-200 hover:animate-soft-bounce" style={getElementFrameStyle(element)}>
             {element.type === 'image' ? (
               element.filter === 'polaroid' ? (
                 <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">
@@ -40,7 +44,9 @@ export default function MapElementsLayer({ items }) {
                 <img src={element.content} alt={element.label || 'element'} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
               )
             ) : element.type === 'shape' ? (
-              <div className="w-full h-full pointer-events-none" style={getShapeStyle(element)} />
+              <div className="w-full h-full pointer-events-none" style={{ ...getShapeStyle(element), ...getFramePlaceholderStyle(element), overflow: element.frameImage || element.isFrame ? 'hidden' : undefined }}>
+                {element.frameImage && (element.frameImage.type === 'image' ? <img src={element.frameImage.content} alt={element.frameImage.label || 'framed element'} className="w-full h-full object-cover" /> : <span className="flex w-full h-full items-center justify-center text-[min(18cqw,180px)]">{element.frameImage.content}</span>)}
+              </div>
             ) : (
               <span
                 className="filter drop-shadow-md px-2 w-full"
