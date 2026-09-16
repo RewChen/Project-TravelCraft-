@@ -103,3 +103,35 @@ export const setMapBaseFlag = async (mapId, isBase) => {
     .eq('id', mapId);
   if (error) throw error;
 };
+
+export const upsertAdminBaseMap = async (mapRow) => {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase
+    .from('maps')
+    .upsert(mapRow, { onConflict: 'id' });
+  if (error) throw error;
+};
+
+export const fetchAdminBaseMaps = async () => {
+  if (!isSupabaseConfigured) return [];
+  const { data, error } = await supabase
+    .from('maps')
+    .select('*')
+    .eq('is_base_map', true)
+    .order('created_at', { ascending: false });
+  if (error) {
+    if (isMissingSchemaError(error)) markSchemaMissing('maps');
+    throw error;
+  }
+  clearSchemaMissing('maps');
+  return data || [];
+};
+
+export const deleteBaseMapRow = async (mapId) => {
+  if (!isSupabaseConfigured) return;
+  const { error } = await supabase
+    .from('maps')
+    .delete()
+    .eq('id', mapId);
+  if (error) throw error;
+};

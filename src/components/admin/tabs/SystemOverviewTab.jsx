@@ -1,59 +1,60 @@
 import { useState } from 'react';
-import {
-  Search,
-  Filter,
-  Users,
-  Compass,
-  MapPin,
-  AlertCircle,
-  CheckCircle2,
-  Eye,
-  RefreshCw
-} from 'lucide-react';
+import { Users, Compass, AlertCircle, Search, Trash2, Eye, Loader as Loader2 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import { fetchMapById } from '../../../lib/supabaseMaps';
 
-export default function SystemOverviewTab({ onOpenDeployModal }) {
-  const { mapPins, communityMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap, t } = useApp();
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+export default function SystemOverviewTab() {
+  const { communityMaps, trainers, reportedLocations, adminDeleteCommunityMap, showAdminToast, navigateTo, t } = useApp();
 
   // Live stats derived from the same communityMaps, trainers & reports that the user UI uses.
   const totalTrainers = trainers?.length ?? 0;
   const publishedMaps = (communityMaps || []).filter((m) => m.privacy && m.privacy !== 'private').length;
   const draftMaps = (communityMaps || []).filter((m) => m.privacy === 'private').length;
-  const totalLocations = (mapPins?.length ?? 0) + (communityMaps || []).reduce((acc, c) => acc + (c.pinCount ?? c.pins?.length ?? 0), 0);
   const pendingReports = (reportedLocations || []).filter((r) => r.status === 'pending').length;
 
-  // Filtered Pins / Locations from current network — admin sees ALL privacy levels so no creation is hidden.
-  const allNetworkLocations = [
-    ...mapPins.map((p) => ({ ...p, status: 'Active', source: 'World Pins' })),
-    ...communityMaps.map((c) => ({
-      id: c.id,
-      title: c.title,
-      region: c.details?.region || 'Global Realm',
-      category: c.category || 'landmarks',
-      visitors: c.details?.visitors || '100K / yr',
-      popularity: c.popularityLv || 85,
-      status: c.privacy === 'private' ? 'Draft' : c.privacy === 'unlisted' ? 'Unlisted' : 'Active',
-      privacy: c.privacy || 'public',
-      discoveredBy: c.discoveredBy,
-      source: 'Community Map',
-      rawItem: c
-    }))
-  ];
+  // Only maps that users actually published to Community Discoveries
+  // (seed demo data is excluded — same rule as the Community page).
+  const userPublishedMaps = (communityMaps || []).filter((m) =>
+    m._summaryOnly === true ||
+    m.isEditorMap === true ||
+    Boolean(m.ownerId && m.privacy && m.privacy !== 'private' && m.privacy !== 'unlisted')
+  );
 
-  const filteredLocations = allNetworkLocations.filter((item) => {
-    const matchesSearch = !searchTerm || item.title.toLowerCase().includes(searchTerm.toLowerCase()) || item.region?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || item.category?.toLowerCase() === categoryFilter.toLowerCase();
-    const matchesStatus = statusFilter === 'all' || item.status.toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesCategory && matchesStatus;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+
+  const filteredMaps = userPublishedMaps.filter((item) => {
+    const title = (item.title || item.name || '').toLowerCase();
+    const author = (item.discoveredBy || item.ownerId || '').toLowerCase();
+    const q = searchQuery.toLowerCase();
+    if (!q) return true;
+    return title.includes(q) || author.includes(q);
   });
+
+  const confirmDelete = () => {
+    if (!deleteTarget || !deleteReason.trim()) return;
+    adminDeleteCommunityMap(deleteTarget.id, deleteReason.trim());
+    showAdminToast(`Map deleted. Reason: ${deleteReason.trim()}`, 'success');
+    setDeleteTarget(null);
+    setDeleteReason('');
+  };
+
+  const viewDetails = async (mapItem) => {
+    if (mapItem._summaryOnly) {
+      try {
+        const full = await fetchMapById(mapItem.id);
+        if (full) { navigateTo('details', full); return; }
+      } catch {
+        // fall through to summary details
+      }
+    }
+    navigateTo('details', mapItem);
+  };
 
   return (
     <div className="space-y-6 font-mono">
-      {/* Top Header & Deploy Update Button */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-4 border-black pb-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
@@ -63,88 +64,10 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
             {t('admin.systemOverviewSubtitle')}
           </p>
         </div>
-
-        <button
-          onClick={onOpenDeployModal}
-          className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          <span>{t('admin.deployUpdate')}</span>
-        </button>
       </div>
 
-      {/* Filter / Search Bar Card */}
-      <div className="bg-white border-4 border-black rounded-2xl p-4 sm:p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-          {/* Search Locations */}
-          <div className="sm:col-span-5">
-            <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              {t('admin.searchLocations')}
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={t('admin.searchLocationsPh')}
-                className="w-full pl-9 pr-3 py-2 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              />
-            </div>
-          </div>
-
-          {/* Category */}
-          <div className="sm:col-span-3">
-            <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              {t('admin.category')}
-            </label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full py-2 px-3 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-            >
-              <option value="all">{t('admin.allCategories')}</option>
-              <option value="landmarks">{t('admin.landmarks')}</option>
-              <option value="temples">{t('admin.templesShrines')}</option>
-              <option value="cafes">{t('admin.cafesShops')}</option>
-              <option value="viewpoints">{t('admin.viewpoints') || 'Viewpoints'}</option>
-              <option value="nature">{t('admin.nature') || 'Nature'}</option>
-              <option value="urban">{t('admin.urban') || 'Urban'}</option>
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className="sm:col-span-2">
-            <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
-              {t('admin.status')}
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full py-2 px-3 bg-gray-50 border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-            >
-              <option value="all">{t('admin.allStatuses')}</option>
-              <option value="active">{t('admin.active')}</option>
-              <option value="pending">{t('admin.pending')}</option>
-              <option value="flagged">{t('admin.flagged')}</option>
-            </select>
-          </div>
-
-          {/* Filter Button */}
-          <div className="sm:col-span-2">
-            <button
-              onClick={() => showAdminToast(`Filter applied: ${filteredLocations.length} locations matching`, 'info')}
-              className="w-full py-2 px-4 bg-[#cc0000] hover:bg-red-700 text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer transition-all"
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span>{t('admin.filter')}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 4 Stat Cards Grid (Matching Image 1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 3 Stat Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* STAT_01: Total Trainers — live from Supabase users table */}
         <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
           <div className="bg-[#4862db] text-white px-3 py-1.5 border-b-2 border-black flex items-center justify-between font-black text-[11px] uppercase tracking-wider">
@@ -175,25 +98,10 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
           </div>
         </div>
 
-        {/* STAT_03: Locations Found — live pins + community map pins */}
-        <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
-          <div className="bg-[#cc0000] text-white px-3 py-1.5 border-b-2 border-black flex items-center justify-between font-black text-[11px] uppercase tracking-wider">
-            <span>STAT_03</span>
-            <MapPin className="w-3.5 h-3.5" />
-          </div>
-          <div className="p-4">
-            <div className="text-[11px] font-black uppercase text-gray-500 mb-1">{t('admin.locationsFound')}</div>
-            <div className="text-3xl font-black text-black">{totalLocations.toLocaleString()}</div>
-            <div className="mt-2 text-xs font-black text-gray-600 flex items-center gap-1">
-              <span>{mapPins?.length ?? 0} World Pins · {totalLocations - (mapPins?.length ?? 0)} Map Pins</span>
-            </div>
-          </div>
-        </div>
-
-        {/* STAT_04: Pending Reports — live from reported locations */}
+        {/* STAT_03: Pending Reports — live from reported locations */}
         <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between bg-[radial-gradient(#d1d5db_1px,transparent_1px)] [background-size:8px_8px]">
           <div className="bg-[#eab308] text-black px-3 py-1.5 border-b-2 border-black flex items-center justify-between font-black text-[11px] uppercase tracking-wider">
-            <span>STAT_04</span>
+            <span>STAT_03</span>
             <AlertCircle className="w-3.5 h-3.5" />
           </div>
           <div className="p-4">
@@ -206,76 +114,150 @@ export default function SystemOverviewTab({ onOpenDeployModal }) {
         </div>
       </div>
 
-      {/* Network POI Registry Table */}
-      <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-        <div className="bg-gray-100 border-b-4 border-black p-4 flex items-center justify-between">
+      {/* Community Discoveries Moderation — search & delete user-published maps */}
+      <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-[#cc0000] text-white border-b-4 border-black p-3.5 px-5 flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-black text-sm uppercase tracking-wider flex items-center gap-2">
-            <span>🌍 {t('admin.liveRegistry')}</span>
-            <span className="text-[10px] bg-amber-400 border border-black px-2 py-0.5 rounded-full font-bold">
-              {filteredLocations.length} {t('admin.found')}
-            </span>
+            <Search className="w-4 h-4" />
+            <span>{t('admin.communityManager')}</span>
           </h3>
-          <span className="text-[10px] text-gray-500 font-bold hidden sm:inline">
-            {t('admin.synchronized')}
+          <span className="bg-white text-black text-[10px] font-black px-3 py-0.5 rounded-full border border-black">
+            {filteredMaps.length}
           </span>
+        </div>
+
+        <div className="p-4 border-b-2 border-black bg-gray-50">
+          <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
+            {t('admin.communityMapsSearch')}
+          </label>
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('admin.communityMapsSearchPh')}
+              className="w-full pl-9 pr-3 py-2 bg-white border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-gray-200 border-b-2 border-black text-gray-800 uppercase text-[10px] font-black tracking-wider">
+            <thead className="bg-gray-100 border-b-2 border-black text-gray-700 uppercase text-[10px] font-black tracking-wider">
               <tr>
-                <th className="p-3">{t('admin.locationName')}</th>
-                <th className="p-3">{t('admin.region')}</th>
-                <th className="p-3">{t('admin.category')}</th>
-                <th className="p-3">{t('admin.status')}</th>
-                <th className="p-3 text-right">{t('admin.actions')}</th>
+                <th className="p-3.5 px-4">{t('admin.locationName')}</th>
+                <th className="p-3.5">{t('admin.creator')}</th>
+                <th className="p-3.5">{t('admin.region')}</th>
+                <th className="p-3.5">{t('admin.status')}</th>
+                <th className="p-3.5 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 divide-gray-100 font-bold">
-              {filteredLocations.slice(0, 6).map((loc, idx) => (
-                <tr key={loc.id || idx} className="hover:bg-amber-50/60 transition-colors">
-                  <td className="p-3 font-black text-black flex items-center gap-2">
-                    <span>{loc.icon || '📍'}</span>
-                    <span>{loc.title}</span>
-                  </td>
-                  <td className="p-3 text-gray-600">{loc.region || 'Global Realm'}</td>
-                  <td className="p-3">
-                    <span className="bg-gray-100 border border-black px-2 py-0.5 rounded text-[10px] uppercase">
-                      {loc.category}
-                    </span>
-                  </td>
-                  <td className="p-3">
-                    <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-400 px-2 py-0.5 rounded-full font-black">
-                      <CheckCircle2 className="w-2.5 h-2.5" />
-                      <span>{loc.status}</span>
-                    </span>
-                  </td>
-                  <td className="p-3 text-right">
-                    {loc.rawItem ? (
-                      <button
-                        onClick={() => trackMapOnWorldMap(loc.rawItem)}
-                        className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer inline-flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>{t('admin.inspect')}</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => showAdminToast(`Inspecting pin ${loc.title}`, 'info')}
-                        className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer inline-flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>{t('admin.view')}</span>
-                      </button>
-                    )}
+              {filteredMaps.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-8 text-gray-500 text-xs">
+                    {t('admin.noCommunityMaps')}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filteredMaps.map((m) => (
+                  <tr key={m.id} className="hover:bg-amber-50/50 transition-colors">
+<td className="p-3.5 px-4">
+                            <span className="font-black text-black block max-w-[220px] truncate" title={m.title || m.name || 'Untitled Map'}>
+                              {m.title || m.name || 'Untitled Map'}
+                            </span>
+                          </td>
+                    <td className="p-3.5 text-gray-600">{m.discoveredBy || m.ownerId || 'Traveler'}</td>
+                    <td className="p-3.5 text-gray-600">{m.details?.region || m.region || 'Global Realm'}</td>
+                    <td className="p-3.5">
+                      <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase ${m.privacy === 'private' ? 'bg-gray-100 text-gray-600 border-gray-400' : 'bg-emerald-100 text-emerald-800 border-emerald-400'}`}>
+                        {m.privacy === 'private' ? t('admin.drafts') : t('admin.published')}
+                      </span>
+                    </td>
+                    <td className="p-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => viewDetails(m)}
+                          className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{t('admin.view')}</span>
+                        </button>
+<button
+                        onClick={() => { setDeleteReason(''); setDeleteTarget(m); }}
+                        className="px-2.5 py-1 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
+                      >
+                          <Trash2 className="w-3 h-3" />
+                          <span>{t('admin.deleteMap')}</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
+
+        {filteredMaps.length > 0 && (
+          <div className="px-4 py-2.5 bg-gray-50 border-t-2 border-black text-[10px] font-black uppercase text-gray-500">
+            <Loader2 className="w-3 h-3 inline animate-spin mr-1" />
+            {t('admin.liveFromRegistry')}
+          </div>
+        )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+            <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              <h2 className="font-black uppercase tracking-wide">{t('admin.deleteMapTitle')}</h2>
+            </div>
+            <div className="p-5">
+              <p className="text-sm font-bold text-gray-800">
+                {t('admin.deleteMapConfirm', { title: deleteTarget.title || deleteTarget.name })} {t('admin.deleteMapCannotUndo')}
+              </p>
+
+              <div className="mt-4">
+                <label className="block text-[11px] font-black uppercase text-gray-500 mb-1.5">
+                  {t('community.deleteReasonLabel')}
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder={t('community.deleteReasonPh')}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-50 border-2 border-black rounded-lg text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                />
+                {!deleteReason.trim() && (
+                  <p className="mt-1 text-[10px] font-black uppercase text-red-600">
+                    {t('community.deleteReasonRequired')}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                >
+                  {t('admin.cancel')}
+                </button>
+                <button
+                  disabled={!deleteReason.trim()}
+                  onClick={confirmDelete}
+                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" /> {t('admin.deleteMap')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

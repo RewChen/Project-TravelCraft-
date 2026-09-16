@@ -29,7 +29,7 @@ export default function LocationPopupModal({ pin, onClose }) {
               {pin.icon || '📍'}
             </div>
             <div>
-              <h4 className="font-black text-xs uppercase tracking-wider leading-tight">{pin.title}</h4>
+              <h4 className="font-black text-xs uppercase tracking-wider leading-tight break-words">{pin.title}</h4>
               <span className="text-[9px] bg-amber-400 border border-black px-1.5 py-0.2 rounded font-extrabold uppercase">
                 {pin.tag || pin.type}
               </span>
@@ -58,7 +58,7 @@ export default function LocationPopupModal({ pin, onClose }) {
         ) : null}
 
         {/* Lore / Description */}
-        <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-4 border border-black p-2 bg-gray-50 rounded">
+        <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-4 border border-black p-2 bg-gray-50 rounded break-all">
           {pin.lore || t('map.defaultLore')}
         </p>
 

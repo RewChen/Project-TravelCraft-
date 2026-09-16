@@ -15,13 +15,6 @@ const presetTags = [
   { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
 ];
 
-const rarityTiers = [
-  { value: 'common', labelKey: 'myMaps.rarityCommon', color: 'bg-gray-400 text-white', emoji: '⚪' },
-  { value: 'rare', labelKey: 'myMaps.rarityRare', color: 'bg-sky-500 text-white', emoji: '🔵' },
-  { value: 'epic', labelKey: 'myMaps.rarityEpic', color: 'bg-indigo-500 text-white', emoji: '🟣' },
-  { value: 'legendary', labelKey: 'myMaps.rarityLegendary', color: 'bg-[#cc0000] text-white', emoji: '🔴' }
-];
-
 const privacyOptions = [
   { value: 'public', labelKey: 'myMaps.public', descKey: 'myMaps.publicDesc' },
   { value: 'unlisted', labelKey: 'myMaps.unlisted', descKey: 'myMaps.unlistedDesc' },
@@ -82,7 +75,6 @@ export default function CreateMapForm({ onSubmit, onClose }) {
     bestTime: t('editor.anytime'),
     travel: '',
     tags: [],
-    rarityTier: 'common',
     privacy: 'public'
   });
 
@@ -152,8 +144,6 @@ export default function CreateMapForm({ onSubmit, onClose }) {
       region: fields.locationCity
     });
   };
-
-  const selectedRarity = rarityTiers.find((tier) => tier.value === fields.rarityTier) || rarityTiers[0];
 
   const query = fields.locationCity.trim().toLowerCase();
   const filteredCountries = query
@@ -326,27 +316,12 @@ export default function CreateMapForm({ onSubmit, onClose }) {
 
           <div className="border-t-4 border-black"></div>
 
-          {/* SECTION 4: RARITY & PRIVACY */}
+          {/* SECTION 4: PRIVACY */}
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase mb-3">
-              <span className="text-red-600">4.</span> {t('myMaps.settingsTitle')}
+              <span className="text-red-600">4.</span> {t('myMaps.visibility')}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-black uppercase mb-1.5">{t('myMaps.rarityTier')}</label>
-                <div className="relative">
-                  <select
-                    value={fields.rarityTier}
-                    onChange={(event) => update('rarityTier', event.target.value)}
-                    className="w-full border-2 border-black p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 appearance-none pr-8"
-                  >
-                    {rarityTiers.map((tier) => (
-                      <option key={tier.value} value={tier.value}>{tier.emoji} {t(tier.labelKey)}</option>
-                    ))}
-                  </select>
-                  <span className={`absolute right-1 top-1 bottom-1 flex items-center px-2 rounded ${selectedRarity.color}`}>{t(selectedRarity.labelKey)}</span>
-                </div>
-              </div>
               <fieldset>
                 <legend className="text-[10px] font-black uppercase mb-2 flex items-center gap-1">{t('myMaps.visibility')}</legend>
                 <div className="grid grid-cols-3 gap-2">

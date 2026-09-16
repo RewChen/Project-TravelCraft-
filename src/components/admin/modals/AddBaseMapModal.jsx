@@ -1,43 +1,86 @@
-import { useState } from 'react';
-import { Map, X, Plus } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Map, X, Plus, UploadCloud, ImagePlus, FileImage } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import { uploadMapCover } from '../../../lib/supabaseUploads';
+import { isSupabaseConfigured } from '../../../lib/supabaseClient';
 
 export default function AddBaseMapModal({ isOpen, onClose }) {
-  const { addBaseMap } = useApp();
+  const { addBaseMap, showAdminToast } = useApp();
   const [mapName, setMapName] = useState('');
-  const [theme, setTheme] = useState('Plains & Forest');
-  const [region, setRegion] = useState('Kanto Valley');
   const [imageUrl, setImageUrl] = useState('');
-  const [description, setDescription] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const presetImages = [
-    { label: 'Forest / Plains', url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=800&q=80' },
-    { label: 'Desert Ruins', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=800&q=80' },
-    { label: 'Ocean Coast', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80' },
-    { label: 'Mountain Peaks', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80' },
-    { label: 'Neon Cyber City', url: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=800&q=80' },
-    { label: 'Canyon Gorge', url: 'https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=800&q=80' }
-  ];
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      showAdminToast('Please choose an image file (JPG, PNG, WebP, GIF...).', 'error');
+      return;
+    }
+    setImageFile(file);
+    setImageUrl('');
+    setPreviewUrl(URL.createObjectURL(file));
+  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!mapName.trim()) return;
+  const clearImage = () => {
+    setImageFile(null);
+    setPreviewUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
-    addBaseMap({
-      name: mapName,
-      theme,
-      region,
-      image: imageUrl || presetImages[0].url,
-      description: description || 'A new frontier ready for trainer quests and cartography.'
+  const resolveImage = (mapId) =>
+    new Promise((resolve) => {
+      if (imageFile) {
+        if (isSupabaseConfigured) {
+          uploadMapCover(mapId, imageFile)
+            .then((url) => resolve(url || previewUrl))
+            .catch((err) => {
+              console.warn('Base map image upload skipped:', err);
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => resolve(previewUrl || '');
+              reader.readAsDataURL(imageFile);
+            });
+        } else {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => resolve(previewUrl || '');
+          reader.readAsDataURL(imageFile);
+        }
+      } else {
+        resolve((imageUrl || '').trim());
+      }
     });
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const title = mapName.trim();
+    if (!title) {
+      showAdminToast('Base map title is required.', 'error');
+      return;
+    }
+    if (!imageFile && !imageUrl.trim()) {
+      showAdminToast('Add an image — upload a file or paste a link.', 'error');
+      return;
+    }
+    setUploading(true);
+    const mapId = `base-${Date.now()}`;
+    const image = await resolveImage(mapId);
+    await addBaseMap({ name: title, image }, mapId);
+    setUploading(false);
     setMapName('');
-    setDescription('');
     setImageUrl('');
+    setPreviewUrl('');
+    clearImage();
     onClose();
   };
+
+  const showPreview = previewUrl || imageUrl;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
@@ -72,82 +115,87 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-                Biome / Theme
-              </label>
-              <select
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-              >
-                <option value="Plains & Forest">🌲 Plains & Forest</option>
-                <option value="Desert & Volcano">🏜️ Desert & Volcano</option>
-                <option value="Ocean & Isles">🌊 Ocean & Isles</option>
-                <option value="Mountains & Peaks">⛰️ Mountains & Peaks</option>
-                <option value="Urban & Neon">🏙️ Urban & Neon</option>
-                <option value="Glacial Tundra">❄️ Glacial Tundra</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-                Regional Territory
-              </label>
-              <select
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-              >
-                <option value="Kanto Valley">Kanto Valley</option>
-                <option value="Cinnabar Badlands">Cinnabar Badlands</option>
-                <option value="Vermilion Archipelago">Vermilion Archipelago</option>
-                <option value="Indigo Plateau">Indigo Plateau</option>
-                <option value="Johto Borderland">Johto Borderland</option>
-              </select>
-            </div>
-          </div>
-
           <div>
             <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-              Select Preset Tile or Enter Image URL
+              Map Image
             </label>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              {presetImages.map((preset, idx) => (
+
+            {/* Upload file or paste link */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="border-2 border-dashed border-black rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="base-map-file-input"
+                />
+                <label
+                  htmlFor="base-map-file-input"
+                  className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+                >
+                  <UploadCloud className="w-4 h-4" />
+                  <span>Choose Image File</span>
+                </label>
+                <span className="text-[10px] text-gray-500 font-bold">
+                  {imageFile ? imageFile.name : 'JPG / PNG / WebP (upload)'}
+                </span>
+              </div>
+
+              <div className="flex flex-col justify-center gap-2">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
+                  <span className="flex-1 h-0.5 bg-gray-200"></span>
+                  <span>or</span>
+                  <span className="flex-1 h-0.5 bg-gray-200"></span>
+                </div>
+                <div className="relative">
+                  <FileImage className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      if (imageFile) {
+                        setImageFile(null);
+                        setPreviewUrl('');
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }
+                    }}
+                    placeholder="Paste image link: https://..."
+                    className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 pl-9 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preview */}
+            {showPreview ? (
+              <div className="mt-3 relative">
+                <div className="h-40 bg-gray-200 border-4 border-black rounded-xl overflow-hidden">
+                  <img
+                    src={showPreview}
+                    alt="Base map preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <button
                   type="button"
-                  key={idx}
-                  onClick={() => setImageUrl(preset.url)}
-                  className={`border-2 border-black rounded-lg p-1 text-[10px] font-bold text-left cursor-pointer transition-all flex flex-col gap-1 overflow-hidden ${
-                    imageUrl === preset.url ? 'bg-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-100 hover:bg-gray-200'
-                  }`}
+                  onClick={clearImage}
+                  className="absolute top-2 right-2 w-7 h-7 bg-black hover:bg-neutral-800 text-white rounded-lg border-2 border-white flex items-center justify-center cursor-pointer"
+                  title="Remove image"
                 >
-                  <img src={preset.url} alt={preset.label} className="w-full h-10 object-cover rounded border border-black" />
-                  <span className="truncate">{preset.label}</span>
+                  <X className="w-4 h-4" />
                 </button>
-              ))}
-            </div>
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="Or paste custom image URL: https://..."
-              className="w-full bg-gray-50 border-2 border-black rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-              Description & Terrain Lore
-            </label>
-            <textarea
-              rows="2"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe geographical features, weather conditions..."
-              className="w-full bg-gray-50 border-2 border-black rounded-xl p-2.5 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            />
+              </div>
+            ) : (
+              <div className="mt-3 w-full h-40 bg-gray-100 border-2 border-black rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400">
+                <ImagePlus className="w-8 h-8" />
+                <span className="text-[10px] font-black uppercase tracking-wider">
+                  No Image — Upload or Paste a Link
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -161,10 +209,11 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-xl font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer transition-all"
+              disabled={uploading}
+              className="px-5 py-2.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-xl font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Base Map</span>
+              <span>{uploading ? 'Uploading...' : 'Create Base Map'}</span>
             </button>
           </div>
         </form>
@@ -172,4 +221,3 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
     </div>
   );
 }
-

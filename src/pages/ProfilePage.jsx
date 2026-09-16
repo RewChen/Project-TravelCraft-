@@ -58,7 +58,7 @@ export default function ProfilePage() {
       const nextAvatar = reader.result;
       setUserProfile((prev) => ({ ...prev, avatar: nextAvatar }));
       try {
-        localStorage.setItem('pocket_odyssey_profile_avatar', JSON.stringify(nextAvatar));
+        localStorage.setItem('project_travelcraft_profile_avatar', JSON.stringify(nextAvatar));
       } catch (error) {
         console.warn('Unable to save avatar to localStorage', error);
       }
@@ -204,7 +204,7 @@ export default function ProfilePage() {
               <ul className="mt-3 space-y-1.5">
                 {myPublishedMaps.map((m) => (
                   <li key={m.id} className="flex items-center gap-2 bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                     🗺️ <span className="text-slate-800">{m.title}</span>
+                     🗺️ <span className="text-slate-800 truncate min-w-0">{m.title}</span>
                      <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400 font-normal">{m.rarity}</span>
                   </li>
                 ))}

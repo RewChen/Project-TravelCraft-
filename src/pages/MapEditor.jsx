@@ -208,7 +208,7 @@ const drawingTools = [
 ];
 
 export default function MapEditor({ onBack }) {
-const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo, userAssets, addUserAsset, removeUserAsset, globalSettings, showAdminToast } = useApp();
+const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseMaps, updateUserBadges, saveEditorMapState, registerEditorDraft, navigateTo, userAssets, addUserAsset, removeUserAsset, globalSettings, showAdminToast } = useApp();
   const generateDraftId = () => {
     // Unique per draft so two users/editors never collide on the same map id.
     const rand = typeof crypto !== 'undefined' && crypto.randomUUID
@@ -220,7 +220,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, updat
   const [mapId] = useState(() => editorSetup?.id || generateDraftId());
   const [savedEditorState] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('pocket_odyssey_editorSaves')) || {};
+      const saved = JSON.parse(localStorage.getItem('project_travelcraft_editorSaves')) || {};
       return editorSetup?.editorState || saved[mapId] || null;
     } catch {
       return editorSetup?.editorState || null;
@@ -317,7 +317,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [brandFontWeight, setBrandFontWeight] = useState(900);
   const [photoLibrary, setPhotoLibrary] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('pocket_odyssey_photoLibrary')) || [];
+      return JSON.parse(localStorage.getItem('project_travelcraft_photoLibrary')) || [];
     } catch {
       return [];
     }
@@ -350,7 +350,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     if (!id) return;
     const snapshot = { ...state, updatedAt: Date.now() };
     try {
-      const key = 'pocket_odyssey_editorSaves';
+      const key = 'project_travelcraft_editorSaves';
       let saved = {};
       try {
         saved = JSON.parse(localStorage.getItem(key)) || {};
@@ -649,7 +649,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
   useEffect(() => {
     try {
-      localStorage.setItem('pocket_odyssey_photoLibrary', JSON.stringify(photoLibrary));
+      localStorage.setItem('project_travelcraft_photoLibrary', JSON.stringify(photoLibrary));
     } catch {
       // ignore quota errors
     }
@@ -887,7 +887,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     const mapData = {
 id: mapId,
       title: mapTitle.trim() || t('editor.untitledMap'),
-      region: editorSetup?.locationCity || editorSetup?.region || t('editor.realm', { name: t(activeTemplate.labelKey) }),
+      region: editorSetup?.locationCity || editorSetup?.region || '',
       description: publishDescription.trim() || t('editor.generatingDesc', {
         user: userProfile?.name || 'a TravelCraft traveler',
         name: t(activeTemplate.labelKey)
@@ -912,7 +912,7 @@ id: mapId,
     };
 
 if (publishPrivacy === 'private') {
-      localStorage.setItem('pocket_odyssey_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
+      localStorage.setItem('project_travelcraft_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
       setSaveStatus(t('editor.statusPrivateSaved'));
       setShowPublishModal(false);
       return;
@@ -1198,7 +1198,7 @@ if (publishPrivacy === 'private') {
 
   const getSavedProjects = () => {
     try {
-      const saved = JSON.parse(localStorage.getItem('pocket_odyssey_editorSaves')) || {};
+      const saved = JSON.parse(localStorage.getItem('project_travelcraft_editorSaves')) || {};
       return Object.entries(saved)
         .filter(([, state]) => state && typeof state === 'object')
         .map(([id, state]) => ({ id, ...state }))
@@ -1369,6 +1369,14 @@ if (publishPrivacy === 'private') {
     setSelectedTemplate(templateId);
     setBackgroundImage('');
   };
+
+  const selectBaseMapBackground = (baseMap) => {
+    setSelectedTemplate('blank');
+    setBackgroundImage(baseMap.image || baseMap.imageUrl || '');
+  };
+
+  const baseMapImageSelected = (baseMap) =>
+    backgroundImage && backgroundImage === (baseMap.image || baseMap.imageUrl);
 
   const savedProjects = getSavedProjects();
 
@@ -1937,6 +1945,38 @@ if (publishPrivacy === 'private') {
                     </button>
                   ))}
                 </div>
+
+                {baseMaps?.length > 0 && (
+                  <div className="mt-4 border-t-2 border-black pt-3">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                      {t('editor.baseMaps')}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {baseMaps.map((baseMap) => {
+                        const bg = baseMap.image || baseMap.imageUrl;
+                        const isActive = baseMapImageSelected(baseMap);
+                        return (
+                          <button
+                            key={baseMap.id}
+                            type="button"
+                            onClick={() => selectBaseMapBackground(baseMap)}
+                            aria-pressed={isActive}
+                            disabled={!bg}
+                            className={`aspect-square border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed ${isActive ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}
+                          >
+                            {bg ? (
+                              <img src={bg} alt={baseMap.name || baseMap.id} className="absolute inset-0 w-full h-full object-cover" />
+                            ) : (
+                              <div className="absolute inset-0 bg-gray-100 flex items-center justify-center text-xl">🗺️</div>
+                            )}
+                            {isActive && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
+                            <span className="relative z-10 bg-amber-300 border border-black px-1 text-[8px] font-black uppercase truncate max-w-full">{baseMap.name || 'BASE'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             {activeTab === 'ELEMENTS' && (
