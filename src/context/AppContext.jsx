@@ -675,17 +675,6 @@ export const AppProvider = ({ children }) => {
     };
   };
 
-  // Admin access is verified server-side only (admins table / users.role via
-  // fetchUserProfile). Never trust the client flag on boot.
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
-    name: 'Admin_01',
-    email: 'admin@travelcraft.com',
-    role: 'SUPERUSER',
-    badge: 'A1',
-    clearanceLevel: 5
-  }));
-
   const fetchUserProfile = async (userId) => {
     try {
       // 1. Authoritative server-side lookup (bypasses RLS, works whether the
@@ -1968,64 +1957,6 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       console.warn(e);
     }
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
-  };
-
-const loginAsAdmin = (customAdmin) => {
-    setIsLoggedIn(true);
-    setIsAdminLoggedIn(true);
-    const profile = {
-      id: customAdmin?.id || 'admin-local',
-      name: customAdmin?.name || 'Admin_01',
-      email: customAdmin?.email || 'admin@travelcraft.com',
-      avatar: customAdmin?.avatar || '🛡️',
-      role: 'Admin',
-      coins: 9999,
-      level: 99,
-      badges: ['Master Admin', 'System Lord'],
-      visitedCount: 99
-    };
-    setUserProfile(profile);
-    setAdminUser({
-      name: profile.name,
-      email: profile.email,
-      role: 'SUPERUSER',
-      badge: 'A1',
-      clearanceLevel: 5
-    });
-    try {
-      localStorage.setItem('pocket_odyssey_isAdmin', 'true');
-      sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
-      localStorage.setItem('pocket_odyssey_session', JSON.stringify({ type: 'admin', profile, adminUser: { name: profile.name, email: profile.email, role: 'SUPERUSER', badge: 'A1', clearanceLevel: 5 } }));
-    } catch (e) {
-      console.warn(e);
-    }
-    showAdminToast('🛡️ Welcome, Admin_01! Command Center unlocked.', 'success');
-    setCurrentPage('home');
-  };
-
-  const loginAsTrainer = (customTrainer) => {
-    setIsLoggedIn(true);
-    setIsAdminLoggedIn(false);
-    const profile = {
-      id: customTrainer?.id || 'trainer-local',
-      name: customTrainer?.name || 'Ash K.',
-      email: customTrainer?.email || '',
-      avatar: customTrainer?.avatar || '🧢',
-      role: customTrainer?.role || 'Cartographer',
-      coins: 1245,
-      level: 1,
-      badges: ['Pioneer'],
-      visitedCount: 4
-    };
-    setUserProfile(profile);
-    try {
-      localStorage.removeItem('pocket_odyssey_isAdmin');
-      sessionStorage.removeItem('pocket_odyssey_isAdmin');
-      localStorage.setItem('pocket_odyssey_session', JSON.stringify({ type: 'trainer', profile }));
-    } catch (e) {
-      console.warn(e);
-    }
-    setCurrentPage('home');
   };
 
   const signInWithOAuth = async (provider) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Compass, Star, Sparkles, Eye, Loader as Loader2 } from 'lucide-react';
+import { Compass, Star, Sparkles, Eye, Loader as Loader2 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import { fetchMapFeed } from '../../../lib/supabaseMaps';
 

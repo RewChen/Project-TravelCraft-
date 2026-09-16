@@ -5,7 +5,7 @@ import {
   Users,
   Compass,
   MapPin,
-  Settings,
+  AlertCircle,
   CheckCircle2,
   Eye,
   RefreshCw
