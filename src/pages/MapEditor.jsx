@@ -106,6 +106,41 @@ const mapTemplates = [
       backgroundColor: '#f5cf7b',
       backgroundImage: 'linear-gradient(180deg, transparent 0 39%, #98613d 40% 52%, #f5cf7b 53% 62%, #35afd2 63%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px)'
     }
+  },
+  {
+    id: 'gametion-village-lake',
+    labelKey: 'editor.templateGametionVillageLake',
+    preview: 'url("/templates/map1.png") center / cover, #e2f0d9',
+    image: '/templates/map1.png',
+    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+  },
+  {
+    id: 'gametion-region-fields',
+    labelKey: 'editor.templateGametionRegionFields',
+    preview: 'url("/templates/map2.jpg") center / cover, #e2f0d9',
+    image: '/templates/map2.jpg',
+    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+  },
+  {
+    id: 'gametion-lighthouse-cave',
+    labelKey: 'editor.templateGametionLighthouseCave',
+    preview: 'url("/templates/map3.jpg") center / cover, #e2f0d9',
+    image: '/templates/map3.jpg',
+    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+  },
+  {
+    id: 'gametion-volcanic-cavern',
+    labelKey: 'editor.templateGametionVolcanicCavern',
+    preview: 'url("/templates/map4.jpg") center / cover, #201818',
+    image: '/templates/map4.jpg',
+    canvas: { backgroundColor: '#201818', backgroundImage: 'none' }
+  },
+  {
+    id: 'gametion-world-region',
+    labelKey: 'editor.templateGametionWorldRegion',
+    preview: 'url("/templates/map5.jpg") center / cover, #1377b9',
+    image: '/templates/map5.jpg',
+    canvas: { backgroundColor: '#1377b9', backgroundImage: 'none' }
   }
 ];
 
@@ -1312,10 +1347,11 @@ if (publishPrivacy === 'private') {
     transform: `scale(${1 / camera.scale})`,
     transformOrigin: 'top left'
   } : {};
-  const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate);
+  const activeTemplate = mapTemplates.find((template) => template.id === selectedTemplate) || mapTemplates[0];
   const selectTemplate = (templateId) => {
+    const template = mapTemplates.find((item) => item.id === templateId);
     setSelectedTemplate(templateId);
-    setBackgroundImage('');
+    setBackgroundImage(template?.image || '');
   };
 
   const selectBaseMapBackground = (baseMap) => {
@@ -1871,9 +1907,9 @@ if (publishPrivacy === 'private') {
           <div className="flex-1 overflow-y-auto p-4">
             {activeTab === 'TEMPLATES' && (
               <div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-wrap gap-3">
                   {mapTemplates.map((template) => (
-                    <button key={template.id} type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} className={`aspect-square border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
+                    <button key={template.id} type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} className={`aspect-square w-[calc(50%-0.375rem)] border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
                       <div className="absolute inset-0" style={{ background: template.preview }}></div>
                       <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
                       {selectedTemplate === template.id && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
@@ -1887,7 +1923,7 @@ if (publishPrivacy === 'private') {
                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
                       {t('editor.baseMaps')}
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-wrap gap-3">
                       {baseMaps.map((baseMap) => {
                         const bg = baseMap.image || baseMap.imageUrl;
                         const isActive = baseMapImageSelected(baseMap);
@@ -1898,7 +1934,7 @@ if (publishPrivacy === 'private') {
                             onClick={() => selectBaseMapBackground(baseMap)}
                             aria-pressed={isActive}
                             disabled={!bg}
-                            className={`aspect-square border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed ${isActive ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}
+                            className={`aspect-square w-[calc(50%-0.375rem)] border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed ${isActive ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}
                           >
                             {bg ? (
                               <img src={bg} alt={baseMap.name || baseMap.id} className="absolute inset-0 w-full h-full object-cover" />
