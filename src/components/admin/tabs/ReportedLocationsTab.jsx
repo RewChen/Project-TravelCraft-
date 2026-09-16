@@ -2,8 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   AlertTriangle,
   Trash2,
-  Eye,
-  EyeOff,
   CheckCircle2,
   Info,
   ShieldAlert,
@@ -16,7 +14,6 @@ export default function ReportedLocationsTab() {
   const {
     reportedLocations,
     resolveReport,
-    hideReportedLocation,
     deleteReportedLocation,
     globalSettings,
     t
@@ -85,9 +82,7 @@ export default function ReportedLocationsTab() {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-amber-50/50 transition-colors ${
-                        item.isHidden ? 'bg-gray-50 opacity-75' : ''
-                      }`}
+                      className="hover:bg-amber-50/50 transition-colors"
                     >
                       {/* Location Name */}
                       <td className="p-3.5 px-4 font-black text-black">
@@ -95,11 +90,6 @@ export default function ReportedLocationsTab() {
                           <span className={item.category === 'SPAM' ? 'text-red-600' : 'text-black'}>
                             {item.locationName}
                           </span>
-                          {item.isHidden && (
-                            <span className="text-[9px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded border border-black uppercase">
-                              {t('admin.hidden')}
-                            </span>
-                          )}
                         </div>
                       </td>
 
@@ -122,7 +112,7 @@ export default function ReportedLocationsTab() {
                       </td>
 
                       {/* Report Count */}
-                      <td className="p-3.5 font-black text-red-600">{item.count}</td>
+                      <td className="p-3.5 font-black text-red-600">{item.count || '—'}</td>
 
                       {/* Actions */}
                       <td className="p-3.5 text-center">
@@ -140,15 +130,6 @@ export default function ReportedLocationsTab() {
                               className="w-7 h-7 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg flex items-center justify-center cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:scale-95"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Hide (Yellow eye) */}
-                            <button
-                              onClick={() => hideReportedLocation(item.id)}
-                              title={item.isHidden ? t('admin.unhideLocation') : t('admin.hideLocation')}
-                              className="w-7 h-7 bg-[#eab308] hover:bg-amber-400 text-black border-2 border-black rounded-lg flex items-center justify-center cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:scale-95"
-                            >
-                              {item.isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                             </button>
 
                             {/* Resolve (Green check) */}

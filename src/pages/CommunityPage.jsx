@@ -1,7 +1,16 @@
 import { useState } from 'react';
-import { Search, Mountain, Trees, Building2, Target, Trash2, Utensils, Plane, Gamepad2, Landmark } from 'lucide-react';
+import { Search, Mountain, Trees, Building2, Eye, Trash2, Utensils, Plane, Gamepad2, Landmark, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
+
+// Older maps may carry placeholder region values (never display those).
+const placeholderRegions = new Set([
+  'Custom Traveler Realm',
+  'Custom Realm',
+  'Unknown Region',
+  'Global Realm',
+  'Custom Realms'
+]);
 
 const presetTagMeta = {
   restaurant: { labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
@@ -12,12 +21,14 @@ const presetTagMeta = {
 };
 
 export default function CommunityPage() {
-  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, t } = useApp();
+  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, isAdminLoggedIn, showAdminToast, t } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
   const canDeleteMap = (mapItem) =>
+    isAdminLoggedIn === true ||
     (mapItem.isEditorMap === true && !mapItem._summaryOnly) ||
     Boolean(userProfile && (
     mapItem.ownerId
@@ -51,14 +62,14 @@ export default function CommunityPage() {
       try {
         const full = await fetchMapById(mapItem.id);
         if (full) {
-          navigateTo('details', full.details);
+          navigateTo('details', full);
           return;
         }
       } catch {
         // fall through to the summary details
       }
     }
-    navigateTo('details', mapItem.details);
+    navigateTo('details', mapItem);
   };
   const filteredMaps = (communityMaps || []).filter(isRealDbMap).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
     if (!item?.id || seenIds.has(item.id)) return false;
@@ -186,6 +197,18 @@ export default function CommunityPage() {
                   </div>
                 )}
                 
+                {(() => {
+                  const rawRegion = mapItem.locationCity || mapItem.region || '';
+                  const displayCountry = rawRegion && !rawRegion.toLowerCase().startsWith('editor.') && !placeholderRegions.has(rawRegion)
+                    ? rawRegion
+                    : '';
+                  return displayCountry ? (
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase mb-3">
+                      <MapPin className="w-3 h-3 shrink-0" /> {displayCountry}
+                    </div>
+                  ) : null;
+                })()}
+
                 {/* Author Info & Role */}
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-4">
                   <div className="flex items-center gap-2">
@@ -212,15 +235,18 @@ export default function CommunityPage() {
                   onClick={() => trackMapOnWorldMap(mapItem)}
                   className="w-full bg-white hover:bg-amber-100 text-black font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Target className="w-4 h-4 text-black" /> {t('community.trackOnMap')}
+                  <Eye className="w-4 h-4 text-black" /> {t('community.trackOnMap')}
                 </button>
 
                 {canDeleteMap(mapItem) && (
                   <button
-                    onClick={() => setDeleteTarget(mapItem)}
+                    onClick={() => {
+                      setDeleteReason('');
+                      setDeleteTarget(mapItem);
+                    }}
                     className="w-full bg-white hover:bg-red-50 text-red-700 font-black py-2.5 px-4 border-2 border-red-700 text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" /> {t('community.deleteMyMap')}
+                    <Trash2 className="w-4 h-4" /> {isAdminLoggedIn ? t('community.deleteThisUserMap') : t('community.deleteMyMap')}
                   </button>
                 )}
               </div>
@@ -249,6 +275,25 @@ export default function CommunityPage() {
               <p className="text-sm font-bold text-gray-800">
                 {t('community.deleteConfirm', { title: deleteTarget.title })} This cannot be undone.
               </p>
+
+              <div className="mt-4">
+                <label className="block text-[11px] font-black uppercase text-gray-500 mb-1.5">
+                  {t('community.deleteReasonLabel')}
+                </label>
+                <textarea
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder={t('community.deleteReasonPh')}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-50 border-2 border-black rounded-lg text-xs font-bold focus:outline-none focus:bg-amber-50"
+                />
+                {!deleteReason.trim() && (
+                  <p className="mt-1 text-[10px] font-black uppercase text-red-600">
+                    {t('community.deleteReasonRequired')}
+                  </p>
+                )}
+              </div>
+
               <div className="mt-6 flex justify-end gap-2">
                 <button
                   onClick={() => setDeleteTarget(null)}
@@ -257,11 +302,14 @@ export default function CommunityPage() {
                   Cancel
                 </button>
                 <button
+                  disabled={!deleteReason.trim()}
                   onClick={() => {
-                    deleteCommunityMap(deleteTarget.id);
+                    deleteCommunityMap(deleteTarget.id, deleteReason.trim());
+                    showAdminToast(`Map deleted. Reason: ${deleteReason.trim()}`, 'info');
                     setDeleteTarget(null);
+                    setDeleteReason('');
                   }}
-                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>

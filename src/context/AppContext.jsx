@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { translations, languages } from '../i18n';
 import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
-import { supabase } from '../lib/supabaseClient';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   fetchGlobalSettings,
   saveGlobalSettings,
@@ -9,7 +9,10 @@ import {
   insertReport,
   updateReportStatus,
   deleteReportRow,
-  setMapBaseFlag
+  setMapBaseFlag,
+  upsertAdminBaseMap,
+  fetchAdminBaseMaps,
+  deleteBaseMapRow
 } from '../lib/supabaseAdmin';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import {
@@ -358,45 +361,6 @@ const initialTrainers = [
   }
 ];
 
-const initialReportedLocations = [
-  {
-    id: 'rep-1',
-    locationName: 'Team Rocket Secret Base',
-    creator: 'Grunt #42',
-    category: 'SPAM',
-    categoryColor: 'bg-red-100 text-red-700 border-red-400',
-    count: 158,
-    status: 'pending',
-    isHidden: false,
-    reason: 'Commercial spam and illicit game casino advertisements.',
-    reportedAt: '2 hours ago'
-  },
-  {
-    id: 'rep-2',
-    locationName: 'Invisible Bridge',
-    creator: 'Trainer Blue',
-    category: 'FAKE LOCATION',
-    categoryColor: 'bg-amber-100 text-amber-700 border-amber-400',
-    count: 42,
-    status: 'pending',
-    isHidden: false,
-    reason: 'Coords lead to inaccessible open water tile with no collision.',
-    reportedAt: '5 hours ago'
-  },
-  {
-    id: 'rep-3',
-    locationName: 'Glitch City',
-    creator: 'MissingNo',
-    category: 'INAPPROPRIATE',
-    categoryColor: 'bg-blue-100 text-blue-700 border-blue-400',
-    count: 12,
-    status: 'resolved',
-    isHidden: true,
-    reason: 'Corrupted sprite tile glitching viewer clients.',
-    reportedAt: '1 day ago'
-  }
-];
-
 const initialGlobalSettings = {
   maxPinsPerMap: 50,
 autoApproveCommunity: false,
@@ -455,7 +419,7 @@ export const AppProvider = ({ children }) => {
   const [authMode, setAuthMode] = useState('login');
   const [themeMode, setThemeMode] = useState(() => {
     try {
-      const storedTheme = localStorage.getItem('pocket_odyssey_themeMode');
+      const storedTheme = localStorage.getItem('project_travelcraft_themeMode');
       if (!storedTheme) return 'light';
       // persistSnapshot stores JSON.stringify(themeMode); tolerate legacy raw values too.
       const parsed = JSON.parse(storedTheme);
@@ -467,7 +431,7 @@ export const AppProvider = ({ children }) => {
 
   const [language, setLanguageState] = useState(() => {
     try {
-      const storedLang = localStorage.getItem('pocket_odyssey_language');
+      const storedLang = localStorage.getItem('project_travelcraft_language');
       return storedLang || 'en';
     } catch {
       return 'en';
@@ -493,7 +457,7 @@ export const AppProvider = ({ children }) => {
     if (translations[code]) {
       setLanguageState(code);
       try {
-        const bc = new BroadcastChannel('pocket_odyssey_lang');
+        const bc = new BroadcastChannel('project_travelcraft_lang');
         bc.postMessage({ language: code });
         bc.close();
       } catch {
@@ -506,7 +470,7 @@ export const AppProvider = ({ children }) => {
     setLanguageState((prev) => {
       const next = prev === 'en' ? 'th' : 'en';
       try {
-        const bc = new BroadcastChannel('pocket_odyssey_lang');
+        const bc = new BroadcastChannel('project_travelcraft_lang');
         bc.postMessage({ language: next });
         bc.close();
       } catch {
@@ -519,10 +483,10 @@ export const AppProvider = ({ children }) => {
   // Cross-tab / cross-dashboard language sync: storage event + BroadcastChannel fallback.
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key === 'pocket_odyssey_language' && e.newValue && translations[e.newValue] && e.newValue !== language) {
+      if (e.key === 'project_travelcraft_language' && e.newValue && translations[e.newValue] && e.newValue !== language) {
         setLanguageState(e.newValue);
       }
-      if (e.key === 'pocket_odyssey_themeMode' && e.newValue) {
+      if (e.key === 'project_travelcraft_themeMode' && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
           if (parsed && parsed !== themeMode) setThemeMode(parsed);
@@ -535,7 +499,7 @@ export const AppProvider = ({ children }) => {
     // Also listen to BroadcastChannel for same-tab immediate sync (some browsers don't fire storage for same tab)
     let bc;
     try {
-      bc = new BroadcastChannel('pocket_odyssey_lang');
+      bc = new BroadcastChannel('project_travelcraft_lang');
       bc.onmessage = (ev) => {
         if (ev.data?.language && translations[ev.data.language] && ev.data.language !== language) {
           setLanguageState(ev.data.language);
@@ -553,7 +517,7 @@ export const AppProvider = ({ children }) => {
   // LocalStorage Helper Read
   const loadStored = (key, fallback) => {
     try {
-      const stored = localStorage.getItem(`pocket_odyssey_${key}`);
+      const stored = localStorage.getItem(`project_travelcraft_${key}`);
       return stored ? JSON.parse(stored) : fallback;
     } catch {
       return fallback;
@@ -581,7 +545,7 @@ export const AppProvider = ({ children }) => {
 
   const getStoredRole = () => {
     try {
-      return localStorage.getItem('pocket_odyssey_userRole') || null;
+      return localStorage.getItem('project_travelcraft_userRole') || null;
     } catch {
       return null;
     }
@@ -589,7 +553,7 @@ export const AppProvider = ({ children }) => {
 
   const getStoredBadges = () => {
     try {
-      const raw = localStorage.getItem('pocket_odyssey_badges');
+      const raw = localStorage.getItem('project_travelcraft_badges');
       const parsed = raw ? JSON.parse(raw) : [];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
@@ -602,7 +566,7 @@ export const AppProvider = ({ children }) => {
     const next = Array.isArray(badges) ? badges : [];
     setUserProfile((prev) => (prev ? { ...prev, badges: next } : prev));
     try {
-      localStorage.setItem('pocket_odyssey_badges', JSON.stringify(next));
+      localStorage.setItem('project_travelcraft_badges', JSON.stringify(next));
     } catch {
       // ignore storage failures
     }
@@ -618,7 +582,7 @@ export const AppProvider = ({ children }) => {
     if (!normalized) return { success: false, error: 'forbidden' };
     setUserProfile((prev) => (prev ? { ...prev, role: normalized } : { role: normalized, name: 'Traveler' }));
     try {
-      localStorage.setItem('pocket_odyssey_userRole', normalized);
+      localStorage.setItem('project_travelcraft_userRole', normalized);
     } catch (err) {
       console.warn(err);
     }
@@ -846,7 +810,7 @@ export const AppProvider = ({ children }) => {
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
   // Per-user saved editor Elements & Backgrounds (DB when signed in, localStorage for guests).
-  const USER_ASSETS_KEY = 'pocket_odyssey_userAssets';
+  const USER_ASSETS_KEY = 'project_travelcraft_userAssets';
   const [userAssets, setUserAssets] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(USER_ASSETS_KEY)) || [];
@@ -1056,9 +1020,11 @@ export const AppProvider = ({ children }) => {
   // Admin access is verified server-side only (admins table / users.role via
   // fetchUserProfile). Never trust the client flag on boot.
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
-  const [baseMaps, setBaseMaps] = useState(() => loadStored('adminBaseMaps', initialBaseMaps));
+  const [baseMaps, setBaseMaps] = useState(() =>
+    isSupabaseConfigured ? [] : loadStored('adminBaseMaps', initialBaseMaps)
+  );
   const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
-  const [reportedLocations, setReportedLocations] = useState(() => loadStored('adminReports', initialReportedLocations));
+  const [reportedLocations, setReportedLocations] = useState([]);
   const [globalSettings, setGlobalSettings] = useState(() => loadStored('adminSettings', initialGlobalSettings));
   const [adminToast, setAdminToast] = useState(null);
 
@@ -1145,15 +1111,15 @@ export const AppProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, [isAuthLoading]);
 
-  // Hydrate reported locations from the real reports table. Local-only reports
-  // (offline submissions / legacy mock entries) are kept and appended after DB rows.
+  // Hydrate reported locations from the real reports table. Admin view is DB-pure:
+  // only rows that exist in Supabase appear (no mock or offline-only entries).
   useEffect(() => {
     if (isAuthLoading) return undefined;
     let cancelled = false;
     const hydrateReportsFromDb = async () => {
       try {
         const rows = await fetchReports();
-        if (cancelled || !rows.length) return;
+        if (cancelled) return;
         const mapped = rows.map((r) => {
           const reason = (r.reason || '').toUpperCase();
           const category = reason || 'OTHER';
@@ -1171,17 +1137,12 @@ export const AppProvider = ({ children }) => {
             categoryColor,
             count: 0,
             status: r.status,
-            isHidden: false,
             reason: r.details || r.reason || '',
             reportedAt: r.created_at,
             mapId: r.map_id || null,
-            isDbReport: true,
           };
         });
-        setReportedLocations((prev) => {
-          const localOnly = prev.filter((p) => !p.isDbReport);
-          return [...mapped, ...localOnly];
-        });
+        setReportedLocations(mapped);
       } catch (err) {
         console.warn('Reports hydration skipped:', err);
       }
@@ -1190,38 +1151,47 @@ export const AppProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, [isAuthLoading]);
 
-  // Hydrate promoted base maps (maps flagged is_base_map) for the admin only.
+  // Hydrate base maps (maps flagged is_base_map) straight from the DB.
+  // Not gated on admin login: base maps are public rows and reading them here
+  // keeps "Active Base Maps" honest — no ghost seed rows when the DB is empty.
+  // Seed data is only used when Supabase isn't configured at all.
   useEffect(() => {
-    if (isAuthLoading || !isAdminLoggedIn) return undefined;
+    if (isAuthLoading) return undefined;
     let cancelled = false;
     const hydrateBaseMapsFromDb = async () => {
+      if (!isSupabaseConfigured) {
+        setBaseMaps(initialBaseMaps);
+        return;
+      }
       try {
-        const { data, error } = await supabase
-          .from('maps')
-          .select('id, title, summary, owner_id')
-          .eq('is_base_map', true)
-          .limit(100);
+        const rows = await fetchAdminBaseMaps();
         if (cancelled) return;
-        if (error) throw error;
-        const mapped = (data || []).map((row) => {
+        const mapped = (rows || []).map((row) => {
           const s = row.summary || {};
+          const d = row.data || {};
           return {
             id: row.id,
             ownerId: row.owner_id,
-            name: s.title || row.title || 'Untitled Map',
-            image: s.imageUrl || null,
-            description: s.lore || s.region || 'Curated base map',
+            name: s.title || d.name || row.title || 'Untitled Map',
+            theme: d.theme || 'Plains & Forest',
+            region: d.region || s.region || 'Unknown Region',
+            image: s.imageUrl || d.image || null,
+            description: d.description || s.lore || 'Curated base map',
             badge: 'BASE',
+            pinsCount: s.pinCount || 0,
+            rating: 5.0,
+            createdAt: row.created_at || null
           };
         });
-        setBaseMaps(mapped.length ? mapped : initialBaseMaps);
+        setBaseMaps(mapped);
       } catch (err) {
-        console.warn('Base maps hydration skipped:', err);
+        console.warn('Base maps DB read failed; restoring local list:', err);
+        setBaseMaps(loadStored('adminBaseMaps', initialBaseMaps));
       }
     };
     hydrateBaseMapsFromDb();
     return () => { cancelled = true; };
-  }, [isAuthLoading, isAdminLoggedIn]);
+  }, [isAuthLoading]);
 
   // Realtime sync: whenever any user creates/updates/deletes a map or user, keep admin dashboard in sync with the user UI.
   // Also pushes real system notifications to the bell.
@@ -1333,17 +1303,16 @@ export const AppProvider = ({ children }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const trimMedia = Boolean(session);
-      localStorage.setItem('pocket_odyssey_mapPins', JSON.stringify(mapPins));
-      localStorage.setItem('pocket_odyssey_mapBgImage', JSON.stringify(mapBackgroundImage));
-      localStorage.setItem('pocket_odyssey_favorites', JSON.stringify(favorites));
-      localStorage.setItem('pocket_odyssey_communityMaps', JSON.stringify(serializeCommunityMapsForStorage(communityMaps, trimMedia)));
-      localStorage.setItem('pocket_odyssey_adminBaseMaps', JSON.stringify(baseMaps));
-      localStorage.setItem('pocket_odyssey_adminTrainers', JSON.stringify(trainers));
-      localStorage.setItem('pocket_odyssey_adminReports', JSON.stringify(reportedLocations));
-      localStorage.setItem('pocket_odyssey_adminSettings', JSON.stringify(globalSettings));
-      localStorage.setItem('pocket_odyssey_themeMode', JSON.stringify(themeMode));
-      localStorage.setItem('pocket_odyssey_language', language);
-      localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
+      localStorage.setItem('project_travelcraft_mapPins', JSON.stringify(mapPins));
+      localStorage.setItem('project_travelcraft_mapBgImage', JSON.stringify(mapBackgroundImage));
+      localStorage.setItem('project_travelcraft_favorites', JSON.stringify(favorites));
+      localStorage.setItem('project_travelcraft_communityMaps', JSON.stringify(serializeCommunityMapsForStorage(communityMaps, trimMedia)));
+      localStorage.setItem('project_travelcraft_adminBaseMaps', JSON.stringify(baseMaps));
+      localStorage.setItem('project_travelcraft_adminTrainers', JSON.stringify(trainers));
+      localStorage.setItem('project_travelcraft_adminSettings', JSON.stringify(globalSettings));
+      localStorage.setItem('project_travelcraft_themeMode', JSON.stringify(themeMode));
+      localStorage.setItem('project_travelcraft_language', language);
+      localStorage.setItem('project_travelcraft_notifications', JSON.stringify(notifications));
     } catch (err) {
       if (err && err.name === 'QuotaExceededError') {
         // Storage is full (usually uploaded media stored as data URLs). Never
@@ -1360,15 +1329,15 @@ export const AppProvider = ({ children }) => {
             }
           }
         };
-        forceTrimmedSave('pocket_odyssey_mapPins', mapPins);
-        forceTrimmedSave('pocket_odyssey_mapBgImage', mapBackgroundImage);
-        forceTrimmedSave('pocket_odyssey_communityMaps', serializeCommunityMapsForStorage(communityMaps, true));
+        forceTrimmedSave('project_travelcraft_mapPins', mapPins);
+        forceTrimmedSave('project_travelcraft_mapBgImage', mapBackgroundImage);
+        forceTrimmedSave('project_travelcraft_communityMaps', serializeCommunityMapsForStorage(communityMaps, true));
         console.warn('LocalStorage quota reached; saved snapshot without embedded media.');
       } else {
         console.warn('LocalStorage save error:', err);
       }
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, reportedLocations, globalSettings, themeMode, language, notifications]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, globalSettings, themeMode, language, notifications]);
 
   const persistSnapshotRef = useRef(persistSnapshot);
   useEffect(() => {
@@ -1674,7 +1643,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       tags: draft.tags || [],
       details: {
         title: draft.title || 'Untitled Map',
-        region: draft.locationCity || 'Custom Traveler Realm',
+        region: draft.locationCity || '',
         type: 'Community Map',
         tag: 'Custom',
         lore: draft.description || 'A custom map still being designed.',
@@ -1730,7 +1699,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       selfieUrls: newCommunityMap.selfieUrls || (newCommunityMap.selfieUrl ? [newCommunityMap.selfieUrl] : null),
       details: {
         title,
-        region: newCommunityMap.region || 'Custom Traveler Realm',
+        region: newCommunityMap.region || '',
         type: 'Community Map',
         tag: 'Custom',
         lore: newCommunityMap.description || 'A custom world map created and shared by an explorer.',
@@ -1789,10 +1758,19 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     return Boolean(userProfile) && mapItem.discoveredBy === userProfile?.name;
   };
 
-  const deleteCommunityMap = (mapId) => {
+  const deleteCommunityMap = (mapId, reason = '') => {
     setCommunityMaps((previous) => previous.filter((map) => !(map.id === mapId && isOwnMap(map))));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
+    if (reason) console.info(`[moderation] Community map deleted: ${mapId} — reason: ${reason}`);
+  };
+
+  // Admin moderation: remove ANY map from Community Discoveries regardless of ownership.
+  const adminDeleteCommunityMap = (mapId, reason = '') => {
+    setCommunityMaps((previous) => previous.filter((map) => map.id !== mapId));
+    deleteMapFromDb(mapId);
+    deleteMapAssets(mapId);
+    if (reason) console.info(`[moderation] Community map deleted by admin: ${mapId} — reason: ${reason}`);
   };
 
   // --- Admin Action Handlers ---
@@ -1803,28 +1781,17 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       )
     );
     try {
-      const target = reportedLocations.find((rep) => rep.id === reportId);
-      if (target?.isDbReport) await updateReportStatus(reportId, 'resolved');
+      await updateReportStatus(reportId, 'resolved');
     } catch (err) {
       console.warn('Resolve report DB write skipped:', err);
     }
     showAdminToast('Report marked as RESOLVED.', 'success');
   };
 
-  const hideReportedLocation = (reportId) => {
-    setReportedLocations((prev) =>
-      prev.map((rep) =>
-        rep.id === reportId ? { ...rep, isHidden: !rep.isHidden } : rep
-      )
-    );
-    showAdminToast('Location visibility toggled.', 'info');
-  };
-
   const deleteReportedLocation = async (reportId) => {
     setReportedLocations((prev) => prev.filter((rep) => rep.id !== reportId));
     try {
-      const target = reportedLocations.find((rep) => rep.id === reportId);
-      if (target?.isDbReport) await deleteReportRow(reportId);
+      await deleteReportRow(reportId);
     } catch (err) {
       console.warn('Delete report DB write skipped:', err);
     }
@@ -1833,35 +1800,13 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   // Submit a new report from a trainer (world map / details page).
   const submitReport = useCallback(async ({ reporterId, reporterName, mapId, locationName, reason, details }) => {
-    let saved = false;
     try {
       await insertReport({ reporterId, reporterName, mapId, locationName, reason, details });
-      saved = true;
     } catch (err) {
       console.warn('Report submission skipped (offline/unauth):', err);
+      return false;
     }
-    if (saved) {
-      setReportedLocations((prev) => {
-        const duplicate = prev.some((r) => r.locationName === locationName && r.status === 'pending');
-        if (duplicate) return prev;
-        return [{
-          id: null,
-          locationName,
-          creator: reporterName || 'Anonymous',
-          category: reason.toUpperCase(),
-          categoryColor: 'bg-blue-100 text-blue-800 border-blue-400',
-          count: 0,
-          status: 'pending',
-          isHidden: false,
-          reason: details || '',
-          reportedAt: new Date().toISOString(),
-          mapId: mapId || null,
-          isDbReport: false,
-        }, ...prev];
-      });
-      return true;
-    }
-    return false;
+    return true;
   }, []);
 
   const warnTrainer = (trainerIdentifier) => {
@@ -1875,7 +1820,19 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     showAdminToast(`Warning & strike issued to ${trainerIdentifier}.`, 'warning');
   };
 
-  const banTrainer = (trainerIdentifier) => {
+  const persistAdminUserUpdate = async (userId, patch) => {
+    try {
+      const { error } = await supabase.from('users').update(patch).eq('id', userId);
+      if (error) {
+        await supabase.rpc('admin_update_user_role', { p_user_id: userId, p_role: patch.role, p_status: patch.status });
+      }
+    } catch (err) {
+      console.warn('User role/status DB write skipped:', err);
+    }
+  };
+
+  const banTrainer = async (trainerIdentifier) => {
+    const target = trainers.find((tr) => tr.id === trainerIdentifier || tr.name === trainerIdentifier);
     setTrainers((prev) =>
       prev.map((tr) =>
         tr.id === trainerIdentifier || tr.name === trainerIdentifier
@@ -1883,42 +1840,98 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
           : tr
       )
     );
+    if (target?.id) await persistAdminUserUpdate(target.id, { status: 'banned', role: 'Banned' });
     showAdminToast(`Trainer ${trainerIdentifier} has been BANNED.`, 'error');
   };
 
-  const unbanTrainer = (trainerId) => {
+  const unbanTrainer = async (trainerId) => {
     setTrainers((prev) =>
       prev.map((tr) =>
         tr.id === trainerId ? { ...tr, status: 'active', role: 'Member', strikes: 0 } : tr
       )
     );
+    await persistAdminUserUpdate(trainerId, { status: 'active', role: 'Member' });
     showAdminToast('Trainer unbanned & reinstated.', 'success');
   };
 
-  const changeTrainerRole = (trainerId, newRole) => {
+  const changeTrainerRole = async (trainerId, newRole) => {
     setTrainers((prev) =>
       prev.map((tr) =>
         tr.id === trainerId ? { ...tr, role: newRole } : tr
       )
     );
+    await persistAdminUserUpdate(trainerId, { role: newRole.toLowerCase() });
     showAdminToast(`Role updated to ${newRole}.`, 'success');
   };
 
-  const addBaseMap = (newMap) => {
-    const mapWithId = {
-      id: `base-${Date.now()}`,
+  const addBaseMap = async (newMap, fixedId) => {
+    const id = fixedId || `base-${Date.now()}`;
+    const mapRow = {
+      id,
+      owner_id: userProfile?.id || null,
+      title: newMap.name,
+      privacy: 'public',
+      is_editor_map: false,
+      is_base_map: true,
+      data: {
+        name: newMap.name,
+        theme: newMap.theme,
+        region: newMap.region,
+        image: newMap.image,
+        description: newMap.description
+      },
+      summary: {
+        title: newMap.name,
+        imageUrl: newMap.image,
+        region: newMap.region,
+        theme: newMap.theme,
+        pinCount: 0
+      }
+    };
+
+    if (!isSupabaseConfigured) {
+      setBaseMaps((prev) => [...prev, {
+        id,
+        badge: 'BASE',
+        pinsCount: 0,
+        rating: 5.0,
+        description: 'A new frontier ready for trainer quests and cartography.',
+        ...newMap
+      }]);
+      showAdminToast(`Base Map "${newMap.name}" created locally (DB not configured).`, 'info');
+      return null;
+    }
+
+    try {
+      await upsertAdminBaseMap(mapRow);
+    } catch (err) {
+      console.warn('Base map DB write failed:', err);
+      showAdminToast(`Base Map "${newMap.name}" NOT saved to database — nothing added.`, 'error');
+      return null;
+    }
+    setBaseMaps((prev) => [...prev, {
+      id,
       badge: 'BASE',
       pinsCount: 0,
       rating: 5.0,
+      description: 'A new frontier ready for trainer quests and cartography.',
       ...newMap
-    };
-    setBaseMaps((prev) => [...prev, mapWithId]);
-    showAdminToast(`Base Map "${newMap.name}" created!`, 'success');
+    }]);
+    showAdminToast(`Base Map "${newMap.name}" created & synced to DB!`, 'success');
+    return id;
   };
 
-  const deleteBaseMap = (mapId) => {
+  const deleteBaseMap = async (mapId) => {
+    try {
+      await deleteBaseMapRow(mapId);
+    } catch (err) {
+      console.warn('Base map DB delete failed:', err);
+      showAdminToast('Base map NOT deleted from database — keeping it in the list.', 'error');
+      return false;
+    }
     setBaseMaps((prev) => prev.filter((m) => m.id !== mapId));
-    showAdminToast('Base map deleted.', 'info');
+    showAdminToast('Base map deleted from database.', 'info');
+    return true;
   };
 
   const updateGlobalSettings = async (newSettings) => {
@@ -1943,21 +1956,25 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   const setMapBaseFlagFor = async (mapId, isBase) => {
     try {
       await setMapBaseFlag(mapId, isBase);
+      return true;
     } catch (err) {
-      console.warn('Base map flag DB write skipped:', err);
+      console.warn('Base map flag DB write failed:', err);
+      showAdminToast('Base map flag NOT saved to database.', 'error');
+      return false;
     }
   };
 
   const adminLogout = () => {
     setIsAdminLoggedIn(false);
     try {
-      sessionStorage.removeItem('pocket_odyssey_isAdmin');
-      localStorage.removeItem('pocket_odyssey_isAdmin');
+      sessionStorage.removeItem('project_travelcraft_isAdmin');
+      localStorage.removeItem('project_travelcraft_isAdmin');
     } catch (e) {
       console.warn(e);
     }
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
   };
+
 
   const signInWithOAuth = async (provider) => {
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
@@ -1993,9 +2010,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     setIsAdminLoggedIn(false);
     setUserProfile(null);
     try {
-      localStorage.removeItem('pocket_odyssey_isAdmin');
-      sessionStorage.removeItem('pocket_odyssey_isAdmin');
-      localStorage.removeItem('pocket_odyssey_session');
+      localStorage.removeItem('project_travelcraft_isAdmin');
+      sessionStorage.removeItem('project_travelcraft_isAdmin');
+      localStorage.removeItem('project_travelcraft_session');
     } catch (e) {
       console.warn(e);
     }
@@ -2005,7 +2022,20 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   const navigateTo = (page, location = null) => {
     if (location) {
-      setSelectedLocation(location);
+      // Map items keep their publish-time data split across the top level
+      // (title, cover, video, selfies, tags, logs) and the nested `details`
+      // object (description/lore, region, hours, fee...). Merge both so the
+      // Details page always sees exactly what the user entered on Publish Map.
+      const nested = location.details && typeof location.details === 'object' ? location.details : null;
+      const view = nested
+        ? {
+            ...location,
+            ...nested,
+            title: location.title ?? nested.title ?? '',
+            lore: location.lore ?? location.description ?? nested.lore ?? ''
+          }
+        : location;
+      setSelectedLocation(view);
     }
     if (page !== 'map' || !activeCommunityMap) {
       try {
@@ -2062,6 +2092,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,
+        adminDeleteCommunityMap,
         isOwnMap,
         saveEditorMapState,
         registerEditorDraft,
@@ -2098,7 +2129,6 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         adminToast,
         showAdminToast,
         resolveReport,
-        hideReportedLocation,
         deleteReportedLocation,
         submitReport,
         warnTrainer,

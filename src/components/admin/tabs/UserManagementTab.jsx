@@ -118,7 +118,7 @@ export default function UserManagementTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b-4 border-black pb-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
-            <span>{t('admin.trainerRegistry')}</span>
+            <span>{t('admin.userManagement')}</span>
           </h2>
           <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
             {t('admin.managePersonnel')}
@@ -133,10 +133,23 @@ export default function UserManagementTab() {
               type="text"
               value={searchTrainer}
               onChange={(e) => setSearchTrainer(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  showAdminToast(`Search: ${filteredTrainers.length} user(s) found`, 'info');
+                }
+              }}
               placeholder={t('admin.findTrainer')}
               className="pl-9 pr-3 py-2 bg-white border-2 border-black rounded-xl text-xs font-bold w-48 sm:w-56 focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
           </div>
+
+          <button
+            onClick={() => showAdminToast(`Search: ${filteredTrainers.length} user(s) found`, 'info')}
+            className="py-2 px-3 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>{t('admin.findUser')}</span>
+          </button>
 
           <button
             onClick={() => {
@@ -269,7 +282,6 @@ export default function UserManagementTab() {
                             >
                               <option value="Member">{t('admin.roleMember')}</option>
                               <option value="Novice">{t('admin.roleNovice')}</option>
-                              <option value="Admin">{t('admin.roleAdmin')}</option>
                             </select>
                             <button
                               onClick={() => setConfirmAction({ type: 'ban', trainer })}

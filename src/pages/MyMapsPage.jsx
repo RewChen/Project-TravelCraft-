@@ -104,6 +104,7 @@ const openMapInEditor = async (mapItem) => {
       privacy: source.privacy || 'public',
       imageUrl: source.imageUrl || '',
       rarity: source.rarity || 'common',
+      region: source.details?.region || source.region || '',
       isExistingMap: true,
       editorState: source.editorState || null
     });
@@ -117,7 +118,7 @@ const openMapInEditor = async (mapItem) => {
       badge: mapItem.privacy === 'private' ? 'Draft' : 'Published',
       color: mapItem.privacy === 'private' ? 'bg-emerald-100' : 'bg-sky-100',
       description: mapItem.details?.lore || 'A custom map.',
-      region: mapItem.details?.region || 'Custom Realm'
+      region: mapItem.details?.region || mapItem.region || ''
     }));
 
   const handlePublishMap = async (mapItem, updates) => {
@@ -200,9 +201,9 @@ const openMapInEditor = async (mapItem) => {
                 </span>
               </div>
               <CardCover imageUrl={map.imageUrl} title={map.title} />
-              <h3 className="text-lg font-black mb-1 text-slate-900">{map.title}</h3>
+              <h3 className="text-lg font-black mb-1 text-slate-900 break-words leading-snug">{map.title}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{map.region}</p>
-              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6">
+              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 line-clamp-2 overflow-hidden">
                 {map.description}
               </p>
             </div>
@@ -311,7 +312,7 @@ const openMapInEditor = async (mapItem) => {
             </div>
             <div className="p-5">
               <PreviewCover imageUrl={previewTarget.imageUrl} title={previewTarget.title} />
-              <h3 className="text-lg font-black mb-1 text-slate-900">{previewTarget.title}</h3>
+              <h3 className="text-lg font-black mb-1 text-slate-900 break-words leading-snug">{previewTarget.title}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{previewTarget.region}</p>
               <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 max-h-24 overflow-y-auto">
                 {previewTarget.description}

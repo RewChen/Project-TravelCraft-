@@ -5,8 +5,6 @@ import SystemOverviewTab from '../components/admin/tabs/SystemOverviewTab';
 import BaseMapsTab from '../components/admin/tabs/BaseMapsTab';
 import UserManagementTab from '../components/admin/tabs/UserManagementTab';
 import ReportedLocationsTab from '../components/admin/tabs/ReportedLocationsTab';
-import NewMissionModal from '../components/admin/modals/NewMissionModal';
-import DeployUpdateModal from '../components/admin/modals/DeployUpdateModal';
 import AddBaseMapModal from '../components/admin/modals/AddBaseMapModal';
 import AuthPage from './AuthPage';
 import { AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
@@ -15,8 +13,6 @@ export default function AdminDashboard() {
   const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode, themeMode, t } = useApp();
   const isDarkMode = themeMode === 'dark';
 
-  const [isNewMissionModalOpen, setIsNewMissionModalOpen] = useState(false);
-  const [isDeployModalOpen, setIsDeployModalOpen] = useState(false);
   const [isAddBaseMapModalOpen, setIsAddBaseMapModalOpen] = useState(false);
 
   // 1. If not logged in at all, direct to normal login page
@@ -77,12 +73,12 @@ export default function AdminDashboard() {
   return (
     <div className={`${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} min-h-screen font-mono antialiased flex flex-col md:flex-row relative selection:bg-red-200`}>
       {/* Left Sidebar */}
-      <AdminSidebar onOpenNewMission={() => setIsNewMissionModalOpen(true)} />
+      <AdminSidebar />
 
       {/* Main Content Area */}
       <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl overflow-y-auto">
         {adminActiveTab === 'overview' && (
-          <SystemOverviewTab onOpenDeployModal={() => setIsDeployModalOpen(true)} />
+          <SystemOverviewTab />
         )}
 
         {adminActiveTab === 'basemaps' && (
@@ -99,16 +95,6 @@ export default function AdminDashboard() {
       </main>
 
       {/* Admin Action Modals */}
-      <NewMissionModal
-        isOpen={isNewMissionModalOpen}
-        onClose={() => setIsNewMissionModalOpen(false)}
-      />
-
-      <DeployUpdateModal
-        isOpen={isDeployModalOpen}
-        onClose={() => setIsDeployModalOpen(false)}
-      />
-
       <AddBaseMapModal
         isOpen={isAddBaseMapModalOpen}
         onClose={() => setIsAddBaseMapModalOpen(false)}

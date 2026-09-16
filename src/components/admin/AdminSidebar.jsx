@@ -3,13 +3,12 @@ import {
   Map as MapIcon,
   Users,
   AlertTriangle,
-  Plus,
   LogOut,
   ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
-export default function AdminSidebar({ onOpenNewMission }) {
+export default function AdminSidebar() {
   const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations, t } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
@@ -49,15 +48,6 @@ export default function AdminSidebar({ onOpenNewMission }) {
           </div>
           <p className="text-[10px] text-gray-500 font-bold uppercase mt-1">{t('admin.adminUser')}</p>
         </div>
-
-        {/* + New Mission Action Button */}
-        <button
-          onClick={onOpenNewMission}
-          className="w-full mb-6 bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>{t('admin.newMission')}</span>
-        </button>
 
         {/* Navigation Items */}
         <nav className="space-y-2">

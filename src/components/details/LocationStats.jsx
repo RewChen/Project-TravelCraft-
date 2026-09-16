@@ -45,16 +45,11 @@ export default function LocationStats() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-1 gap-3 mb-5">
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
           <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t('details.visitors')}</div>
           <div className="text-xs font-black text-slate-900">{selectedLocation.visitors}</div>
-        </div>
-        <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <span className="text-amber-500 text-sm block mb-1">🎖️</span>
-          <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t('details.rarity')}</div>
-          <div className="text-xs font-black text-slate-900">{selectedLocation.rarity}</div>
         </div>
       </div>
 

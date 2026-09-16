@@ -39,21 +39,19 @@ export default function WorldMapPage() {
       
       {/* Top Control Header Bar */}
       <div className="bg-white border-4 border-black rounded-2xl p-4 mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#cc0000] border-2 border-black rounded-lg flex items-center justify-center text-white font-black">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 bg-[#cc0000] border-2 border-black rounded-lg flex items-center justify-center text-white font-black shrink-0">
             🗺️
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-black uppercase">
-                {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
-              </h2>
-              {mapBackgroundImage && (
-                <span className="text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full">
-                  {t('worldMap.customMapActive')}
-                </span>
-              )}
-            </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-black uppercase break-words line-clamp-2">
+              {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
+            </h2>
+            {mapBackgroundImage && (
+              <span className="inline-block text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full mt-1">
+                {t('worldMap.customMapActive')}
+              </span>
+            )}
             <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans">
               {t('worldMap.clickDetailsHint')}
             </p>

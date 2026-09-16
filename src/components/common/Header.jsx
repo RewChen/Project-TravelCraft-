@@ -122,7 +122,7 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
                           if (n.data?.mapId) {
                             // try to navigate to that community map
                             const map = communityMaps?.find((m) => m.id === n.data.mapId);
-                            if (map) { navigateTo('details', map.details); setShowNotifications(false); }
+                            if (map) { navigateTo('details', map); setShowNotifications(false); }
                             else { navigateTo('community'); setShowNotifications(false); }
                           }
                         }}
