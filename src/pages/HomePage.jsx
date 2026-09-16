@@ -2,7 +2,7 @@ import { Play, Search, Footprints, ArrowUp } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function HomePage() {
-  const { navigateTo, userProfile, communityMaps, trackMapOnWorldMap, t } = useApp();
+  const { navigateTo, communityMaps, trackMapOnWorldMap, t } = useApp();
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12">
@@ -32,9 +32,6 @@ export default function HomePage() {
         </div>
 
         <div className="bg-[#a2d2ff] relative min-h-[260px] flex flex-col justify-between p-4 bg-[radial-gradient(#4895ef_1px,transparent_1px)] [background-size:16px_16px]">
-          <div className="self-end bg-amber-100 border-2 border-black px-2.5 py-1 rounded-md text-xs font-extrabold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] z-10">
-            <p>{t('home.coin')} {userProfile?.coins ?? 0}</p>
-          </div>
           <div className="my-auto bg-[#81c784] border-4 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
             <div className="text-[10px] font-bold text-emerald-950 uppercase mb-2 flex items-center justify-between">
               <span>{t('home.featured')}</span>

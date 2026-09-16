@@ -19,23 +19,7 @@ export default function LoginForm() {
     const cleanInput = (email || '').trim().toLowerCase();
     const cleanPass = (password || '').trim();
 
-    // 1. Direct Admin Master Login
-    const isMasterAdmin =
-      (cleanInput === 'admin_01' || cleanInput === 'admin' || cleanInput === 'admin@travelcraft.com') &&
-      (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026' || cleanPass === '123456');
-
-    if (isMasterAdmin) {
-      loginAsAdmin({
-        name: 'Admin_01',
-        email: 'admin@travelcraft.com',
-        role: 'Admin',
-        avatar: '🛡️'
-      });
-      setLoading(false);
-      return;
-    }
-
-    // 2. Supabase Auth (Supports both regular players and admins in DB)
+    // Supabase Auth (Supports both regular players and admins in DB)
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: cleanInput,

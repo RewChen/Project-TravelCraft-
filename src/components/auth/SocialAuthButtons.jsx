@@ -14,10 +14,9 @@ const isMissingConfigError = (msg = '') => {
 
 export default function SocialAuthButtons({ mode = 'login' }) {
   void mode; // keep prop for future login vs register copy
-  const { t, loginAsTrainer } = useApp();
+  const { t } = useApp();
   const [oAuthLoading, setOAuthLoading] = useState(null);
   const [oAuthError, setOAuthError] = useState('');
-  const [failedProvider, setFailedProvider] = useState(null);
 
   const getFriendlyError = (provider, raw) => {
     if (isProviderNotEnabledError(raw)) {
@@ -27,24 +26,12 @@ export default function SocialAuthButtons({ mode = 'login' }) {
     return raw || t('auth.oauthFailed');
   };
 
-  const demoLogin = (provider) => {
-    const cap = provider.charAt(0).toUpperCase() + provider.slice(1);
-    loginAsTrainer({
-      id: `demo-${provider}-${Date.now()}`,
-      name: `${cap} Traveler`,
-      email: `${provider}.demo@travelcraft.local`,
-      avatar: provider === 'google' ? '🔵' : '🔷',
-      role: 'Cartographer',
-    });
-  };
-
   const handleOAuth = async (provider) => {
     setOAuthError('');
-    setFailedProvider(null);
 
-    // If Supabase is not configured at all, go straight to demo (offline usable)
+    // If Supabase is not configured at all, there is no real OAuth to use.
     if (!isSupabaseConfigured) {
-      demoLogin(provider);
+      setOAuthError(t('auth.oauthNotConfigured'));
       return;
     }
 
@@ -55,51 +42,38 @@ export default function SocialAuthButtons({ mode = 'login' }) {
         provider,
         options: {
           redirectTo,
-          // Facebook needs explicit email scope; Google gets profile+email by default
           scopes: provider === 'facebook' ? 'email public_profile' : 'email profile',
           queryParams: provider === 'google' ? { access_type: 'offline', prompt: 'consent' } : undefined,
         },
       });
       if (error) {
         const raw = error.message || '';
-        // Provider not enabled or missing config -> auto fallback to demo so button is always usable
         if (isProviderNotEnabledError(raw) || isMissingConfigError(raw)) {
           setOAuthError(getFriendlyError(provider, raw));
-          setFailedProvider(provider);
           setOAuthLoading(null);
-          // Auto-login as demo after short delay so single click = usable login
-          setTimeout(() => demoLogin(provider), 700);
           return;
         }
         setOAuthError(getFriendlyError(provider, raw));
-        if (isProviderNotEnabledError(raw)) setFailedProvider(provider);
         setOAuthLoading(null);
         return;
       }
       // data.url is set when OAuth is properly configured – browser will redirect
-      // If no url returned (e.g. provider disabled silently), fallback to demo
       if (!data?.url) {
         setOAuthLoading(null);
-        demoLogin(provider);
+        setOAuthError(t('auth.oauthFailed'));
         return;
       }
-      // On success, Supabase redirects - no need to reset loading
     } catch (err) {
       const raw = err?.message || t('auth.oauthFailed');
       if (isProviderNotEnabledError(raw) || isMissingConfigError(raw)) {
         setOAuthError(getFriendlyError(provider, raw));
-        setFailedProvider(provider);
         setOAuthLoading(null);
-        setTimeout(() => demoLogin(provider), 700);
         return;
       }
       setOAuthError(getFriendlyError(provider, raw));
-      if (isProviderNotEnabledError(raw)) setFailedProvider(provider);
       setOAuthLoading(null);
     }
   };
-
-  const handleDemoLogin = (provider) => demoLogin(provider);
 
   return (
     <div className="space-y-3">
@@ -109,19 +83,6 @@ export default function SocialAuthButtons({ mode = 'login' }) {
             <span className="text-[11px]">⚠️</span>
             <span className="flex-1">{oAuthError}</span>
           </div>
-          {failedProvider && (
-            <div className="space-y-1.5 pt-1 border-t-2 border-black/10">
-              <p className="text-[9px] font-normal text-black/70 leading-tight">{t('auth.oauthNotEnabledHint')}</p>
-              <button
-                type="button"
-                onClick={() => handleDemoLogin(failedProvider)}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-1.5 px-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-[10px] uppercase cursor-pointer"
-              >
-                {t('auth.oauthDemoLogin', { provider: failedProvider.charAt(0).toUpperCase() + failedProvider.slice(1) })}
-              </button>
-              <p className="text-[8px] font-normal text-black/60 text-center">{t('auth.oauthDemoNote')}</p>
-            </div>
-          )}
         </div>
       )}
 

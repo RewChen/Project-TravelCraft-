@@ -1,7 +1,6 @@
 import {
   LayoutGrid,
   Map as MapIcon,
-  Globe,
   Users,
   AlertTriangle,
   Plus,
@@ -18,7 +17,6 @@ export default function AdminSidebar({ onOpenNewMission }) {
   const navItems = [
     { id: 'overview', label: t('admin.overview'), icon: LayoutGrid },
     { id: 'basemaps', label: t('admin.baseMaps'), icon: MapIcon },
-    { id: 'settings', label: t('admin.globalSettings'), icon: Globe },
     { id: 'users', label: t('admin.userManagement'), icon: Users },
     {
       id: 'reports',

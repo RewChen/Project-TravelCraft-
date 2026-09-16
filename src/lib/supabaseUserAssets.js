@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { MEDIA_BUCKET } from './supabaseUploads';
+import { isSchemaMissing, markSchemaMissing, clearSchemaMissing, isMissingSchemaError } from './schemaGuard';
 
 // Per-user saved editor Elements & Backgrounds.
 // Storage path: media/users/<uid>/elements|<backgrounds>/<file>
@@ -11,16 +12,13 @@ const sanitizeLabel = (label) =>
     .replace(/-+/g, '-')
     .slice(0, 60) || 'asset';
 
-const fileExtension = (file) =>
-  (file?.name || '').split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
-
 const toPublicUrl = (path) => {
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
   return data?.publicUrl || '';
 };
 
 export const userAssetStoragePath = (uid, type, file) =>
-  `users/${encodeURIComponent(uid)}/${type === 'background' ? 'backgrounds' : 'elements'}/${Date.now()}-${sanitizeLabel(file.name, fileExtension(file))}`;
+  `users/${encodeURIComponent(uid)}/${type === 'background' ? 'backgrounds' : 'elements'}/${Date.now()}-${sanitizeLabel(file.name)}`;
 
 // Upload a single file to storage and return its public URL.
 export const uploadUserAssetFile = async (uid, type, file) => {
@@ -50,13 +48,17 @@ export const dataUrlToFile = (dataUrl, filename = 'asset') => {
 
 // Fetch all saved assets for a user.
 export const fetchUserAssets = async (uid) => {
-  if (!uid) return [];
+  if (!uid || isSchemaMissing('user_assets')) return [];
   const { data, error } = await supabase
     .from('user_assets')
     .select('*')
     .eq('user_id', uid)
     .order('created_at', { ascending: false });
-  if (error) throw error;
+  if (error) {
+    if (isMissingSchemaError(error)) markSchemaMissing('user_assets');
+    throw error;
+  }
+  clearSchemaMissing('user_assets');
   return data || [];
 };
 
@@ -68,7 +70,11 @@ export const insertUserAsset = async (uid, { type, label, url }) => {
     .insert({ user_id: uid, asset_type: type, label, url })
     .select()
     .single();
-  if (error) throw error;
+  if (error) {
+    if (isMissingSchemaError(error)) markSchemaMissing('user_assets');
+    throw error;
+  }
+  clearSchemaMissing('user_assets');
   return data;
 };
 

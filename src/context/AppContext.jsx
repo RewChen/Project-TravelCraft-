@@ -1,7 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '../lib/supabaseClient';
 import { translations, languages } from '../i18n';
 import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
+import { supabase } from '../lib/supabaseClient';
+import {
+  fetchGlobalSettings,
+  saveGlobalSettings,
+  fetchReports,
+  insertReport,
+  updateReportStatus,
+  deleteReportRow,
+  setMapBaseFlag
+} from '../lib/supabaseAdmin';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import {
   fetchUserAssets,
@@ -390,11 +399,10 @@ const initialReportedLocations = [
 
 const initialGlobalSettings = {
   maxPinsPerMap: 50,
-  autoApproveCommunity: false,
-  maintenanceMode: false,
-  allowFastTravel: true,
-  coinMultiplier: 1.5,
-  autoBanStrikeThreshold: 5,
+autoApproveCommunity: false,
+      maintenanceMode: false,
+      allowFastTravel: true,
+      autoBanStrikeThreshold: 5,
   serverRegion: 'AP-East (Tokyo)',
   radarRadiusKm: 25
 };
@@ -427,6 +435,19 @@ const stripMediaFromMap = (item) => {
 const serializeCommunityMapsForStorage = (items, trimMedia) =>
   Array.isArray(items) ? (trimMedia ? items.map(stripMediaFromMap) : items) : items;
 
+// Recursively replace embedded media data URLs with null so a snapshot can be
+// squeezed into localStorage without dropping the map metadata.
+const stripDataUrls = (value) => {
+  if (typeof value === 'string') return value.startsWith('data:') ? null : value;
+  if (Array.isArray(value)) return value.map(stripDataUrls);
+  if (value && typeof value === 'object') {
+    const next = {};
+    for (const key of Object.keys(value)) next[key] = stripDataUrls(value[key]);
+    return next;
+  }
+  return value;
+};
+
 export const AppProvider = ({ children }) => {
   // Navigation State: 'home', 'community', 'map', 'details', 'mymaps', 'profile', 'auth', 'admin'
   const [currentPage, setCurrentPage] = useState('home');
@@ -435,7 +456,10 @@ export const AppProvider = ({ children }) => {
   const [themeMode, setThemeMode] = useState(() => {
     try {
       const storedTheme = localStorage.getItem('pocket_odyssey_themeMode');
-      return storedTheme || 'light';
+      if (!storedTheme) return 'light';
+      // persistSnapshot stores JSON.stringify(themeMode); tolerate legacy raw values too.
+      const parsed = JSON.parse(storedTheme);
+      return parsed === 'dark' ? 'dark' : 'light';
     } catch {
       return 'light';
     }
@@ -473,7 +497,7 @@ export const AppProvider = ({ children }) => {
         bc.postMessage({ language: code });
         bc.close();
       } catch {
-        // BroadcastChannel is unavailable in some browsers.
+        // BroadcastChannel unsupported in this browser
       }
     }
   }, []);
@@ -486,7 +510,7 @@ export const AppProvider = ({ children }) => {
         bc.postMessage({ language: next });
         bc.close();
       } catch {
-        // BroadcastChannel is unavailable in some browsers.
+        // BroadcastChannel unsupported in this browser
       }
       return next;
     });
@@ -584,25 +608,29 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Role names users may self-assign. 'Admin' is only granted server-side
+  // (admins table or an admin-issued update), never via this client path.
+  const SELF_ASSIGNABLE_ROLES = ['Novice Traveler', 'Cartographer', 'Gym Leader', 'Game Master'];
+
   // Persist the chosen role so it survives reload and syncs to Supabase when signed in.
   const updateUserRole = async (role) => {
-    setUserProfile((prev) => (prev ? { ...prev, role } : { role, name: 'Traveler' }));
+    const normalized = SELF_ASSIGNABLE_ROLES.find((r) => r.toLowerCase() === String(role).trim().toLowerCase());
+    if (!normalized) return { success: false, error: 'forbidden' };
+    setUserProfile((prev) => (prev ? { ...prev, role: normalized } : { role: normalized, name: 'Traveler' }));
     try {
-      localStorage.setItem('pocket_odyssey_userRole', role);
+      localStorage.setItem('pocket_odyssey_userRole', normalized);
     } catch (err) {
       console.warn(err);
     }
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { error } = await supabase
-        .from('users')
-        .update({ role })
-        .eq('id', session.user.id);
+      if (!session) return { success: true };
+      const { error } = await supabase.rpc('update_own_role', { p_role: normalized });
       if (error) console.warn('Role sync skipped:', error);
     } catch (err) {
       console.warn('Role sync skipped:', err);
     }
+    return { success: true };
   };
 
   const updateUsername = async (username) => {
@@ -641,16 +669,61 @@ export const AppProvider = ({ children }) => {
       email: authUser.email || '',
       avatar: oauthAvatar || meta.avatar || '🏃',
       role: getStoredRole() || meta.role || 'Cartographer',
-      coins: 1245,
       level: 1,
       badges: getStoredBadges(),
       visitedCount: 0
     };
   };
 
+  // Admin access is verified server-side only (admins table / users.role via
+  // fetchUserProfile). Never trust the client flag on boot.
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
+    name: 'Admin_01',
+    email: 'admin@travelcraft.com',
+    role: 'SUPERUSER',
+    badge: 'A1',
+    clearanceLevel: 5
+  }));
+
   const fetchUserProfile = async (userId) => {
     try {
-      // 1. Check if user is in admins table
+      // 1. Authoritative server-side lookup (bypasses RLS, works whether the
+      // admin flag lives in admins OR users.role).
+      const { data: access, error: accessError } = await supabase.rpc('my_access');
+      if (!accessError && access) {
+        const isAdmin = access.is_admin === true;
+        setIsAdminLoggedIn(isAdmin);
+        setUserProfile({
+          id: userId,
+          name: access.username || 'Traveler',
+          email: access.email || '',
+          avatar: access.avatar || (isAdmin ? '🛡️' : '🏃'),
+          role: isAdmin ? 'Admin' : (getStoredRole() || access.role || 'Cartographer'),
+          level: isAdmin ? 99 : 1,
+          badges: isAdmin
+            ? ['Master Admin', 'System Lord']
+            : (getStoredBadges().length ? getStoredBadges() : ['Pioneer', 'Kyoto Explorer']),
+          visitedCount: isAdmin ? 99 : 14
+        });
+        if (isAdmin) {
+          setAdminUser({
+            name: access.username || 'Admin_01',
+            email: access.email || 'admin@travelcraft.com',
+            role: 'SUPERUSER',
+            badge: 'A1',
+            clearanceLevel: 5
+          });
+        }
+        return;
+      }
+
+      if (accessError) {
+        // Diagnose: RPC is missing (migration not run) or failing server-side.
+        console.warn('my_access() failed, falling back to table reads:', accessError);
+      }
+
+      // 2. Fallback: legacy table reads (only when the RPC is unavailable).
       const { data: adminData } = await supabase
         .from('admins')
         .select('*')
@@ -665,7 +738,6 @@ export const AppProvider = ({ children }) => {
           email: adminData.email,
           avatar: '🛡️',
           role: 'Admin',
-          coins: 9999,
           level: 99,
           badges: ['Master Admin', 'System Lord'],
           visitedCount: 99
@@ -677,15 +749,9 @@ export const AppProvider = ({ children }) => {
           badge: 'A1',
           clearanceLevel: 5
         });
-        try {
-          localStorage.setItem('pocket_odyssey_isAdmin', 'true');
-        } catch (e) {
-          console.warn(e);
-        }
         return;
       }
 
-      // 2. Check public.users table
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -704,7 +770,6 @@ export const AppProvider = ({ children }) => {
           email: data.email,
           avatar: data.avatar || (isAdmin ? '🛡️' : '🏃'),
           role: isAdmin ? 'Admin' : (getStoredRole() || data.role || 'Cartographer'),
-          coins: 1245,
           level: 1,
           badges: loadedBadges.length ? loadedBadges : (Array.isArray(data.badges) ? data.badges : ['Pioneer', 'Kyoto Explorer']),
           visitedCount: 14
@@ -717,11 +782,6 @@ export const AppProvider = ({ children }) => {
             badge: 'A1',
             clearanceLevel: 5
           });
-          try {
-            localStorage.setItem('pocket_odyssey_isAdmin', 'true');
-          } catch (e) {
-            console.warn(e);
-          }
         }
       }
     } catch (err) {
@@ -733,7 +793,7 @@ export const AppProvider = ({ children }) => {
         email: '',
         avatar: '🏃',
         role: 'Cartographer',
-        coins: 1245, level: 1, badges: getStoredBadges(), visitedCount: 0
+        level: 1, badges: getStoredBadges(), visitedCount: 0
       });
     }
   };
@@ -923,15 +983,23 @@ export const AppProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthLoading]);
 
-  // Persist a map to Supabase when a real session exists (guest/offline stays local).
+  // Persist a map to Supabase. Returns a status so callers can tell the user
+  // whether the map really reached the database:
+  //   'saved'  -> written to Supabase
+  //   'guest'  -> no session; RLS would reject the write
+  //   'error'  -> Supabase call failed
+  //   'skipped'-> no id
   const persistMapToDb = async (item) => {
-    if (!item?.id) return;
+    if (!item?.id) return { status: 'skipped' };
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await upsertMap(item);
+      if (!session) return { status: 'guest' };
+      const result = await upsertMap(item);
+      if (result?.degraded) return { status: 'degraded' };
+      return { status: 'saved' };
     } catch (err) {
-      console.warn('Supabase map sync skipped:', err);
+      console.warn('Supabase map sync failed:', err?.message || err);
+      return { status: 'error', message: err?.message || 'Unknown error' };
     }
   };
 
@@ -996,7 +1064,8 @@ export const AppProvider = ({ children }) => {
     };
   }, [isAuthLoading]);
 
-  // Admin Dashboard States & Persistence
+  // Admin access is verified server-side only (admins table / users.role via
+  // fetchUserProfile). Never trust the client flag on boot.
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
   const [baseMaps, setBaseMaps] = useState(() => loadStored('adminBaseMaps', initialBaseMaps));
   const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
@@ -1031,6 +1100,7 @@ export const AppProvider = ({ children }) => {
   // Initial hydration of trainer registry from Supabase (keeps admin view in sync with real users table)
   useEffect(() => {
     if (isAuthLoading) return undefined;
+    if (!isAdminLoggedIn) return undefined; // full registry is admin-only (RLS hides other rows anyway)
     let cancelled = false;
     const hydrateTrainersFromDb = async () => {
       try {
@@ -1056,7 +1126,113 @@ export const AppProvider = ({ children }) => {
     };
     hydrateTrainersFromDb();
     return () => { cancelled = true; };
+  }, [isAuthLoading, isAdminLoggedIn]);
+
+  // Hydrate global settings from Supabase (single-row table). Falls back to
+  // localStorage defaults when offline or the table does not exist yet.
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    const hydrateSettingsFromDb = async () => {
+      try {
+        const row = await fetchGlobalSettings();
+        if (cancelled || !row) return;
+        setGlobalSettings((prev) => {
+          const next = { ...prev };
+          if (row.max_pins_per_map != null) next.maxPinsPerMap = row.max_pins_per_map;
+          if (row.auto_approve_community != null) next.autoApproveCommunity = row.auto_approve_community;
+          if (row.maintenance_mode != null) next.maintenanceMode = row.maintenance_mode;
+          if (row.allow_fast_travel != null) next.allowFastTravel = row.allow_fast_travel;
+          if (row.auto_ban_strike_threshold != null) next.autoBanStrikeThreshold = row.auto_ban_strike_threshold;
+          if (row.server_region != null) next.serverRegion = row.server_region;
+          if (row.radar_radius_km != null) next.radarRadiusKm = Number(row.radar_radius_km);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Global settings hydration skipped:', err);
+      }
+    };
+    hydrateSettingsFromDb();
+    return () => { cancelled = true; };
   }, [isAuthLoading]);
+
+  // Hydrate reported locations from the real reports table. Local-only reports
+  // (offline submissions / legacy mock entries) are kept and appended after DB rows.
+  useEffect(() => {
+    if (isAuthLoading) return undefined;
+    let cancelled = false;
+    const hydrateReportsFromDb = async () => {
+      try {
+        const rows = await fetchReports();
+        if (cancelled || !rows.length) return;
+        const mapped = rows.map((r) => {
+          const reason = (r.reason || '').toUpperCase();
+          const category = reason || 'OTHER';
+          const categoryColor =
+            category === 'SPAM'
+              ? 'bg-red-100 text-red-700 border-red-400'
+              : category === 'FAKE LOCATION'
+              ? 'bg-amber-100 text-amber-800 border-amber-400'
+              : 'bg-blue-100 text-blue-800 border-blue-400';
+          return {
+            id: r.id,
+            locationName: r.location_name || 'Unknown Location',
+            creator: r.reporter_name || 'Anonymous',
+            category,
+            categoryColor,
+            count: 0,
+            status: r.status,
+            isHidden: false,
+            reason: r.details || r.reason || '',
+            reportedAt: r.created_at,
+            mapId: r.map_id || null,
+            isDbReport: true,
+          };
+        });
+        setReportedLocations((prev) => {
+          const localOnly = prev.filter((p) => !p.isDbReport);
+          return [...mapped, ...localOnly];
+        });
+      } catch (err) {
+        console.warn('Reports hydration skipped:', err);
+      }
+    };
+    hydrateReportsFromDb();
+    return () => { cancelled = true; };
+  }, [isAuthLoading]);
+
+  // Hydrate promoted base maps (maps flagged is_base_map) for the admin only.
+  useEffect(() => {
+    if (isAuthLoading || !isAdminLoggedIn) return undefined;
+    let cancelled = false;
+    const hydrateBaseMapsFromDb = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('maps')
+          .select('id, title, summary, owner_id')
+          .eq('is_base_map', true)
+          .limit(100);
+        if (cancelled) return;
+        if (error) throw error;
+        const mapped = (data || []).map((row) => {
+          const s = row.summary || {};
+          return {
+            id: row.id,
+            ownerId: row.owner_id,
+            name: s.title || row.title || 'Untitled Map',
+            image: s.imageUrl || null,
+            description: s.lore || s.region || 'Curated base map',
+            badge: 'BASE',
+          };
+        });
+        setBaseMaps(mapped.length ? mapped : initialBaseMaps);
+      } catch (err) {
+        console.warn('Base maps hydration skipped:', err);
+      }
+    };
+    hydrateBaseMapsFromDb();
+    return () => { cancelled = true; };
+  }, [isAuthLoading, isAdminLoggedIn]);
 
   // Realtime sync: whenever any user creates/updates/deletes a map or user, keep admin dashboard in sync with the user UI.
   // Also pushes real system notifications to the bell.
@@ -1110,45 +1286,49 @@ export const AppProvider = ({ children }) => {
       })
       .subscribe();
 
-    const usersChannel = supabase
-      .channel('users-live-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async (payload) => {
-        try {
-          const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(200);
-          if (!data) return;
-          const mapped = data.map((u) => ({
-            id: u.id,
-            name: u.username || 'Anonymous',
-            email: u.email || 'N/A',
-            role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
-            avatar: u.avatar || '🧢',
-            status: u.status || 'active',
-            joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
-            strikes: u.strikes ?? 0,
-          }));
-          setTrainers(mapped);
-          if (payload?.eventType === 'INSERT' && payload.new) {
-            const isOwn = payload.new.id === currentUserIdRef.current;
-            if (!isOwn) {
-              addNotification({
-                titleKey: 'notifications.newUserTitle',
-                messageKey: 'notifications.newUserMsg',
-                titleParam: payload.new.username || 'New Trainer',
-                icon: '👤',
-              });
+    // Trainer registry live sync + new-user notifications are admin-only.
+    let usersChannel = null;
+    if (isAdminLoggedIn) {
+      usersChannel = supabase
+        .channel('users-live-sync')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, async (payload) => {
+          try {
+            const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false }).limit(200);
+            if (!data) return;
+            const mapped = data.map((u) => ({
+              id: u.id,
+              name: u.username || 'Anonymous',
+              email: u.email || 'N/A',
+              role: u.role === 'admin' ? 'Admin' : u.role || 'Member',
+              avatar: u.avatar || '🧢',
+              status: u.status || 'active',
+              joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
+              strikes: u.strikes ?? 0,
+            }));
+            setTrainers(mapped);
+            if (payload?.eventType === 'INSERT' && payload.new) {
+              const isOwn = payload.new.id === currentUserIdRef.current;
+              if (!isOwn) {
+                addNotification({
+                  titleKey: 'notifications.newUserTitle',
+                  messageKey: 'notifications.newUserMsg',
+                  titleParam: payload.new.username || 'New Trainer',
+                  icon: '👤',
+                });
+              }
             }
+          } catch (e) {
+            console.warn('users live sync skipped:', e);
           }
-        } catch (e) {
-          console.warn('users live sync skipped:', e);
-        }
-      })
-      .subscribe();
+        })
+        .subscribe();
+    }
 
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(usersChannel);
+      if (usersChannel) supabase.removeChannel(usersChannel);
     };
-  }, [addNotification]);
+  }, [addNotification, isAdminLoggedIn]);
 
   const showAdminToast = (message, type = 'success') => {
     setAdminToast({ message, type });
@@ -1177,13 +1357,24 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('pocket_odyssey_notifications', JSON.stringify(notifications));
     } catch (err) {
       if (err && err.name === 'QuotaExceededError') {
-        try {
-          localStorage.removeItem('pocket_odyssey_communityMaps');
-          localStorage.removeItem('pocket_odyssey_mapPins');
-          console.warn('LocalStorage quota exceeded; cleared map caches.');
-        } catch (clearErr) {
-          console.warn('LocalStorage clear error:', clearErr);
-        }
+        // Storage is full (usually uploaded media stored as data URLs). Never
+        // wipe the whole snapshot — retry with embedded media stripped so the
+        // metadata (titles, pins, editor layout, favorites) still survives reloads.
+        const forceTrimmedSave = (key, value) => {
+          try {
+            localStorage.setItem(key, JSON.stringify(stripDataUrls(value)));
+          } catch {
+            try {
+              localStorage.removeItem(key);
+            } catch {
+              // nothing else to do
+            }
+          }
+        };
+        forceTrimmedSave('pocket_odyssey_mapPins', mapPins);
+        forceTrimmedSave('pocket_odyssey_mapBgImage', mapBackgroundImage);
+        forceTrimmedSave('pocket_odyssey_communityMaps', serializeCommunityMapsForStorage(communityMaps, true));
+        console.warn('LocalStorage quota reached; saved snapshot without embedded media.');
       } else {
         console.warn('LocalStorage save error:', err);
       }
@@ -1280,7 +1471,7 @@ export const AppProvider = ({ children }) => {
       isUserUploaded: true,
       ...newPinData
     };
-    const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
+const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     setMapPins(resolvedPins);
     setSelectedPin(resolvedPins[0]);
     setUserProfile((prev) => ({ ...prev, coins: prev.coins + 50 }));
@@ -1521,7 +1712,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Publish a custom user map to Community Discoveries!
-  const publishMapToCommunity = (newCommunityMap) => {
+  const publishMapToCommunity = async (newCommunityMap) => {
     const title = newCommunityMap.title?.trim() || 'Untitled Map';
     const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
     const mapSlug = title.replace(/\s+/g, '-').toLowerCase();
@@ -1583,34 +1774,51 @@ export const AppProvider = ({ children }) => {
       }
       return [publishedItem, ...prev];
     });
-    persistMapToDb(publishedItem);
+    const dbSave = await persistMapToDb(publishedItem);
 
+    // Check whether the map actually reached the database. If it did not
+    // (guest without a session, or a DB/RLS error), tell the user clearly so
+    // they don't think others can see it yet.
     if (publishedItem.privacy === 'public') {
-      setUserProfile((prev) => prev ? { ...prev, coins: prev.coins + 150 } : prev);
-      addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
+      if (dbSave?.status === 'error') {
+        showAdminToast(`Map sync error: ${dbSave.message}`, 'error');
+      } else if (dbSave?.status !== 'saved' && dbSave?.status !== 'degraded') {
+        showAdminToast(t('map.publishLocalOnly'), 'warning');
+      } else {
+        showAdminToast(t('myMaps.publishedMsg', { title }), 'success');
+        addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
+      }
       navigateTo('community');
     }
   };
 
+  const isOwnMap = (mapItem) => {
+    // Only the logged-in user's own maps count. Full editor rows are NOT
+    // automatically "mine" — ownership is proven by ownerId (or by the
+    // discoveredBy fallback for legacy rows that never got an owner).
+    if (mapItem.ownerId) return mapItem.ownerId === userProfile?.id;
+    return Boolean(userProfile) && mapItem.discoveredBy === userProfile?.name;
+  };
+
   const deleteCommunityMap = (mapId) => {
-    setCommunityMaps((previous) => previous.filter((map) => (
-      !(map.id === mapId && (
-        map.ownerId
-          ? map.ownerId === userProfile?.id
-          : map.discoveredBy === userProfile?.name
-      ))
-    )));
+    setCommunityMaps((previous) => previous.filter((map) => !(map.id === mapId && isOwnMap(map))));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
   };
 
   // --- Admin Action Handlers ---
-  const resolveReport = (reportId) => {
+  const resolveReport = async (reportId) => {
     setReportedLocations((prev) =>
       prev.map((rep) =>
         rep.id === reportId ? { ...rep, status: 'resolved' } : rep
       )
     );
+    try {
+      const target = reportedLocations.find((rep) => rep.id === reportId);
+      if (target?.isDbReport) await updateReportStatus(reportId, 'resolved');
+    } catch (err) {
+      console.warn('Resolve report DB write skipped:', err);
+    }
     showAdminToast('Report marked as RESOLVED.', 'success');
   };
 
@@ -1623,10 +1831,49 @@ export const AppProvider = ({ children }) => {
     showAdminToast('Location visibility toggled.', 'info');
   };
 
-  const deleteReportedLocation = (reportId) => {
+  const deleteReportedLocation = async (reportId) => {
     setReportedLocations((prev) => prev.filter((rep) => rep.id !== reportId));
+    try {
+      const target = reportedLocations.find((rep) => rep.id === reportId);
+      if (target?.isDbReport) await deleteReportRow(reportId);
+    } catch (err) {
+      console.warn('Delete report DB write skipped:', err);
+    }
     showAdminToast('Reported location deleted from registry.', 'error');
   };
+
+  // Submit a new report from a trainer (world map / details page).
+  const submitReport = useCallback(async ({ reporterId, reporterName, mapId, locationName, reason, details }) => {
+    let saved = false;
+    try {
+      await insertReport({ reporterId, reporterName, mapId, locationName, reason, details });
+      saved = true;
+    } catch (err) {
+      console.warn('Report submission skipped (offline/unauth):', err);
+    }
+    if (saved) {
+      setReportedLocations((prev) => {
+        const duplicate = prev.some((r) => r.locationName === locationName && r.status === 'pending');
+        if (duplicate) return prev;
+        return [{
+          id: null,
+          locationName,
+          creator: reporterName || 'Anonymous',
+          category: reason.toUpperCase(),
+          categoryColor: 'bg-blue-100 text-blue-800 border-blue-400',
+          count: 0,
+          status: 'pending',
+          isHidden: false,
+          reason: details || '',
+          reportedAt: new Date().toISOString(),
+          mapId: mapId || null,
+          isDbReport: false,
+        }, ...prev];
+      });
+      return true;
+    }
+    return false;
+  }, []);
 
   const warnTrainer = (trainerIdentifier) => {
     setTrainers((prev) =>
@@ -1685,61 +1932,31 @@ export const AppProvider = ({ children }) => {
     showAdminToast('Base map deleted.', 'info');
   };
 
-  const updateGlobalSettings = (newSettings) => {
+  const updateGlobalSettings = async (newSettings) => {
     setGlobalSettings((prev) => ({ ...prev, ...newSettings }));
-    showAdminToast('Global Map Settings updated successfully!', 'success');
+    let synced = false;
+    try {
+      await saveGlobalSettings(newSettings);
+      synced = true;
+    } catch (err) {
+      console.warn('Global settings DB write skipped:', err);
+    }
+    showAdminToast(
+      synced
+        ? 'Global Map Settings updated & synced to DB!'
+        : 'Global Map Settings saved locally (database not connected).',
+      'success'
+    );
+    return synced;
   };
 
-  const adminLogin = async (adminId, password) => {
-    const cleanId = (adminId || '').trim().toLowerCase();
-    const cleanPass = (password || '').trim();
-
-    // 1. Master & Demo credentials check
-    const isValidMaster =
-      (cleanId === 'admin_01' || cleanId === 'admin' || cleanId === 'admin@travelcraft.com' || cleanId === 'system lord') &&
-      (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026' || cleanPass === '123456');
-
-    if (isValidMaster) {
-      setIsAdminLoggedIn(true);
-      try {
-        sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
-        localStorage.setItem('pocket_odyssey_isAdmin', 'true');
-      } catch (err) {
-        console.warn('Storage error:', err);
-      }
-      showAdminToast('🔑 Clearance Verified: Welcome, System Lord!', 'success');
-      return { success: true };
-    }
-
-    // 2. Also check Supabase admins table
+  // Promote/demote a real user-created map as a base map (writes is_base_map).
+  const setMapBaseFlagFor = async (mapId, isBase) => {
     try {
-      const { data: adminData } = await supabase
-        .from('admins')
-        .select('*')
-        .or(`email.eq.${cleanId},username.eq.${cleanId}`)
-        .single();
-
-      if (adminData && (cleanPass === 'admin123' || cleanPass === 'admin' || cleanPass === 'odyssey2026')) {
-        setIsAdminLoggedIn(true);
-        setAdminUser({
-          name: adminData.username || 'Admin_01',
-          email: adminData.email,
-          role: 'SUPERUSER',
-          badge: 'A1',
-          clearanceLevel: 5
-        });
-        sessionStorage.setItem('pocket_odyssey_isAdmin', 'true');
-        localStorage.setItem('pocket_odyssey_isAdmin', 'true');
-        showAdminToast(`🔑 Clearance Verified: ${adminData.username}`, 'success');
-        return { success: true };
-      }
-    } catch (e) {
-      console.warn('Supabase admin check fallback:', e);
+      await setMapBaseFlag(mapId, isBase);
+    } catch (err) {
+      console.warn('Base map flag DB write skipped:', err);
     }
-
-    // Invalid credentials
-    showAdminToast('⛔ Access Denied: Invalid Clearance Key', 'error');
-    return { success: false, error: 'Invalid Admin Identifier or Security Clearance Code.' };
   };
 
   const adminLogout = () => {
@@ -1753,7 +1970,7 @@ export const AppProvider = ({ children }) => {
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
   };
 
-  const loginAsAdmin = (customAdmin) => {
+const loginAsAdmin = (customAdmin) => {
     setIsLoggedIn(true);
     setIsAdminLoggedIn(true);
     const profile = {
@@ -1836,7 +2053,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
     try {
       await supabase.auth.signOut();
     } catch (e) {
@@ -1915,6 +2131,7 @@ export const AppProvider = ({ children }) => {
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,
+        isOwnMap,
         saveEditorMapState,
         registerEditorDraft,
         userAssets,
@@ -1927,8 +2144,6 @@ export const AppProvider = ({ children }) => {
         mapFilters,
         toggleFilter,
         login,
-        loginAsAdmin,
-        loginAsTrainer,
         logout,
         signInWithOAuth,
         signInWithGoogle,
@@ -1939,9 +2154,7 @@ export const AppProvider = ({ children }) => {
         adminActiveTab,
         setAdminActiveTab,
         isAdminLoggedIn,
-        setIsAdminLoggedIn,
         adminUser,
-        adminLogin,
         adminLogout,
         baseMaps,
         setBaseMaps,
@@ -1956,12 +2169,14 @@ export const AppProvider = ({ children }) => {
         resolveReport,
         hideReportedLocation,
         deleteReportedLocation,
+        submitReport,
         warnTrainer,
         banTrainer,
         unbanTrainer,
         changeTrainerRole,
         addBaseMap,
         deleteBaseMap,
+        setMapBaseFlagFor,
         updateGlobalSettings,
         notifications,
         unreadCount,

@@ -6,7 +6,6 @@ export default function NewMissionModal({ isOpen, onClose }) {
   const { showAdminToast } = useApp();
   const [missionTitle, setMissionTitle] = useState('');
   const [targetRegion, setTargetRegion] = useState('All Regions');
-  const [rewardCoins, setRewardCoins] = useState(250);
   const [missionType, setMissionType] = useState('Exploration');
   const [description, setDescription] = useState('');
 
@@ -91,27 +90,9 @@ export default function NewMissionModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-              Reward (Coins)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="50"
-                max="5000"
-                step="50"
-                value={rewardCoins}
-                onChange={(e) => setRewardCoins(Number(e.target.value))}
-                className="w-32 bg-gray-50 border-2 border-black rounded-xl p-2.5 text-sm font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-              />
-              <span className="text-xs font-bold text-gray-500">🪙 Odyssey Credits</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
-              Mission Directives / Lore
-            </label>
+              <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
+                Mission Directives / Lore
+              </label>
             <textarea
               rows="3"
               value={description}

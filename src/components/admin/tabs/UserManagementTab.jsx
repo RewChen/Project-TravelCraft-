@@ -6,6 +6,7 @@ import {
   Shield,
   User,
   Ban,
+  CheckCircle2,
   HardDrive,
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
@@ -20,6 +21,7 @@ export default function UserManagementTab() {
   const [searchTrainer, setSearchTrainer] = useState('');
   const [selectedTrainerForMaps, setSelectedTrainerForMaps] = useState(null);
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const fetchTrainers = async () => {
     setLoading(true);
@@ -253,7 +255,7 @@ export default function UserManagementTab() {
                       <td className="p-3.5 text-right">
                         {isBanned ? (
                             <button
-                            onClick={() => unbanTrainer(trainer.id)}
+                            onClick={() => setConfirmAction({ type: 'unban', trainer })}
                             className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
                           >
                             {t('admin.unban')}
@@ -270,7 +272,7 @@ export default function UserManagementTab() {
                               <option value="Admin">{t('admin.roleAdmin')}</option>
                             </select>
                             <button
-                              onClick={() => banTrainer(trainer.id)}
+                              onClick={() => setConfirmAction({ type: 'ban', trainer })}
                               title="Ban Trainer"
                               className="w-7 h-7 bg-red-100 hover:bg-red-200 text-red-700 border border-black rounded flex items-center justify-center text-[10px] font-bold cursor-pointer"
                             >
@@ -367,6 +369,66 @@ export default function UserManagementTab() {
         trainer={selectedTrainerForMaps}
         onClose={() => setIsMapsModalOpen(false)}
       />
+
+      {/* Ban / Unban Confirmation Dialog */}
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 font-mono">
+          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-md shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className={`${confirmAction.type === 'ban' ? 'bg-[#cc0000] text-white' : 'bg-emerald-500 text-white'} p-4 border-b-4 border-black flex items-center gap-2`}>
+              {confirmAction.type === 'ban' ? (
+                <Ban className="w-5 h-5" />
+              ) : (
+                <CheckCircle2 className="w-5 h-5" />
+              )}
+              <h3 className="font-black text-sm uppercase tracking-wider">
+                {confirmAction.type === 'ban' ? t('admin.confirmBan') : t('admin.confirmUnban')}
+              </h3>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gray-100 border-2 border-black rounded-xl flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  {confirmAction.trainer.avatar || '🧢'}
+                </div>
+                <div>
+                  <div className="font-black text-sm text-black">{confirmAction.trainer.name}</div>
+                  <div className="text-[10px] text-gray-500 font-bold uppercase">{confirmAction.trainer.email}</div>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-700 font-sans font-bold leading-relaxed border-2 border-dashed border-black rounded-xl p-3 bg-gray-50">
+                {confirmAction.type === 'ban'
+                  ? t('admin.confirmBanDesc', { name: confirmAction.trainer.name })
+                  : t('admin.confirmUnbanDesc', { name: confirmAction.trainer.name })}
+              </p>
+            </div>
+
+            <div className="p-4 pt-0 flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 border-2 border-black rounded-xl text-xs font-bold hover:bg-gray-100 cursor-pointer"
+              >
+                {t('admin.cancel')}
+              </button>
+              <button
+                onClick={async () => {
+                  const action = confirmAction;
+                  setConfirmAction(null);
+                  if (action.type === 'ban') await banTrainer(action.trainer.id);
+                  else await unbanTrainer(action.trainer.id);
+                }}
+                className={`px-5 py-2 text-white font-black rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer ${
+                  confirmAction.type === 'ban'
+                    ? 'bg-[#cc0000] hover:bg-red-700'
+                    : 'bg-emerald-500 hover:bg-emerald-600'
+                }`}
+              >
+                {confirmAction.type === 'ban' ? t('admin.confirmBan') : t('admin.confirmUnban')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { useApp } from '../context/AppContext';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import SystemOverviewTab from '../components/admin/tabs/SystemOverviewTab';
 import BaseMapsTab from '../components/admin/tabs/BaseMapsTab';
-import GlobalSettingsTab from '../components/admin/tabs/GlobalSettingsTab';
 import UserManagementTab from '../components/admin/tabs/UserManagementTab';
 import ReportedLocationsTab from '../components/admin/tabs/ReportedLocationsTab';
 import NewMissionModal from '../components/admin/modals/NewMissionModal';
@@ -88,10 +87,6 @@ export default function AdminDashboard() {
 
         {adminActiveTab === 'basemaps' && (
           <BaseMapsTab onOpenAddModal={() => setIsAddBaseMapModalOpen(true)} />
-        )}
-
-        {adminActiveTab === 'settings' && (
-          <GlobalSettingsTab />
         )}
 
         {adminActiveTab === 'users' && (

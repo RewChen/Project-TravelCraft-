@@ -1,0 +1,478 @@
+﻿
+-- =============================================
+-- TravelCraft — FULL DATABASE SETUP (run once)
+-- Combines supabase_schema.sql + supabase_admin_schema.sql + supabase_perf_migration.sql
+-- Safe to run repeatedly (idempotent).
+-- Paste the WHOLE file into Supabase -> SQL Editor -> Run.
+-- =============================================
+-- =========================================
+-- PUBLIC.USERS (Profiles for Users)
+-- =========================================
+CREATE TABLE public.users (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    avatar TEXT,
+    role TEXT NOT NULL DEFAULT 'player',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =========================================
+-- PUBLIC.ADMINS (Profiles for Admins)
+-- =========================================
+CREATE TABLE public.admins (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT NOT NULL DEFAULT 'admin',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Note: Passwords, failed_login_attempts, locked_until, and last_login_at 
+-- are managed natively by Supabase internally inside the auth.users table.
+
+-- =========================================
+-- INDEXES
+-- =========================================
+CREATE INDEX idx_users_email ON public.users(email);
+CREATE INDEX idx_admins_email ON public.admins(email);
+
+-- =========================================
+-- SECURITY (Row Level Security)
+-- =========================================
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+-- =========================================
+-- HELPER: is_admin() — defined early so the RLS policies below can use it.
+-- (Also defined later in this file; CREATE OR REPLACE is idempotent.)
+-- =========================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.admins
+    WHERE id = auth.uid() AND is_active = true
+  ) OR EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
+
+-- Profiles are visible to the owner and admins only (emails are not public).
+CREATE POLICY "Users can view their own profiles" 
+ON public.users FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Admins can view all users"
+ON public.users FOR SELECT USING (public.is_admin());
+
+-- Allow users to update their own profile
+CREATE POLICY "Users can update own profile" 
+ON public.users FOR UPDATE USING (auth.uid() = id);
+
+-- Admin user management (the admin Users tab updates other users).
+CREATE POLICY "Admins can update any user"
+    ON public.users FOR UPDATE
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- =========================================
+-- TRIGGER: prevent direct self role changes by non-admins.
+-- =========================================
+CREATE OR REPLACE FUNCTION public.guard_role_change()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NOT public.is_admin() AND NEW.role IS DISTINCT FROM OLD.role THEN
+    RAISE EXCEPTION 'Role changes require admin approval or the update_own_role API';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_self_role_change ON public.users;
+CREATE TRIGGER prevent_self_role_change
+    BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE PROCEDURE public.guard_role_change();
+
+-- RPC: safe own-role change limited to non-admin roles.
+CREATE OR REPLACE FUNCTION public.update_own_role(p_role text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  allowed text[] := ARRAY[
+    'novice traveler', 'cartographer', 'gym leader',
+    'game master', 'member', 'novice', 'player'
+  ];
+BEGIN
+  IF lower(coalesce(p_role, '')) = ANY(allowed) THEN
+    UPDATE public.users SET role = p_role WHERE id = auth.uid();
+  ELSE
+    RAISE EXCEPTION 'Role not allowed for self-assignment';
+  END IF;
+END;
+$$;
+
+-- =========================================
+-- TRIGGER: Auto-create public.users profile on auth signup
+-- Supports email/password + OAuth (Google, Facebook)
+-- OAuth providers supply: full_name/name, avatar_url/picture
+-- =========================================
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, username, email, avatar, role)
+  VALUES (
+    new.id,
+    COALESCE(
+      new.raw_user_meta_data->>'username',
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      new.raw_user_meta_data->>'user_name',
+      'Trainer_' || substr(new.id::text, 1, 6)
+    ),
+    new.email,
+    COALESCE(
+      new.raw_user_meta_data->>'avatar',
+      new.raw_user_meta_data->>'avatar_url',
+      new.raw_user_meta_data->>'picture',
+      '๐'
+    ),
+    COALESCE(new.raw_user_meta_data->>'role', 'player')
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- =========================================
+-- PUBLIC.MAPS (Map Editor autosave + community maps)
+-- =========================================
+CREATE TABLE public.maps (
+    id TEXT PRIMARY KEY,
+    owner_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL DEFAULT 'UNTITLED MAP',
+    privacy TEXT NOT NULL DEFAULT 'private',
+    is_editor_map BOOLEAN NOT NULL DEFAULT FALSE,
+    data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    summary JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Migration for existing databases: add summary (idempotent), backfill from data.
+ALTER TABLE public.maps ADD COLUMN IF NOT EXISTS summary JSONB;
+
+UPDATE public.maps
+SET summary = jsonb_build_object(
+    'title', COALESCE(data->>'title', title),
+    'imageUrl', data->>'imageUrl',
+    'pinCount', CASE
+        WHEN jsonb_typeof(data->'pins') = 'array' THEN jsonb_array_length(data->'pins')
+        WHEN jsonb_typeof(data->'editorState'->'elements') = 'array' THEN jsonb_array_length(data->'editorState'->'elements')
+        ELSE 0
+    END,
+    'lore', data->'details'->>'lore',
+    'region', data->'details'->>'region',
+    'category', data->>'category',
+    'rarity', data->>'rarity',
+    'rarityColor', data->>'rarityColor',
+    'tags', COALESCE(data->'tags', '[]'::jsonb),
+    'discoveredBy', data->>'discoveredBy',
+    'authorBadgeColor', data->>'authorBadgeColor',
+    'authorRole', data->>'authorRole',
+    'previewBackground', data->'previewBackground',
+    'details', jsonb_build_object(
+        'title', data->'details'->>'title',
+        'region', data->'details'->>'region',
+        'type', data->'details'->>'type',
+        'tag', data->'details'->>'tag',
+        'lore', data->'details'->>'lore',
+        'hours', data->'details'->>'hours',
+        'fee', data->'details'->>'fee',
+        'bestTime', data->'details'->>'bestTime',
+        'travel', data->'details'->>'travel',
+        'popularity', data->'details'->>'popularity',
+        'visitors', data->'details'->>'visitors',
+        'rarity', data->'details'->>'rarity'
+    )
+)
+WHERE summary IS NULL;
+
+CREATE INDEX idx_maps_owner ON public.maps(owner_id);
+CREATE INDEX idx_maps_updated ON public.maps(updated_at DESC);
+
+ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
+
+-- Public maps are viewable by everyone; private drafts only by their owner.
+CREATE POLICY "Maps are viewable by everyone"
+    ON public.maps FOR SELECT USING (privacy = 'public' OR auth.uid() = owner_id);
+
+-- Only the authenticated owner may insert their own maps.
+CREATE POLICY "Owners can insert their maps"
+    ON public.maps FOR INSERT WITH CHECK (auth.uid() = owner_id);
+
+-- Only the authenticated owner may update their own maps.
+CREATE POLICY "Owners can update their own maps"
+    ON public.maps FOR UPDATE USING (auth.uid() = owner_id);
+
+-- Only the authenticated owner may delete their own maps.
+CREATE POLICY "Owners can delete their own maps"
+    ON public.maps FOR DELETE USING (auth.uid() = owner_id);
+
+-- =========================================
+-- STORAGE BUCKET: MEDIA (unified, folder per map)
+-- Bucket name: media
+-- Folder structure: maps/<mapId>/cover | pins | video
+-- Create the bucket (idempotent), then the storage policies below.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+-- =========================================
+CREATE POLICY "Media files are publicly viewable"
+    ON storage.objects FOR SELECT USING (bucket_id = 'media');
+
+CREATE POLICY "Authenticated users can upload media"
+    ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Owners can update their media"
+    ON storage.objects FOR UPDATE USING (bucket_id = 'media' AND auth.uid() = owner_id);
+
+CREATE POLICY "Owners can delete their media"
+    ON storage.objects FOR DELETE USING (bucket_id = 'media' AND auth.uid() = owner_id);
+
+-- =========================================
+-- PUBLIC.USER_ASSETS (Per-user saved editor Elements & Backgrounds)
+-- =========================================
+CREATE TABLE public.user_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    asset_type TEXT NOT NULL CHECK (asset_type IN ('element', 'background')),
+    label TEXT NOT NULL,
+    url TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_assets_user ON public.user_assets(user_id, asset_type);
+
+ALTER TABLE public.user_assets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own assets"
+    ON public.user_assets FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own assets"
+    ON public.user_assets FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own assets"
+    ON public.user_assets FOR DELETE USING (auth.uid() = user_id);
+
+-- Restrict media updates/deletes to the current user's own users/<uid>/ folder.
+-- (Insert stays open to any authenticated user so map covers under maps/<mapId>/ keep working.)
+DROP POLICY IF EXISTS "Owners can update their media" ON storage.objects;
+DROP POLICY IF EXISTS "Owners can delete their media" ON storage.objects;
+
+CREATE POLICY "Users can update their own media folders"
+    ON storage.objects FOR UPDATE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (
+            (storage.foldername(name))[1] = 'users'
+            AND (storage.foldername(name))[2] = auth.uid()::text
+        )
+    );
+
+CREATE POLICY "Users can delete their own media folders"
+    ON storage.objects FOR DELETE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (
+            (storage.foldername(name))[1] = 'users'
+            AND (storage.foldername(name))[2] = auth.uid()::text
+        )
+    );
+
+-- Map asset management: the owner who uploaded (or an admin) may update/delete
+-- assets under maps/<mapId>/ — required for deleteMapAssets to actually work.
+CREATE POLICY "Map owners and admins can update map assets"
+    ON storage.objects FOR UPDATE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (storage.foldername(name))[1] = 'maps'
+        AND (auth.uid() = owner_id OR public.is_admin())
+    );
+
+CREATE POLICY "Map owners and admins can delete map assets"
+    ON storage.objects FOR DELETE USING (
+        bucket_id = 'media'
+        AND auth.role() = 'authenticated'
+        AND (storage.foldername(name))[1] = 'maps'
+        AND (auth.uid() = owner_id OR public.is_admin())
+    );
+
+
+-- =========================================
+-- HELPER: is_admin()
+-- Returns true when the current Supabase Auth user
+-- is an active admin (admins table) OR has role 'admin' in users.
+-- =========================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.admins
+    WHERE id = auth.uid() AND is_active = true
+  ) OR EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$;
+
+-- =========================================
+-- PUBLIC.GLOBAL_SETTINGS (single-row config)
+-- =========================================
+CREATE TABLE IF NOT EXISTS public.global_settings (
+  id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  max_pins_per_map INT NOT NULL DEFAULT 50,
+  auto_approve_community BOOLEAN NOT NULL DEFAULT FALSE,
+  maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE,
+  allow_fast_travel BOOLEAN NOT NULL DEFAULT TRUE,
+  coin_multiplier NUMERIC NOT NULL DEFAULT 1.5,
+  auto_ban_strike_threshold INT NOT NULL DEFAULT 5,
+  server_region TEXT NOT NULL DEFAULT 'AP-East (Tokyo)',
+  radar_radius_km NUMERIC NOT NULL DEFAULT 25,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Seed the singleton row (idempotent)
+INSERT INTO public.global_settings (id) VALUES (1)
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public.global_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Global settings are viewable by everyone"
+  ON public.global_settings FOR SELECT USING (true);
+
+CREATE POLICY "Admins can update global settings"
+  ON public.global_settings FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can insert global settings"
+  ON public.global_settings FOR INSERT
+  WITH CHECK (public.is_admin());
+
+-- =========================================
+-- PUBLIC.REPORTS (user-submitted location reports)
+-- =========================================
+CREATE TABLE IF NOT EXISTS public.reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  reporter_name TEXT,
+  map_id TEXT REFERENCES public.maps(id) ON DELETE SET NULL,
+  location_name TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  details TEXT,
+  status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'resolved', 'rejected')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_reports_status ON public.reports(status);
+CREATE INDEX idx_reports_map ON public.reports(map_id);
+
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can create their own reports"
+  ON public.reports FOR INSERT
+  WITH CHECK (auth.uid() = reporter_id);
+
+CREATE POLICY "View own reports or admins view all"
+  ON public.reports FOR SELECT
+  USING (auth.uid() = reporter_id OR public.is_admin());
+
+CREATE POLICY "Admins can update reports"
+  ON public.reports FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can delete reports"
+  ON public.reports FOR DELETE
+  USING (public.is_admin());
+
+-- =========================================
+-- MAPS: add is_base_map flag
+-- =========================================
+ALTER TABLE public.maps
+  ADD COLUMN IF NOT EXISTS is_base_map BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Admin-only policies for base map management (appends to existing owner policies)
+CREATE POLICY "Admins can view all maps"
+  ON public.maps FOR SELECT
+  USING (public.is_admin());
+
+CREATE POLICY "Admins can update any map"
+  ON public.maps FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+
+-- =========================================
+-- PERFORMANCE MIGRATION โ€” Run once in Supabase SQL Editor
+-- Adds maps.summary (lightweight feed data) + backfills existing rows.
+-- Safe to run repeatedly (idempotent).
+-- =========================================
+
+ALTER TABLE public.maps ADD COLUMN IF NOT EXISTS summary JSONB;
+
+UPDATE public.maps
+SET summary = jsonb_build_object(
+    'title', COALESCE(data->>'title', title),
+    'imageUrl', data->>'imageUrl',
+    'pinCount', CASE
+        WHEN jsonb_typeof(data->'pins') = 'array' THEN jsonb_array_length(data->'pins')
+        WHEN jsonb_typeof(data->'editorState'->'elements') = 'array' THEN jsonb_array_length(data->'editorState'->'elements')
+        ELSE 0
+    END,
+    'lore', data->'details'->>'lore',
+    'region', data->'details'->>'region',
+    'category', data->>'category',
+    'rarity', data->>'rarity',
+    'rarityColor', data->>'rarityColor',
+    'tags', COALESCE(data->'tags', '[]'::jsonb),
+    'discoveredBy', data->>'discoveredBy',
+    'authorBadgeColor', data->>'authorBadgeColor',
+    'authorRole', data->>'authorRole',
+    'previewBackground', data->'previewBackground',
+    'details', jsonb_build_object(
+        'title', data->'details'->>'title',
+        'region', data->'details'->>'region',
+        'type', data->'details'->>'type',
+        'tag', data->'details'->>'tag',
+        'lore', data->'details'->>'lore',
+        'hours', data->'details'->>'hours',
+        'fee', data->'details'->>'fee',
+        'bestTime', data->'details'->>'bestTime',
+        'travel', data->'details'->>'travel',
+        'popularity', data->'details'->>'popularity',
+        'visitors', data->'details'->>'visitors',
+        'rarity', data->'details'->>'rarity'
+    )
+)
+WHERE summary IS NULL;
