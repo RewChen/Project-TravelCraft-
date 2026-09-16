@@ -13,7 +13,7 @@ import MapEditor from './pages/MapEditor';
 import AdminDashboard from './pages/AdminDashboard';
 
 function AppContent() {
-  const { currentPage, activeCommunityMap, isAuthLoading, isLoggedIn, navigateTo, themeMode } = useApp();
+  const { currentPage, isAuthLoading, navigateTo, themeMode } = useApp();
   const isDarkMode = themeMode === 'dark';
 
   // Show loading screen while Supabase checks session

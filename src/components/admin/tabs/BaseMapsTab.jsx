@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Plus, Map, Trash2, Eye, Compass, Edit3 } from 'lucide-react';
+import { Plus, Trash2, Compass } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function BaseMapsTab({ onOpenAddModal }) {

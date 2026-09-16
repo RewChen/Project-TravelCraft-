@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   LayoutGrid,
   Map as MapIcon,
@@ -8,8 +7,6 @@ import {
   Plus,
   LogOut,
   ArrowLeft,
-  Shield,
-  Radio
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 

@@ -10,7 +10,7 @@ import NewMissionModal from '../components/admin/modals/NewMissionModal';
 import DeployUpdateModal from '../components/admin/modals/DeployUpdateModal';
 import AddBaseMapModal from '../components/admin/modals/AddBaseMapModal';
 import AuthPage from './AuthPage';
-import { Sparkles, AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { adminActiveTab, adminToast, isLoggedIn, isAdminLoggedIn, userProfile, navigateTo, logout, setAuthMode, themeMode, t } = useApp();

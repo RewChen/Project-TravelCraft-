@@ -6,19 +6,14 @@ import {
   Compass,
   MapPin,
   Settings,
-  ArrowUpRight,
-  ArrowDownRight,
   CheckCircle2,
-  AlertCircle,
   Eye,
-  Trash2,
-  Sparkles,
   RefreshCw
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function SystemOverviewTab({ onOpenDeployModal }) {
-  const { mapPins, communityMaps, baseMaps, trainers, reportedLocations, showAdminToast, trackMapOnWorldMap, t } = useApp();
+  const { mapPins, communityMaps, trainers, showAdminToast, trackMapOnWorldMap, t } = useApp();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');

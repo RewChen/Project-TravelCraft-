@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Mail, Key, Play, AlertCircle, Shield, User } from 'lucide-react';
+import { Mail, Key, Play, AlertCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 import SocialAuthButtons from './SocialAuthButtons';
 
 export default function LoginForm() {
-  const { login, loginAsAdmin, loginAsTrainer, setAuthMode, t } = useApp();
+  const { login, loginAsAdmin, setAuthMode, t } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);

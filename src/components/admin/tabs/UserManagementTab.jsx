@@ -6,11 +6,7 @@ import {
   Shield,
   User,
   Ban,
-  CheckCircle2,
-  AlertTriangle,
   HardDrive,
-  Eye,
-  MoreVertical
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import TrainerMapsModal from '../modals/TrainerMapsModal';
@@ -24,10 +20,6 @@ export default function UserManagementTab() {
   const [searchTrainer, setSearchTrainer] = useState('');
   const [selectedTrainerForMaps, setSelectedTrainerForMaps] = useState(null);
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
-
-  useEffect(() => {
-    fetchTrainers();
-  }, []);
 
   const fetchTrainers = async () => {
     setLoading(true);
@@ -58,6 +50,11 @@ export default function UserManagementTab() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => fetchTrainers(), 0);
+    return () => clearTimeout(timer);
+  }, [fetchTrainers]);
 
   const banTrainer = async (id) => {
     try {

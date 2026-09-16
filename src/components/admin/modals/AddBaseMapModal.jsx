@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Map, X, Plus, Image as ImageIcon } from 'lucide-react';
+import { Map, X, Plus } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function AddBaseMapModal({ isOpen, onClose }) {

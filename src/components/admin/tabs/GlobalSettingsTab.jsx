@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Save, ShieldAlert, Cpu, Database, Award, MapPin } from 'lucide-react';
+import { Save, ShieldAlert, Award, MapPin } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function GlobalSettingsTab() {

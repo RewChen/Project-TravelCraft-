@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   ChevronLeft,
   ChevronRight,
-  Sparkles
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 

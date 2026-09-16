@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Radio, X, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { Radio, X, Send, AlertCircle } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function NewMissionModal({ isOpen, onClose }) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Server, CheckCircle2, AlertTriangle, X, Terminal, RefreshCw, Cpu } from 'lucide-react';
+import { Server, CheckCircle2, X, Terminal, RefreshCw, Cpu } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function DeployUpdateModal({ isOpen, onClose }) {
@@ -9,7 +9,8 @@ export default function DeployUpdateModal({ isOpen, onClose }) {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return undefined;
+    const resetTimer = setTimeout(() => {
       setDeployStep(0);
       setIsDeploying(false);
       setLogs([
@@ -17,7 +18,8 @@ export default function DeployUpdateModal({ isOpen, onClose }) {
         'Target: All 4 Edge Regions (Kanto, Johto, Hoenn, Sinnoh)',
         'Status: Standby'
       ]);
-    }
+    }, 0);
+    return () => clearTimeout(resetTimer);
   }, [isOpen]);
 
   if (!isOpen) return null;

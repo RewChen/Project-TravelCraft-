@@ -120,7 +120,6 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
                         onClick={() => {
                           markNotificationRead(n.id);
                           if (n.data?.mapId) {
-                            const target = notifications.find((x) => x.id === n.id);
                             // try to navigate to that community map
                             const map = communityMaps?.find((m) => m.id === n.data.mapId);
                             if (map) { navigateTo('details', map.details); setShowNotifications(false); }

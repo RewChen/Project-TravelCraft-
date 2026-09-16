@@ -114,7 +114,7 @@ export default function WorldMapPage() {
           )}
 
           {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
-          <MapElementsLayer items={mapElements} />
+          <MapElementsLayer items={mapElements.filter(({ element }) => !element.isLocation)} />
 
           {/* Render Map Markers */}
           <MapPins />

@@ -472,7 +472,9 @@ export const AppProvider = ({ children }) => {
         const bc = new BroadcastChannel('pocket_odyssey_lang');
         bc.postMessage({ language: code });
         bc.close();
-      } catch {}
+      } catch {
+        // BroadcastChannel is unavailable in some browsers.
+      }
     }
   }, []);
 
@@ -483,7 +485,9 @@ export const AppProvider = ({ children }) => {
         const bc = new BroadcastChannel('pocket_odyssey_lang');
         bc.postMessage({ language: next });
         bc.close();
-      } catch {}
+      } catch {
+        // BroadcastChannel is unavailable in some browsers.
+      }
       return next;
     });
   }, []);
@@ -513,7 +517,9 @@ export const AppProvider = ({ children }) => {
           setLanguageState(ev.data.language);
         }
       };
-    } catch {}
+    } catch {
+      bc = null;
+    }
     return () => {
       window.removeEventListener('storage', handleStorage);
       if (bc) bc.close();
@@ -534,6 +540,20 @@ export const AppProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    try {
+      return sessionStorage.getItem('pocket_odyssey_isAdmin') === 'true' || localStorage.getItem('pocket_odyssey_isAdmin') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
+    name: 'Admin_01',
+    email: 'admin@travelcraft.com',
+    role: 'SUPERUSER',
+    badge: 'A1',
+    clearanceLevel: 5
+  }));
 
   const getStoredRole = () => {
     try {
@@ -978,20 +998,6 @@ export const AppProvider = ({ children }) => {
 
   // Admin Dashboard States & Persistence
   const [adminActiveTab, setAdminActiveTab] = useState('overview'); // 'overview', 'basemaps', 'settings', 'users', 'reports'
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
-    try {
-      return sessionStorage.getItem('pocket_odyssey_isAdmin') === 'true' || localStorage.getItem('pocket_odyssey_isAdmin') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
-    name: 'Admin_01',
-    email: 'admin@travelcraft.com',
-    role: 'SUPERUSER',
-    badge: 'A1',
-    clearanceLevel: 5
-  }));
   const [baseMaps, setBaseMaps] = useState(() => loadStored('adminBaseMaps', initialBaseMaps));
   const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
   const [reportedLocations, setReportedLocations] = useState(() => loadStored('adminReports', initialReportedLocations));
