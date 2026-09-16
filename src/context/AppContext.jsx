@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { translations, languages } from '../i18n';
-import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem } from '../lib/supabaseMaps';
+import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem, mapItemSummary } from '../lib/supabaseMaps';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   fetchGlobalSettings,
@@ -9,7 +9,6 @@ import {
   insertReport,
   updateReportStatus,
   deleteReportRow,
-  setMapBaseFlag,
   upsertAdminBaseMap,
   fetchAdminBaseMaps,
   deleteBaseMapRow
@@ -506,7 +505,7 @@ export const AppProvider = ({ children }) => {
         }
       };
     } catch {
-      bc = null;
+      // BroadcastChannel unsupported in this browser
     }
     return () => {
       window.removeEventListener('storage', handleStorage);
@@ -528,20 +527,6 @@ export const AppProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
-    try {
-      return sessionStorage.getItem('pocket_odyssey_isAdmin') === 'true' || localStorage.getItem('pocket_odyssey_isAdmin') === 'true';
-    } catch {
-      return false;
-    }
-  });
-  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
-    name: 'Admin_01',
-    email: 'admin@travelcraft.com',
-    role: 'SUPERUSER',
-    badge: 'A1',
-    clearanceLevel: 5
-  }));
 
   const getStoredRole = () => {
     try {
@@ -638,6 +623,17 @@ export const AppProvider = ({ children }) => {
       visitedCount: 0
     };
   };
+
+  // Admin access is verified server-side only (admins table / users.role via
+  // fetchUserProfile). Never trust the client flag on boot.
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminUser, setAdminUser] = useState(() => loadStored('adminUser', {
+    name: 'Admin_01',
+    email: 'admin@travelcraft.com',
+    role: 'SUPERUSER',
+    badge: 'A1',
+    clearanceLevel: 5
+  }));
 
   const fetchUserProfile = async (userId) => {
     try {
@@ -1151,10 +1147,9 @@ export const AppProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, [isAuthLoading]);
 
-  // Hydrate base maps (maps flagged is_base_map) straight from the DB.
+  // Hydrate base maps straight from their own base_maps table.
   // Not gated on admin login: base maps are public rows and reading them here
-  // keeps "Active Base Maps" honest — no ghost seed rows when the DB is empty.
-  // Seed data is only used when Supabase isn't configured at all.
+  // keeps "Manage Base Maps" honest — no ghost seed rows when the DB is empty.
   useEffect(() => {
     if (isAuthLoading) return undefined;
     let cancelled = false;
@@ -1872,7 +1867,6 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       title: newMap.name,
       privacy: 'public',
       is_editor_map: false,
-      is_base_map: true,
       data: {
         name: newMap.name,
         theme: newMap.theme,
@@ -1888,16 +1882,17 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         pinCount: 0
       }
     };
+    const uiItem = {
+      id,
+      badge: 'BASE',
+      pinsCount: 0,
+      rating: 5.0,
+      description: 'A new frontier ready for trainer quests and cartography.',
+      ...newMap
+    };
 
     if (!isSupabaseConfigured) {
-      setBaseMaps((prev) => [...prev, {
-        id,
-        badge: 'BASE',
-        pinsCount: 0,
-        rating: 5.0,
-        description: 'A new frontier ready for trainer quests and cartography.',
-        ...newMap
-      }]);
+      setBaseMaps((prev) => [...prev, uiItem]);
       showAdminToast(`Base Map "${newMap.name}" created locally (DB not configured).`, 'info');
       return null;
     }
@@ -1909,14 +1904,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       showAdminToast(`Base Map "${newMap.name}" NOT saved to database — nothing added.`, 'error');
       return null;
     }
-    setBaseMaps((prev) => [...prev, {
-      id,
-      badge: 'BASE',
-      pinsCount: 0,
-      rating: 5.0,
-      description: 'A new frontier ready for trainer quests and cartography.',
-      ...newMap
-    }]);
+    setBaseMaps((prev) => [...prev, uiItem]);
     showAdminToast(`Base Map "${newMap.name}" created & synced to DB!`, 'success');
     return id;
   };
@@ -1952,14 +1940,30 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     return synced;
   };
 
-  // Promote/demote a real user-created map as a base map (writes is_base_map).
+  // Promote/demote a map as a base map against the dedicated base_maps table.
+  //   promote (true):  copy the community map row into base_maps (maps row stays).
+  //   demote  (false): delete the row from base_maps (community row stays).
   const setMapBaseFlagFor = async (mapId, isBase) => {
     try {
-      await setMapBaseFlag(mapId, isBase);
+      if (isBase) {
+        const full = await fetchMapById(mapId);
+        if (!full) throw new Error('Map not found for promotion');
+        await upsertAdminBaseMap({
+          id: mapId,
+          owner_id: full.ownerId ?? null,
+          title: full.title ?? 'UNTITLED MAP',
+          privacy: 'public',
+          is_editor_map: false,
+          data: full,
+          summary: mapItemSummary(full),
+        });
+      } else {
+        await deleteBaseMapRow(mapId);
+      }
       return true;
     } catch (err) {
       console.warn('Base map flag DB write failed:', err);
-      showAdminToast('Base map flag NOT saved to database.', 'error');
+      showAdminToast('Base map change NOT saved to database.', 'error');
       return false;
     }
   };
@@ -1975,6 +1979,63 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
   };
 
+const loginAsAdmin = (customAdmin) => {
+    setIsLoggedIn(true);
+    setIsAdminLoggedIn(true);
+    const profile = {
+      id: customAdmin?.id || 'admin-local',
+      name: customAdmin?.name || 'Admin_01',
+      email: customAdmin?.email || 'admin@travelcraft.com',
+      avatar: customAdmin?.avatar || '🛡️',
+      role: 'Admin',
+      coins: 9999,
+      level: 99,
+      badges: ['Master Admin', 'System Lord'],
+      visitedCount: 99
+    };
+    setUserProfile(profile);
+    setAdminUser({
+      name: profile.name,
+      email: profile.email,
+      role: 'SUPERUSER',
+      badge: 'A1',
+      clearanceLevel: 5
+    });
+    try {
+      localStorage.setItem('project_travelcraft_isAdmin', 'true');
+      sessionStorage.setItem('project_travelcraft_isAdmin', 'true');
+      localStorage.setItem('project_travelcraft_session', JSON.stringify({ type: 'admin', profile, adminUser: { name: profile.name, email: profile.email, role: 'SUPERUSER', badge: 'A1', clearanceLevel: 5 } }));
+    } catch (e) {
+      console.warn(e);
+    }
+    showAdminToast('🛡️ Welcome, Admin_01! Command Center unlocked.', 'success');
+    setCurrentPage('home');
+  };
+
+  const loginAsTrainer = (customTrainer) => {
+    setIsLoggedIn(true);
+    setIsAdminLoggedIn(false);
+    const profile = {
+      id: customTrainer?.id || 'trainer-local',
+      name: customTrainer?.name || 'Ash K.',
+      email: customTrainer?.email || '',
+      avatar: customTrainer?.avatar || '🧢',
+      role: customTrainer?.role || 'Cartographer',
+      coins: 1245,
+      level: 1,
+      badges: ['Pioneer'],
+      visitedCount: 4
+    };
+    setUserProfile(profile);
+    try {
+      localStorage.removeItem('project_travelcraft_isAdmin');
+      sessionStorage.removeItem('project_travelcraft_isAdmin');
+      localStorage.setItem('project_travelcraft_session', JSON.stringify({ type: 'trainer', profile }));
+    } catch (e) {
+      console.warn(e);
+    }
+    setCurrentPage('home');
+  };
 
   const signInWithOAuth = async (provider) => {
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;

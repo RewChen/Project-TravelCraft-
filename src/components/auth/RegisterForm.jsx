@@ -62,7 +62,7 @@ export default function RegisterForm() {
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: trainerEmail.trim(),
         password,
         options: {
@@ -88,7 +88,7 @@ export default function RegisterForm() {
       } else {
         login(); // Context login function sets isLoggedIn and moves to home
       }
-    } catch {
+    } catch (err) {
       setErrorMsg(t('auth.registerFailed'));
     } finally {
       setLoading(false);

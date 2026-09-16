@@ -1,8 +1,8 @@
-import { X, ExternalLink } from 'lucide-react';
+import { Map, X, ExternalLink, Compass } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 
 export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
-  const { trackMapOnWorldMap, communityMaps } = useApp();
+  const { navigateTo, trackMapOnWorldMap, communityMaps } = useApp();
 
   if (!isOpen || !trainer) return null;
 

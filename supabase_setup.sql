@@ -49,6 +49,21 @@ CREATE TABLE IF NOT EXISTS public.maps (
     is_base_map BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+-- Base maps live in their OWN table, fully separate from community maps.
+-- The are created/edited/deleted only through MANAGE BASE MAPS and are never
+-- part of the Community Discoveries feed.
+CREATE TABLE IF NOT EXISTS public.base_maps (
+    id TEXT PRIMARY KEY,
+    owner_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL DEFAULT 'UNTITLED BASE MAP',
+    privacy TEXT NOT NULL DEFAULT 'public',
+    is_editor_map BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    data JSONB DEFAULT '{}'::jsonb,
+    summary JSONB
+);
+
 CREATE TABLE IF NOT EXISTS public.global_settings (
   id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   max_pins_per_map INT NOT NULL DEFAULT 50,
@@ -90,10 +105,12 @@ CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON public.reports(status);
 CREATE INDEX IF NOT EXISTS idx_reports_map ON public.reports(map_id);
 CREATE INDEX IF NOT EXISTS idx_user_assets_user ON public.user_assets(user_id, asset_type);
+CREATE INDEX IF NOT EXISTS idx_base_maps_created ON public.base_maps(created_at DESC);
 
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.base_maps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.global_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_assets ENABLE ROW LEVEL SECURITY;
@@ -363,7 +380,7 @@ BEGIN
     JOIN pg_class c ON c.oid = p.polrelid
     JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'public'
-      AND c.relname IN ('users', 'admins', 'maps', 'global_settings', 'reports', 'user_assets')
+      AND c.relname IN ('users', 'admins', 'maps', 'base_maps', 'global_settings', 'reports', 'user_assets')
   LOOP
     EXECUTE format('DROP POLICY %I ON public.%I', r.name, r.tbl);
   END LOOP;
@@ -386,6 +403,15 @@ CREATE POLICY "map_update" ON public.maps FOR UPDATE
     USING (auth.uid()::text = owner_id::text OR public.is_admin());
 CREATE POLICY "map_delete" ON public.maps FOR DELETE
     USING (auth.uid()::text = owner_id::text OR public.is_admin());
+
+-- Base maps: everyone may view them, only admins may modify them.
+CREATE POLICY "base_maps_select" ON public.base_maps FOR SELECT USING (true);
+CREATE POLICY "base_maps_insert" ON public.base_maps FOR INSERT
+    WITH CHECK (public.is_admin());
+CREATE POLICY "base_maps_update" ON public.base_maps FOR UPDATE
+    USING (public.is_admin()) WITH CHECK (public.is_admin());
+CREATE POLICY "base_maps_delete" ON public.base_maps FOR DELETE
+    USING (public.is_admin());
 
 CREATE POLICY "Global settings are viewable by everyone"
     ON public.global_settings FOR SELECT USING (true);
@@ -416,6 +442,19 @@ CREATE POLICY "Users can delete their own assets"
 
 INSERT INTO public.global_settings (id) VALUES (1)
 ON CONFLICT (id) DO NOTHING;
+
+-- Migrate legacy base maps out of the shared maps table into base_maps.
+-- Keeps rows the admin *promoted* from a real community map (is_editor_map=true,
+-- those stay public community content) and removes the base-map-only rows that
+-- were previously written straight into maps (is_editor_map=false).
+INSERT INTO public.base_maps (id, owner_id, title, privacy, is_editor_map, created_at, updated_at, data, summary)
+SELECT id, owner_id, title, privacy, is_editor_map, created_at, updated_at, data, summary
+FROM public.maps
+WHERE is_base_map = true
+ON CONFLICT (id) DO NOTHING;
+
+DELETE FROM public.maps
+WHERE is_base_map = true AND is_editor_map = false;
 
 -- Populate maps.summary for rows that predate the column.
 UPDATE public.maps

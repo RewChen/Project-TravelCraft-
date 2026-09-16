@@ -95,19 +95,10 @@ export const deleteReportRow = async (reportId) => {
   if (error) throw error;
 };
 
-export const setMapBaseFlag = async (mapId, isBase) => {
-  if (!isSupabaseConfigured) return;
-  const { error } = await supabase
-    .from('maps')
-    .update({ is_base_map: isBase })
-    .eq('id', mapId);
-  if (error) throw error;
-};
-
 export const upsertAdminBaseMap = async (mapRow) => {
   if (!isSupabaseConfigured) return;
   const { error } = await supabase
-    .from('maps')
+    .from('base_maps')
     .upsert(mapRow, { onConflict: 'id' });
   if (error) throw error;
 };
@@ -115,22 +106,21 @@ export const upsertAdminBaseMap = async (mapRow) => {
 export const fetchAdminBaseMaps = async () => {
   if (!isSupabaseConfigured) return [];
   const { data, error } = await supabase
-    .from('maps')
+    .from('base_maps')
     .select('*')
-    .eq('is_base_map', true)
     .order('created_at', { ascending: false });
   if (error) {
-    if (isMissingSchemaError(error)) markSchemaMissing('maps');
+    if (isMissingSchemaError(error)) markSchemaMissing('base_maps');
     throw error;
   }
-  clearSchemaMissing('maps');
+  clearSchemaMissing('base_maps');
   return data || [];
 };
 
 export const deleteBaseMapRow = async (mapId) => {
   if (!isSupabaseConfigured) return;
   const { error } = await supabase
-    .from('maps')
+    .from('base_maps')
     .delete()
     .eq('id', mapId);
   if (error) throw error;

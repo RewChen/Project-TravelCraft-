@@ -16,13 +16,13 @@ export default function BaseMapsTab({ onOpenAddModal }) {
   const demote = async (map) => {
     if (!isAdminLoggedIn) {
       setBaseMaps((prev) => prev.filter((b) => b.id !== map.id));
-      showAdminToast(`"${map.name}" removed locally only (not saved to DB).`, 'warning');
+      showAdminToast(`"${map.name}" removed locally only (DB requires an admin).`, 'warning');
       return;
     }
     const ok = await setMapBaseFlagFor(map.id, false);
     if (!ok) return;
     setBaseMaps((prev) => prev.filter((b) => b.id !== map.id));
-    showAdminToast(`"${map.name}" demoted from base maps.`, 'info');
+    showAdminToast(`"${map.name}" removed from base maps.`, 'info');
   };
 
   const handleLaunchInEditor = (baseMap) => {

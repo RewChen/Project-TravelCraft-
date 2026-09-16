@@ -112,7 +112,7 @@ export default function WorldMapPage() {
           )}
 
           {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
-          <MapElementsLayer
+<MapElementsLayer
             items={mapElements}
             onLocationClick={(elementId) => {
               const pin = mapPins.find((item) => item.id === `editor-${elementId}`);
