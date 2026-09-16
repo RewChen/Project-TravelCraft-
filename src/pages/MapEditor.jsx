@@ -6,7 +6,7 @@ import {
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize, MapPin,
-  Crown, PenTool, Folder, LayoutDashboard, ImagePlus, BarChart3,
+  Crown, PenTool, Folder, LayoutDashboard, ImagePlus,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, ChevronLeft, ChevronRight, Wand2,
   Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Link
@@ -42,29 +42,23 @@ const editorTabs = [
   { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates', defaultLabel: 'เทมเพลต' },
   { id: 'ELEMENTS', icon: Shapes, labelKey: 'editor.elements', defaultLabel: 'องค์ประกอบ' },
   { id: 'TEXT', icon: Type, labelKey: 'editor.text', defaultLabel: 'ข้อความ' },
-  { id: 'BRAND', icon: Crown, labelKey: 'editor.brand', defaultLabel: 'Brand' },
   { id: 'UPLOADS', icon: Upload, labelKey: 'editor.uploads', defaultLabel: 'อัพโหลด' },
   { id: 'TOOLS', icon: PenTool, labelKey: 'editor.tools', defaultLabel: 'เครื่องมือ' },
   { id: 'PROJECTS', icon: Folder, labelKey: 'editor.projects', defaultLabel: 'โปรเจ็คต์' },
   { id: 'APPS', icon: LayoutDashboard, labelKey: 'editor.apps', defaultLabel: 'แอพ' },
   { id: 'DIVIDER', isDivider: true },
-  { id: 'PHOTOS', icon: ImageIcon, labelKey: 'editor.photos', defaultLabel: 'ภาพถ่าย' },
-  { id: 'BACKGROUND', icon: ImagePlus, labelKey: 'editor.background', defaultLabel: 'แบ็คกราวน์' },
-  { id: 'CHARTS', icon: BarChart3, labelKey: 'editor.charts', defaultLabel: 'ชาร์ต' }
+  { id: 'BACKGROUND', icon: ImagePlus, labelKey: 'editor.background', defaultLabel: 'แบ็คกราวน์' }
 ];
 
 const tabLabelKeys = {
   TEMPLATES: 'editor.templates',
   ELEMENTS: 'editor.elements',
   TEXT: 'editor.text',
-  BRAND: 'editor.brand',
   UPLOADS: 'editor.uploads',
   TOOLS: 'editor.tools',
   PROJECTS: 'editor.projects',
   APPS: 'editor.apps',
-  PHOTOS: 'editor.photos',
-  BACKGROUND: 'editor.background',
-  CHARTS: 'editor.charts'
+  BACKGROUND: 'editor.background'
 };
 
 const mapTemplates = [
@@ -311,17 +305,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const selfieInputRef = useRef(null);
   const coverInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
-  const photosInputRef = useRef(null);
   const nextElementId = useRef(0);
-  const [brandFontSize, setBrandFontSize] = useState(160);
-  const [brandFontWeight, setBrandFontWeight] = useState(900);
-  const [photoLibrary, setPhotoLibrary] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('project_travelcraft_photoLibrary')) || [];
-    } catch {
-      return [];
-    }
-  });
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
 
@@ -646,14 +630,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }, 500);
     return () => clearTimeout(timer);
   }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('project_travelcraft_photoLibrary', JSON.stringify(photoLibrary));
-    } catch {
-      // ignore quota errors
-    }
-  }, [photoLibrary]);
 
   useEffect(() => {
     tourCameraRef.current = camera;
@@ -997,14 +973,14 @@ if (publishPrivacy === 'private') {
     const colorValue = element.color ?? drawingColor ?? '#111111';
     const textStyles = element.type === 'text'
       ? {
-          fontSize: element.fontSize ?? brandFontSize,
-          fontWeight: element.fontWeight ?? brandFontWeight,
+          fontSize: element.fontSize ?? 160,
+          fontWeight: element.fontWeight ?? 900,
           color: colorValue
         }
       : { color: colorValue };
     setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
     const width = element.type === 'text' ? 400 : 500;
-    const height = element.type === 'text' ? Math.max(140, (element.fontSize ?? brandFontSize) * 1.5) : 500;
+    const height = element.type === 'text' ? Math.max(140, (element.fontSize ?? 160) * 1.5) : 500;
     const fallbackLeft = CANVAS_WIDTH / 2 - width / 2;
     const fallbackTop = CANVAS_HEIGHT / 2 - height / 2;
     const viewportX = viewportSize.width / 2;
@@ -1066,16 +1042,6 @@ if (publishPrivacy === 'private') {
   const applyTextStyle = (updates) => {
     pushHistory();
     updateSelectedTextStyle(updates);
-  };
-
-  const applyBrandToSelection = () => {
-    if (!selectedElement) return;
-    pushHistory();
-    setElements((previous) => previous.map((element) => element.id === selectedElement ? {
-      ...element,
-      color: drawingColor,
-      ...(element.type === 'text' ? { fontWeight: brandFontWeight, fontSize: brandFontSize } : {})
-    } : element));
   };
 
   const startTour = () => {
@@ -1225,24 +1191,6 @@ if (publishPrivacy === 'private') {
     setSaveStatus(t('editor.statusDraftSaved'));
   };
 
-  const handlePhotoUpload = (event) => {
-    const files = Array.from(event.target.files || []);
-    event.target.value = '';
-    if (!files.length) return;
-    files.forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPhotoLibrary((previous) => [...previous, { id: `photo-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, label: file.name, content: reader.result }]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const addPhotoToMap = (photo) => addElement({ type: 'image', label: photo.label, content: photo.content });
-
-  const removePhoto = (id) => setPhotoLibrary((previous) => previous.filter((photo) => photo.id !== id));
-
   const handleVideoUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -1379,18 +1327,6 @@ if (publishPrivacy === 'private') {
     backgroundImage && backgroundImage === (baseMap.image || baseMap.imageUrl);
 
   const savedProjects = getSavedProjects();
-
-  const chartTypeMeta = [
-    { type: 'shape', label: t('editor.chartShape'), color: '#8b5cf6' },
-    { type: 'emoji', label: t('editor.chartEmoji'), color: '#f59e0b' },
-    { type: 'text', label: t('editor.chartText'), color: '#3b82f6' },
-    { type: 'image', label: t('editor.chartImage'), color: '#10b981' }
-  ];
-  const totalCount = elements.length;
-  const chartRows = chartTypeMeta.map((meta) => {
-    const count = elements.filter((element) => element.type === meta.type).length;
-    return { ...meta, count, percent: totalCount ? Math.round((count / totalCount) * 100) : 0 };
-  });
 
   const startZoomEdit = () => {
     setZoomInputValue(String(Math.round(camera.scale * 100)));
@@ -2072,41 +2008,6 @@ if (publishPrivacy === 'private') {
                 <p className="text-[10px] text-gray-500 font-bold">{t('editor.uploadInstruction')}</p>
               </div>
             )}
-            {activeTab === 'BRAND' && (
-              <div className="space-y-4">
-                <p className="text-[10px] text-gray-600 font-bold leading-tight">{t('editor.brandAvailable')}</p>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.brandColor')}</label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {['#111111', '#cc0000', '#4895ef', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#84cc16'].map((color) => (
-                      <button key={color} type="button" onClick={() => setDrawingColor(color)} title={color} className={`w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform ${drawingColor.toLowerCase() === color ? 'ring-4 ring-[#4895ef] ring-offset-1' : ''}`} style={{ backgroundColor: color }} />
-                    ))}
-                  </div>
-                  <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
-                    <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.color')}</span>
-                    <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
-                  </label>
-                </div>
-                <div className="space-y-2 border-t-2 border-black pt-3">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.brandTextStyle')}</label>
-                  <div className="flex items-center gap-2">
-                    {[400, 700, 900].map((weight) => (
-                      <button key={weight} type="button" onClick={() => setBrandFontWeight(weight)} className={`flex-1 border-2 border-black rounded py-2 font-black text-xs ${brandFontWeight === weight ? 'bg-[#cc0000] text-white' : 'bg-white hover:bg-gray-100'}`} style={{ fontWeight: weight }}>A</button>
-                    ))}
-                  </div>
-                  <input type="range" min="96" max="320" value={brandFontSize} onChange={(event) => setBrandFontSize(Number(event.target.value))} className="w-full" />
-                  <div className="flex justify-between text-[9px] font-black text-gray-400 uppercase">
-                    <span>96px</span>
-                    <span>{brandFontSize}px</span>
-                    <span>320px</span>
-                  </div>
-                </div>
-                <button type="button" onClick={applyBrandToSelection} disabled={!selectedElement} className={`w-full border-2 border-black rounded px-3 py-2 font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedElement ? 'bg-amber-300 hover:bg-amber-200' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                  {t('editor.brandApplySelected')}
-                </button>
-                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.brandHelper')}</p>
-              </div>
-            )}
             {activeTab === 'TOOLS' && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
@@ -2183,37 +2084,6 @@ if (publishPrivacy === 'private') {
                 ))}
               </div>
             )}
-            {activeTab === 'PHOTOS' && (
-              <div className="space-y-3">
-                <input ref={photosInputRef} type="file" accept="image/*" multiple onChange={handlePhotoUpload} className="hidden" />
-                <button type="button" onClick={() => photosInputRef.current?.click()} className="w-full border-2 border-black bg-[#4895ef] text-white p-3 font-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-blue-600 flex items-center justify-center gap-2">
-                  <ImagePlus className="w-4 h-4" /> {t('editor.photosUpload')}
-                </button>
-                {photoLibrary.length === 0 ? (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <ImageIcon className="w-6 h-6 mx-auto text-gray-300" />
-                    <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.photosEmpty')}</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    {photoLibrary.map((photo) => (
-                      <div key={photo.id} className="relative border-2 border-black rounded overflow-hidden aspect-square group">
-                        <button type="button" onClick={() => addPhotoToMap(photo)} title={photo.label} className="w-full h-full cursor-pointer">
-                          <img src={photo.content} alt={photo.label} className="w-full h-full object-cover" />
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ImagePlus className="w-6 h-6 text-white" />
-                          </span>
-                        </button>
-                        <button type="button" onClick={() => removePhoto(photo.id)} className="absolute top-1 left-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.photosRemove')}>
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.photosHelper')}</p>
-              </div>
-            )}
             {activeTab === 'BACKGROUND' && (
               <div className="space-y-4">
                 <div>
@@ -2256,40 +2126,6 @@ if (publishPrivacy === 'private') {
                     </button>
                   )}
                   <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.backgroundHelper')}</p>
-                </div>
-              </div>
-            )}
-            {activeTab === 'CHARTS' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.chartElements')}</label>
-                  {totalCount === 0 ? (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                      <BarChart3 className="w-6 h-6 mx-auto text-gray-300" />
-                      <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.chartEmpty')}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {chartRows.map((row) => (
-                        <div key={row.type} className="space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-black">
-                            <span className="flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full border border-black" style={{ backgroundColor: row.color }} />
-                              {row.label}
-                            </span>
-                            <span>{row.count} · {row.percent}%</span>
-                          </div>
-                          <div className="h-3 bg-gray-100 border border-black rounded overflow-hidden">
-                            <div className="h-full transition-all" style={{ width: `${row.percent}%`, backgroundColor: row.color }} />
-                          </div>
-                        </div>
-                      ))}
-                      <div className="border-t-2 border-black pt-2 flex justify-between text-[10px] font-black text-gray-500">
-                        <span>{t('editor.chartTotal')}</span>
-                        <span>{totalCount}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
