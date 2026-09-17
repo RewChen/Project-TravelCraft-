@@ -1,18 +1,121 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import KeyItemsSidebar from '../components/map/KeyItemsSidebar';
 import MapPins from '../components/map/MapPins';
 import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Eye, Play, LogIn, UserPlus, X, MousePointerClick } from 'lucide-react';
+import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Eye, Play, LogIn, UserPlus, X, MousePointerClick, LayoutGrid } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
+// Sample maps shown on the World Map page — picked from the editor templates
+// (CSS-painted worlds + Gametion image worlds in public/templates/).
+const sampleTemplates = [
+  {
+    id: 'gametion-village-lake',
+    labelKey: 'editor.templateGametionVillageLake',
+    image: '/templates/map1.png',
+    canvasColor: '#e2f0d9',
+  },
+  {
+    id: 'gametion-region-fields',
+    labelKey: 'editor.templateGametionRegionFields',
+    image: '/templates/map2.jpg',
+    canvasColor: '#e2f0d9',
+  },
+  {
+    id: 'gametion-lighthouse-cave',
+    labelKey: 'editor.templateGametionLighthouseCave',
+    image: '/templates/map3.jpg',
+    canvasColor: '#e2f0d9',
+  },
+  {
+    id: 'gametion-volcanic-cavern',
+    labelKey: 'editor.templateGametionVolcanicCavern',
+    image: '/templates/map4.jpg',
+    canvasColor: '#201818',
+  },
+  {
+    id: 'gametion-world-region',
+    labelKey: 'editor.templateGametionWorldRegion',
+    image: '/templates/map5.jpg',
+    canvasColor: '#1377b9',
+  },
+  {
+    id: 'tropical',
+    labelKey: 'editor.templateTropical',
+    canvas: {
+      backgroundColor: '#f8d58b',
+      backgroundImage: 'linear-gradient(180deg, transparent 0 44%, #d9a866 44% 45%, #f8d58b 45% 66%, #42b8d7 66% 67%, #278fc8 67%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px)'
+    },
+  },
+  {
+    id: 'island',
+    labelKey: 'editor.templateGreen',
+    canvas: {
+      backgroundColor: '#85d64d',
+      backgroundImage: 'radial-gradient(ellipse at center, #a0e65c 0 45%, transparent 46%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px)'
+    },
+  },
+  {
+    id: 'river',
+    labelKey: 'editor.templateRiver',
+    canvas: {
+      backgroundColor: '#78ce3d',
+      backgroundImage: 'linear-gradient(90deg, transparent 0 42%, #328ec4 43% 48%, #78ce3d 49%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px)'
+    },
+  },
+  {
+    id: 'boardwalk',
+    labelKey: 'editor.templateBeach',
+    canvas: {
+      backgroundColor: '#f5cf7b',
+      backgroundImage: 'linear-gradient(180deg, transparent 0 39%, #98613d 40% 52%, #f5cf7b 53% 62%, #35afd2 63%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px)'
+    },
+  },
+];
+
+const DEFAULT_SAMPLE_ID = 'gametion-village-lake';
+
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading, isLoggedIn, setAuthMode } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, setMapBackgroundImage, mapCanvasStyle, setMapCanvasStyle, mapElements, mapPins, activeCommunityMap, setActiveCommunityMap, mapViewLoading, isLoggedIn, setAuthMode } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
   const [showDemoBanner, setShowDemoBanner] = useState(true);
+  const [selectedSampleId, setSelectedSampleId] = useState(null);
+
+  const selectedSample = sampleTemplates.find((s) => s.id === selectedSampleId) || null;
+
+  const handleSelectSample = (tpl) => {
+    setSelectedSampleId(tpl.id);
+    setSelectedPin(null);
+    // A sample is a clean preview — leave the community map so the title
+    // and pins don't mix a community map with a different background.
+    setActiveCommunityMap(null);
+    if (tpl.image) {
+      setMapBackgroundImage(tpl.image);
+      setMapCanvasStyle(tpl.canvasColor ? { backgroundColor: tpl.canvasColor, backgroundImage: undefined } : null);
+    } else if (tpl.canvas) {
+      setMapBackgroundImage(null);
+      setMapCanvasStyle({ ...tpl.canvas });
+    }
+  };
+
+  // First visit: show an example map instead of the empty Kyoto canvas.
+  // Skipped when the user already has a background or opened a community map.
+  // Deferred via setTimeout so it isn't a synchronous setState in the effect body.
+  useEffect(() => {
+    if (activeCommunityMap || mapBackgroundImage || selectedSampleId) return undefined;
+    const fallback = sampleTemplates.find((s) => s.id === DEFAULT_SAMPLE_ID) || sampleTemplates[0];
+    if (!fallback?.image) return undefined;
+    const timer = setTimeout(() => {
+      setSelectedSampleId(fallback.id);
+      setMapBackgroundImage(fallback.image);
+    }, 0);
+    return () => clearTimeout(timer);
+    // run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isGuest = !isLoggedIn;
 
@@ -102,8 +205,13 @@ export default function WorldMapPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-black uppercase break-words line-clamp-2">
-              {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')} 
+              {activeCommunityMap ? activeCommunityMap.title : selectedSample ? t(selectedSample.labelKey) : t('worldMap.defaultTitle')}
             </h2>
+            {selectedSample && !activeCommunityMap && (
+              <span className="inline-block text-[10px] font-black uppercase bg-black text-amber-300 px-2 py-0.5 rounded-full mt-1">
+                SAMPLE
+              </span>
+            )}
             {mapBackgroundImage && (
               <span className="inline-block text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full mt-1">
                 {t('worldMap.customMapActive')}
@@ -122,6 +230,52 @@ export default function WorldMapPage() {
             {t('worldMap.viewDetails')}
           </button>
         )}
+      </div>
+
+      {/* Sample map picker — try any template directly on the World Map */}
+      <div className="bg-white border-4 border-black rounded-2xl p-4 mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-7 h-7 bg-amber-400 border-2 border-black rounded-lg flex items-center justify-center shrink-0">
+            <LayoutGrid className="w-4 h-4 text-black" />
+          </div>
+          <h3 className="text-xs font-black uppercase tracking-widest">
+            {t('editor.templates')}
+          </h3>
+          <span className="text-[10px] font-black uppercase bg-emerald-400 text-black border-2 border-black px-2 py-0.5 rounded-full">
+            SAMPLE
+          </span>
+        </div>
+        <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1">
+          {sampleTemplates.map((tpl) => {
+            const isActive = tpl.id === selectedSampleId && !activeCommunityMap;
+            return (
+              <button
+                key={tpl.id}
+                onClick={() => handleSelectSample(tpl)}
+                title={t(tpl.labelKey)}
+                className={`shrink-0 w-28 text-left rounded-xl border-2 overflow-hidden cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5 ${
+                  isActive
+                    ? 'border-[#cc0000] shadow-[3px_3px_0px_0px_rgba(204,0,0,1)]'
+                    : 'border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                }`}
+              >
+                <div className="h-16 w-full border-b-2 border-black">
+                  {tpl.image ? (
+                    <img src={tpl.image} alt={t(tpl.labelKey)} className="w-full h-full object-cover" loading="lazy" />
+                  ) : (
+                    <div
+                      className="w-full h-full"
+                      style={{ backgroundColor: tpl.canvas?.backgroundColor, backgroundImage: tpl.canvas?.backgroundImage }}
+                    />
+                  )}
+                </div>
+                <div className={`px-1.5 py-1 text-[10px] font-black uppercase leading-tight truncate ${isActive ? 'bg-red-50' : 'bg-white'}`}>
+                  {t(tpl.labelKey)}
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Map Container Viewport (square to match the editor's square canvas) */}
