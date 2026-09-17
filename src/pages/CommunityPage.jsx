@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Mountain, Trees, Building2, Eye, Trash2, Utensils, Plane, Gamepad2, Landmark, MapPin } from 'lucide-react';
+import { Search, Trees, Eye, Trash2, Utensils, Plane, Gamepad2, Landmark, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
 
@@ -24,7 +24,7 @@ export default function CommunityPage() {
   const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, isAdminLoggedIn, showAdminToast, t } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('ALL');
+  const [activeTags, setActiveTags] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
   const canDeleteMap = (mapItem) =>
@@ -48,13 +48,6 @@ export default function CommunityPage() {
       (userProfile?.id && mapItem.ownerId === userProfile.id)
     ));
 
-  const categories = [
-    { id: 'ALL', label: 'community.all', icon: null },
-    { id: 'landmarks', label: 'community.landmarks', icon: Mountain },
-    { id: 'nature', label: 'community.nature', icon: Trees },
-    { id: 'urban', label: 'community.urban', icon: Building2 }
-  ];
-
   const seenIds = new Set();
   const openDetails = async (mapItem) => {
     // Fetch the full map so the details page has logs/selfies, not just the summary.
@@ -71,15 +64,40 @@ export default function CommunityPage() {
     }
     navigateTo('details', mapItem);
   };
+  const tagMatchText = (item) => {
+    // Build a text blob from a card's tags: raw keys, translated labels and emojis.
+    return (Array.isArray(item.tags) ? item.tags : []).map((tag) => {
+      const meta = presetTagMeta[tag];
+      return meta ? [tag, t(meta.labelKey), meta.emoji].join(' ') : tag;
+    }).join(' ').toLowerCase();
+  };
+
+  const matchesAnyTag = (item, tags) => {
+    if (!tags || tags.length === 0) return true;
+    const cardTags = Array.isArray(item.tags) ? item.tags : [];
+    return tags.some((tag) => cardTags.includes(tag));
+  };
+
+  const toggleTag = (tag) => {
+    setActiveTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
+  };
+
+  const searchBySelectedTag = () => {
+    // Search purely by the selected tag chips — clear any text query and filter right away.
+    setSearchQuery('');
+  };
+
   const filteredMaps = (communityMaps || []).filter(isRealDbMap).filter((item) => item.privacy !== 'unlisted' && item.privacy !== 'private').filter((item) => {
     if (!item?.id || seenIds.has(item.id)) return false;
     seenIds.add(item.id);
     const title = item.title || t('common.untitledMap');
     const author = item.discoveredBy || t('common.traveler');
-    const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          author.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeCategory === 'ALL' || item.category === activeCategory;
-    return matchesSearch && matchesCategory;
+    const query = searchQuery.toLowerCase();
+    const matchesTags = tagMatchText(item).includes(query);
+    const matchesSearch = title.toLowerCase().includes(query) ||
+                          author.toLowerCase().includes(query) ||
+                          matchesTags;
+    return matchesSearch && matchesAnyTag(item, activeTags);
   });
 
   return (
@@ -109,24 +127,34 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* Category Filter Pills */}
-      <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isActive = activeCategory === cat.id;
-
+      {/* Tag Filter Chips + Search By Tag Button */}
+      <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
+        <button
+          onClick={searchBySelectedTag}
+          title={t('community.searchByTag')}
+          className={`px-4 py-2 border-2 border-black rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
+            activeTags.length > 0
+              ? 'bg-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+              : 'bg-amber-400 hover:bg-amber-300 text-black'
+          }`}
+        >
+          <Search className="w-3 h-3" /> {t('community.searchByTag')}
+        </button>
+        {Object.entries(presetTagMeta).map(([tagKey, meta]) => {
+          const isActive = activeTags.includes(tagKey);
           return (
             <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`px-4 py-2 border-2 border-black rounded-md text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 ${
-                isActive 
-                  ? 'bg-[#2ec4b6] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]' 
+              key={tagKey}
+              onClick={() => toggleTag(tagKey)}
+              className={`px-3 py-2 border-2 border-black rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
+                isActive
+                  ? 'bg-[#2ec4b6] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                   : 'bg-white hover:bg-gray-100 text-black'
               }`}
             >
-              {Icon && <Icon className="w-3.5 h-3.5" />}
-              <span>{t(cat.label)}</span>
+              <span className="text-sm leading-none">{meta.emoji}</span>
+              <span>{t(meta.labelKey)}</span>
+              {isActive && <span className="text-[10px] leading-none">✕</span>}
             </button>
           );
         })}
