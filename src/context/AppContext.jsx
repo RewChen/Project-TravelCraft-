@@ -1113,10 +1113,11 @@ export const AppProvider = ({ children }) => {
   const [adminToast, setAdminToast] = useState(null);
 
   // Notifications — bell button dropdown (persists locally)
+  // data.page / data.mapId drive the deep-link destination in the Header.
   const initialNotifications = [
-    { id: 'n1', titleKey: 'notifications.demo1Title', messageKey: 'notifications.demo1Msg', time: '2m ago', read: false, icon: '🗺️' },
-    { id: 'n2', titleKey: 'notifications.demo2Title', messageKey: 'notifications.demo2Msg', time: '1h ago', read: false, icon: '📸' },
-    { id: 'n3', titleKey: 'notifications.demo3Title', messageKey: 'notifications.demo3Msg', time: '1d ago', read: true, icon: '✨' },
+    { id: 'n1', titleKey: 'notifications.demo1Title', messageKey: 'notifications.demo1Msg', time: '2m ago', read: false, icon: '🗺️', data: { page: 'community' } },
+    { id: 'n2', titleKey: 'notifications.demo2Title', messageKey: 'notifications.demo2Msg', time: '1h ago', read: false, icon: '📸', data: { page: 'mymaps' } },
+    { id: 'n3', titleKey: 'notifications.demo3Title', messageKey: 'notifications.demo3Msg', time: '1d ago', read: true, icon: '✨', data: { page: 'home' } },
   ];
   const [notifications, setNotifications] = useState(() => loadStored('notifications', initialNotifications));
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -1286,7 +1287,7 @@ export const AppProvider = ({ children }) => {
           const deletedId = payload.old?.id;
           if (deletedId) {
             setCommunityMaps((prev) => prev.filter((m) => m.id !== deletedId));
-            addNotification({ titleKey: 'notifications.mapDeletedTitle', messageKey: 'notifications.mapDeletedMsg', icon: '🗑️' });
+            addNotification({ titleKey: 'notifications.mapDeletedTitle', messageKey: 'notifications.mapDeletedMsg', icon: '🗑️', data: { page: 'community' } });
           }
           return;
         }
@@ -1356,6 +1357,7 @@ export const AppProvider = ({ children }) => {
                   messageKey: 'notifications.newUserMsg',
                   titleParam: payload.new.username || 'New Trainer',
                   icon: '👤',
+                  data: { page: 'admin' },
                 });
               }
             }
@@ -1827,7 +1829,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         showAdminToast(t('map.publishLocalOnly'), 'warning');
       } else {
         showAdminToast(t('myMaps.publishedMsg', { title }), 'success');
-        addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️' });
+        addNotification({ titleKey: 'notifications.publishedTitle', messageKey: 'notifications.publishedMsg', titleParam: title, icon: '🗺️', data: { mapId: uniqueId, page: 'community' } });
       }
       navigateTo('community');
     }
