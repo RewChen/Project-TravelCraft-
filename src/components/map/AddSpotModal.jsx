@@ -12,7 +12,7 @@ const regionPresets = [
 ];
 
 export default function AddSpotModal({ onClose, defaultCoords }) {
-  const { t, addCustomPin } = useApp();
+  const { t, addCustomPin, isLoggedIn, setAuthMode, navigateTo } = useApp();
 
   const [title, setTitle] = useState('');
   const [lore, setLore] = useState('');
@@ -75,6 +75,26 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+          {/* Guest demo notice: trial pins are temporary */}
+          {!isLoggedIn && (
+            <div className="bg-amber-100 border-2 border-black rounded-xl p-3 flex items-start gap-2">
+              <span className="text-[10px] font-black uppercase bg-black text-amber-300 px-2 py-0.5 rounded-full shrink-0 mt-0.5">
+                {t('worldMap.demoBadge')}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-sans font-bold text-slate-700 leading-relaxed">
+                  {t('worldMap.demoTemporaryNote')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { onClose(); setAuthMode('register'); navigateTo('auth'); }}
+                  className="mt-1.5 text-[11px] font-black uppercase underline underline-offset-2 text-[#cc0000] hover:text-red-700 cursor-pointer"
+                >
+                  {t('worldMap.demoRegister')}
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Image Upload Area */}
           <div>

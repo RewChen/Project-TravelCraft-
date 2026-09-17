@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, activeCommunityMap, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef(null);
@@ -52,15 +52,13 @@ className={`${currentPage === 'community' ? 'text-red-600 underline underline-of
           {t('nav.community')}
         </button>
 
-        {/* World Map — shown when a map is being tracked */}
-        {activeCommunityMap && (
-          <button 
-            onClick={() => navigateTo('map')}
+        {/* World Map — always visible so visitors can open the demo/preview map */}
+        <button 
+          onClick={() => navigateTo('map')}
 className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
-          >
-            {t('nav.worldMap')}
-          </button>
-        )}
+        >
+          {t('nav.worldMap')}
+        </button>
 
         <button 
           onClick={() => navigateTo('mymaps')}
@@ -121,7 +119,6 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
                         onClick={() => {
                           markNotificationRead(n.id);
                           if (n.data?.mapId) {
-                            const target = notifications.find((x) => x.id === n.id);
                             // try to navigate to that community map
                             const map = communityMaps?.find((m) => m.id === n.data.mapId);
                             if (map) { navigateTo('details', map); setShowNotifications(false); }
