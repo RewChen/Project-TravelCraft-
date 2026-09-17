@@ -1,8 +1,10 @@
 import { MapPin, ImageIcon } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
 
 export default function LocationHero() {
-  const { selectedLocation, t } = useApp();
+  const { selectedLocation, t, effectiveRarityFor } = useApp();
+  const tier = effectiveRarityFor(selectedLocation);
   // Only show the country/region badge when there is a real user-set region.
   // Older maps may carry placeholder values (never store/display those).
   const placeholderRegions = new Set([
@@ -40,7 +42,10 @@ export default function LocationHero() {
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
           {selectedLocation.title}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <span className={`border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${rarityColorForTier(tier)}`}>
+            ◆ {t(rarityLabelKey(tier))}
+          </span>
           <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
             ★ {selectedLocation.type || 'Landmark'}
           </span>

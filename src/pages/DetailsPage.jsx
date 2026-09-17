@@ -4,10 +4,15 @@ import TravelerLogs from '../components/details/TravelerLogs';
 import LocationStats from '../components/details/LocationStats';
 import WildEncounters from '../components/details/WildEncounters';
 import { ArrowLeft } from 'lucide-react';
+import { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function DetailsPage() {
-  const { navigateTo, t } = useApp();
+  const { navigateTo, t, selectedLocation, trackLocationView } = useApp();
+
+  useEffect(() => {
+    trackLocationView(selectedLocation);
+  }, [selectedLocation, trackLocationView]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 pb-12 space-y-6">
