@@ -44,7 +44,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
   const [coverError, setCoverError] = useState('');
   const [tags, setTags] = useState(Array.isArray(mapItem.tags) ? [...mapItem.tags] : []);
   const [customTagInput, setCustomTagInput] = useState('');
-  const [privacy, setPrivacy] = useState(mapItem.privacy === 'private' ? 'private' : 'public');
+  const [privacy, setPrivacy] = useState('public');
   const [videoUrl, setVideoUrl] = useState(mapItem.videoUrl || mapItem.details?.videoUrl || '');
   const [videoError, setVideoError] = useState('');
   const [selfieUrls, setSelfieUrls] = useState(

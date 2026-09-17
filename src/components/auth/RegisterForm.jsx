@@ -3,6 +3,9 @@ import { Plus, Key, Mail, User as UserIcon, AlertCircle, Shield } from 'lucide-r
 import { useApp } from '../../context/AppContext';
 import { supabase } from '../../lib/supabaseClient';
 import SocialAuthButtons from './SocialAuthButtons';
+import { compressForUpload, fileToDataUrl } from '../../lib/imageUtils';
+import { uploadAvatar } from '../../lib/supabaseAvatar';
+import { dataUrlToFile } from '../../lib/supabaseUserAssets';
 
 export default function RegisterForm() {
   const { login, setAuthMode, t } = useApp();
@@ -56,9 +59,26 @@ export default function RegisterForm() {
       return;
     }
 
-    const chosenAvatar = selectedSprite < defaultSprites.length 
+    let spriteFile = null;
+    let chosenAvatar = selectedSprite < defaultSprites.length 
       ? defaultSprites[selectedSprite] 
       : (customSprite || '🏃');
+
+    // Custom sprite: compress up-front so we never persist a multi-MB base64.
+    // Prefer uploading to Storage right after signup; keep the small data URL
+    // only as a metadata fallback for the pre-confirmation window.
+    if (selectedSprite >= defaultSprites.length && customSprite) {
+      try {
+        const raw = dataUrlToFile(customSprite, 'sprite');
+        if (raw) {
+          spriteFile = await compressForUpload(raw, { maxWidth: 256, quality: 0.8 }, 'webp');
+          const small = await fileToDataUrl(spriteFile);
+          if (small) chosenAvatar = small;
+        }
+      } catch (err) {
+        console.warn('Sprite compression skipped:', err);
+      }
+    }
 
     setLoading(true);
     try {
@@ -86,6 +106,20 @@ export default function RegisterForm() {
           setErrorMsg(error.message);
         }
       } else {
+        // Replace the metadata sprite with a tiny Storage URL when a session
+        // already exists (email confirmation disabled). Otherwise the small
+        // data URL is migrated on first login.
+        if (spriteFile && data?.user?.id) {
+          try {
+            const url = await uploadAvatar(data.user.id, spriteFile);
+            if (url) {
+              await supabase.from('users').update({ avatar: url }).eq('id', data.user.id);
+              await supabase.auth.updateUser({ data: { avatar: url } }).catch(() => {});
+            }
+          } catch (err) {
+            console.warn('Sprite storage upload skipped:', err);
+          }
+        }
         login(); // Context login function sets isLoggedIn and moves to home
       }
     } catch (err) {

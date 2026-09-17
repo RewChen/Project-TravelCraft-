@@ -201,7 +201,7 @@ const openMapInEditor = async (mapItem) => {
                 </span>
               </div>
               <CardCover imageUrl={map.imageUrl} title={map.title} />
-              <h3 className="text-lg font-black mb-1 text-slate-900 break-words leading-snug">{map.title}</h3>
+              <h3 className="text-lg font-black mb-1 text-slate-900 line-clamp-1 overflow-hidden">{map.title}</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{map.region}</p>
               <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 line-clamp-2 overflow-hidden">
                 {map.description}

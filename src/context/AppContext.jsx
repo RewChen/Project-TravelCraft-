@@ -14,6 +14,8 @@ import {
   deleteBaseMapRow
 } from '../lib/supabaseAdmin';
 import { deleteMapAssets } from '../lib/supabaseUploads';
+import { uploadAvatar } from '../lib/supabaseAvatar';
+import { fileToDataUrl, compressForUpload } from '../lib/imageUtils';
 import {
   fetchUserAssets,
   insertUserAsset,
@@ -546,6 +548,15 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const getStoredAvatar = () => {
+    try {
+      const raw = localStorage.getItem('project_travelcraft_profile_avatar');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Persist badges locally so they survive a reload on this device.
   const updateUserBadges = (badges) => {
     const next = Array.isArray(badges) ? badges : [];
@@ -607,6 +618,47 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Persist a new avatar image: compress -> Supabase Storage public URL ->
+  // users.avatar column + auth user_metadata (keeps profile payloads tiny).
+  // Falls back to a local base64 data URL when there is no Supabase session.
+  const updateUserAvatar = useCallback(async (file) => {
+    const uid = userProfile?.id;
+    if (!uid || !file) return { success: false, error: 'invalid' };
+    let avatarValue = '';
+    try {
+      const url = await uploadAvatar(uid, file);
+      if (url) avatarValue = url;
+    } catch (err) {
+      console.warn('Avatar storage upload skipped, falling back to base64:', err);
+    }
+    if (!avatarValue) {
+      // Never persist a raw multi-MB base64: shrink to a 256px thumbnail first.
+      const small = await compressForUpload(file, { maxWidth: 256, quality: 0.8 }, 'webp');
+      avatarValue = await fileToDataUrl(small || file);
+      if (!avatarValue) return { success: false, error: 'upload' };
+    }
+    try {
+      localStorage.setItem('project_travelcraft_profile_avatar', JSON.stringify(avatarValue));
+    } catch (e) {
+      console.warn('Avatar localStorage write failed:', e);
+    }
+    setUserProfile((prev) => (prev && prev.id === uid ? { ...prev, avatar: avatarValue } : prev));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { error } = await supabase
+          .from('users')
+          .update({ avatar: avatarValue })
+          .eq('id', uid);
+        if (error) console.warn('Avatar DB update rejected:', error);
+        await supabase.auth.updateUser({ data: { avatar: avatarValue } }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Avatar DB sync skipped:', err);
+    }
+    return { success: true, url: avatarValue };
+  }, [userProfile?.id]);
+
   const createFallbackProfile = (authUser) => {
     const meta = authUser.user_metadata || {};
     // OAuth providers use different keys: google -> full_name/picture, facebook -> full_name/picture
@@ -635,6 +687,29 @@ export const AppProvider = ({ children }) => {
     clearanceLevel: 5
   }));
 
+  // One-time migration: existing avatars stored as base64 data URLs are moved
+  // to Supabase Storage on the user's next profile load so future payloads are
+  // tiny URLs instead of multi-MB text blobs.
+  const migrateLegacyAvatar = useCallback(async (uid, avatar) => {
+    if (!uid || typeof avatar !== 'string' || !avatar.startsWith('data:image')) return;
+    try {
+      const file = dataUrlToFile(avatar, 'avatar');
+      if (!file) return;
+      const url = await uploadAvatar(uid, file);
+      if (!url) return;
+      await supabase.from('users').update({ avatar: url }).eq('id', uid);
+      await supabase.auth.updateUser({ data: { avatar: url } }).catch(() => {});
+      try {
+        localStorage.setItem('project_travelcraft_profile_avatar', JSON.stringify(url));
+      } catch {
+        // ignore storage failures
+      }
+      setUserProfile((prev) => (prev && prev.id === uid ? { ...prev, avatar: url } : prev));
+    } catch (err) {
+      console.warn('Legacy avatar migration skipped:', err);
+    }
+  }, []);
+
   const fetchUserProfile = async (userId) => {
     try {
       // 1. Authoritative server-side lookup (bypasses RLS, works whether the
@@ -642,12 +717,14 @@ export const AppProvider = ({ children }) => {
       const { data: access, error: accessError } = await supabase.rpc('my_access');
       if (!accessError && access) {
         const isAdmin = access.is_admin === true;
+        const storedAvatar = getStoredAvatar();
+        const avatar = storedAvatar || access.avatar || (isAdmin ? '🛡️' : '🏃');
         setIsAdminLoggedIn(isAdmin);
         setUserProfile({
           id: userId,
           name: access.username || 'Traveler',
           email: access.email || '',
-          avatar: access.avatar || (isAdmin ? '🛡️' : '🏃'),
+          avatar,
           role: isAdmin ? 'Admin' : (getStoredRole() || access.role || 'Cartographer'),
           level: isAdmin ? 99 : 1,
           badges: isAdmin
@@ -655,6 +732,9 @@ export const AppProvider = ({ children }) => {
             : (getStoredBadges().length ? getStoredBadges() : ['Pioneer', 'Kyoto Explorer']),
           visitedCount: isAdmin ? 99 : 14
         });
+        if (avatar?.startsWith('data:image')) {
+          migrateLegacyAvatar(userId, avatar);
+        }
         if (isAdmin) {
           setAdminUser({
             name: access.username || 'Admin_01',
@@ -712,17 +792,24 @@ export const AppProvider = ({ children }) => {
       if (data) {
         const isAdmin = data.role?.toLowerCase() === 'admin';
         const loadedBadges = getStoredBadges();
+        const storedAvatar = getStoredAvatar();
+        // Prefer the avatar set in this browser (most recent), fall back to DB value.
+        const avatar = storedAvatar || data.avatar || (isAdmin ? '🛡️' : '🏃');
         setIsAdminLoggedIn(isAdmin);
         setUserProfile({
           id: userId,
           name: data.username,
           email: data.email,
-          avatar: data.avatar || (isAdmin ? '🛡️' : '🏃'),
+          avatar,
           role: isAdmin ? 'Admin' : (getStoredRole() || data.role || 'Cartographer'),
           level: 1,
           badges: loadedBadges.length ? loadedBadges : (Array.isArray(data.badges) ? data.badges : ['Pioneer', 'Kyoto Explorer']),
           visitedCount: 14
         });
+        // One-time migration: base64 avatars -> Storage URLs so profile payloads stay tiny.
+        if (avatar?.startsWith('data:image')) {
+          migrateLegacyAvatar(userId, avatar);
+        }
         if (isAdmin) {
           setAdminUser({
             name: data.username,
@@ -758,9 +845,10 @@ export const AppProvider = ({ children }) => {
       } else {
         const saved = loadStored('session', null);
         if (saved && saved.profile) {
+          const storedAvatar = getStoredAvatar();
           setIsLoggedIn(true);
           setIsAdminLoggedIn(saved.type === 'admin');
-          setUserProfile(saved.profile);
+          setUserProfile(storedAvatar ? { ...saved.profile, avatar: storedAvatar } : saved.profile);
           if (saved.adminUser) {
             setAdminUser(saved.adminUser);
           }
@@ -2133,6 +2221,7 @@ const loginAsAdmin = (customAdmin) => {
         updateUserRole,
         updateUserBadges,
         updateUsername,
+        updateUserAvatar,
         selectedLocation,
         setSelectedLocation,
         mapBackgroundImage,

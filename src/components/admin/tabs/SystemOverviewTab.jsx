@@ -12,24 +12,37 @@ export default function SystemOverviewTab() {
   const draftMaps = (communityMaps || []).filter((m) => m.privacy === 'private').length;
   const pendingReports = (reportedLocations || []).filter((r) => r.status === 'pending').length;
 
-  // Only maps that users actually published to Community Discoveries
+  // Only maps that users actually created & published to Community Discoveries
   // (seed demo data is excluded — same rule as the Community page).
-  const userPublishedMaps = (communityMaps || []).filter((m) =>
+  const userCreatedMaps = (communityMaps || []).filter((m) =>
     m._summaryOnly === true ||
     m.isEditorMap === true ||
-    Boolean(m.ownerId && m.privacy && m.privacy !== 'private' && m.privacy !== 'unlisted')
+    Boolean(m.ownerId && m.privacy)
   );
 
+  const getCreatorName = (item) => item.discoveredBy || item.ownerId || 'Traveler';
+  const getRegionName = (item) => item.details?.region || item.region || 'Global Realm';
+
   const [searchQuery, setSearchQuery] = useState('');
+  const [creatorFilter, setCreatorFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('published');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
 
-  const filteredMaps = userPublishedMaps.filter((item) => {
+  const creatorOptions = [...new Set(userCreatedMaps.map(getCreatorName).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const regionOptions = [...new Set(userCreatedMaps.map(getRegionName).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+  const filteredMaps = userCreatedMaps.filter((item) => {
     const title = (item.title || item.name || '').toLowerCase();
-    const author = (item.discoveredBy || item.ownerId || '').toLowerCase();
+    const author = getCreatorName(item).toLowerCase();
     const q = searchQuery.toLowerCase();
-    if (!q) return true;
-    return title.includes(q) || author.includes(q);
+    if (q && !(title.includes(q) || author.includes(q))) return false;
+    if (creatorFilter && getCreatorName(item) !== creatorFilter) return false;
+    if (regionFilter && getRegionName(item) !== regionFilter) return false;
+    if (statusFilter === 'published' && (item.privacy === 'private' || item.privacy === 'unlisted')) return false;
+    if (statusFilter === 'draft' && item.privacy !== 'private') return false;
+    return true;
   });
 
   const confirmDelete = () => {
@@ -126,7 +139,7 @@ export default function SystemOverviewTab() {
           </span>
         </div>
 
-        <div className="p-4 border-b-2 border-black bg-gray-50">
+        <div className="p-4 border-b-2 border-black bg-gray-50 space-y-3">
           <label className="block text-[11px] font-black uppercase mb-1.5 text-gray-700">
             {t('admin.communityMapsSearch')}
           </label>
@@ -139,6 +152,56 @@ export default function SystemOverviewTab() {
               placeholder={t('admin.communityMapsSearchPh')}
               className="w-full pl-9 pr-3 py-2 bg-white border-2 border-black rounded-xl text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
+          </div>
+
+          {/* Filter bar: CREATOR · Region · Status */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
+                {t('admin.creator')}
+              </label>
+              <select
+                value={creatorFilter}
+                onChange={(e) => setCreatorFilter(e.target.value)}
+                className="w-full px-2 py-1.5 bg-white border-2 border-black rounded-lg text-[11px] font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+              >
+                <option value="">{t('admin.allCreators')}</option>
+                {creatorOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
+                {t('admin.region')}
+              </label>
+              <select
+                value={regionFilter}
+                onChange={(e) => setRegionFilter(e.target.value)}
+                className="w-full px-2 py-1.5 bg-white border-2 border-black rounded-lg text-[11px] font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+              >
+                <option value="">{t('admin.allRegions')}</option>
+                {regionOptions.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-gray-600 mb-1">
+                {t('admin.status')}
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-2 py-1.5 bg-white border-2 border-black rounded-lg text-[11px] font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+              >
+                <option value="published">{t('admin.published')}</option>
+                <option value="draft">{t('admin.drafts')}</option>
+                <option value="all">{t('admin.allStatuses')}</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -168,8 +231,8 @@ export default function SystemOverviewTab() {
                               {m.title || m.name || 'Untitled Map'}
                             </span>
                           </td>
-                    <td className="p-3.5 text-gray-600">{m.discoveredBy || m.ownerId || 'Traveler'}</td>
-                    <td className="p-3.5 text-gray-600">{m.details?.region || m.region || 'Global Realm'}</td>
+                    <td className="p-3.5 text-gray-600">{getCreatorName(m)}</td>
+                    <td className="p-3.5 text-gray-600">{getRegionName(m)}</td>
                     <td className="p-3.5">
                       <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase ${m.privacy === 'private' ? 'bg-gray-100 text-gray-600 border-gray-400' : 'bg-emerald-100 text-emerald-800 border-emerald-400'}`}>
                         {m.privacy === 'private' ? t('admin.drafts') : t('admin.published')}

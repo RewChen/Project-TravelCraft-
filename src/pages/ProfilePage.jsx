@@ -3,15 +3,19 @@
 import { useRef, useState } from 'react';
 import { Map, LogOut, Check, Sparkles, User as UserIcon, Camera, Pencil } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { isAvatarImage } from '../lib/imageUtils';
+import AvatarCropModal from '../components/profile/AvatarCropModal';
 
 export default function ProfilePage() {
-  const { t, userProfile, setUserProfile, updateUserRole, updateUsername, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
+  const { t, userProfile, updateUserRole, updateUsername, updateUserAvatar, isLoggedIn, isAdminLoggedIn, logout, communityMaps, setAuthMode, navigateTo } = useApp();
   const [selectedRole, setSelectedRole] = useState(userProfile?.role || t('auth.roleNovice'));
   const [roleUpdatedMsg, setRoleUpdatedMsg] = useState(false);
   const [editingUsername, setEditingUsername] = useState(false);
   const [usernameDraft, setUsernameDraft] = useState('');
   const [usernameError, setUsernameError] = useState('');
   const [usernameUpdatedMsg, setUsernameUpdatedMsg] = useState(false);
+  const [avatarStatus, setAvatarStatus] = useState('');
+  const [pendingAvatar, setPendingAvatar] = useState(null);
   const fileInputRef = useRef(null);
 
   const availableRoles = [
@@ -52,24 +56,24 @@ export default function ProfilePage() {
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const nextAvatar = reader.result;
-      setUserProfile((prev) => ({ ...prev, avatar: nextAvatar }));
-      try {
-        localStorage.setItem('project_travelcraft_profile_avatar', JSON.stringify(nextAvatar));
-      } catch (error) {
-        console.warn('Unable to save avatar to localStorage', error);
-      }
-    };
-    reader.readAsDataURL(file);
+    setPendingAvatar(file);
     event.target.value = '';
   };
 
-  // Count maps published by this user
+  const handleAvatarCropped = async (croppedFile) => {
+    setPendingAvatar(null);
+    setAvatarStatus('saving');
+    const result = await updateUserAvatar(croppedFile);
+    setAvatarStatus(result?.success ? 'success' : 'error');
+    setTimeout(() => setAvatarStatus(''), 3000);
+  };
+
+  // Maps shown here are ONLY ones this user actually pushed. ownerId alone is
+  // not enough: private editor drafts (registerEditorDraft) also carry it.
+  // The publish modal short-circuits 'private', so any map with privacy
+  // 'public'/'unlisted' was really pushed; 'private' rows are excluded.
   const myPublishedMaps = communityMaps?.filter(
-    (m) => m.discoveredBy === userProfile?.name
+    (m) => m.ownerId === userProfile?.id && m.privacy !== 'private'
   ) ?? [];
 
   if (!isLoggedIn || !userProfile) {
@@ -109,7 +113,7 @@ export default function ProfilePage() {
               className="group relative w-24 h-24 bg-amber-400 border-4 border-black rounded-full flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden transition-transform hover:scale-105"
               title={t('profile.changeImage')}
             >
-              {userProfile.avatar && userProfile.avatar.startsWith('data:image') ? (
+              {isAvatarImage(userProfile.avatar) ? (
                 <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 userProfile.avatar || '🏃'
@@ -120,6 +124,17 @@ export default function ProfilePage() {
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
+          {avatarStatus === 'saving' && (
+            <span className="text-[10px] text-slate-500 font-bold mb-1">{t('profile.avatarUploading')}</span>
+          )}
+          {avatarStatus === 'success' && (
+            <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mb-1">
+              <Check className="w-3 h-3 stroke-[3]" /> {t('profile.avatarUpdated')}
+            </span>
+          )}
+          {avatarStatus === 'error' && (
+            <span className="text-[10px] text-red-600 font-bold mb-1">{t('profile.avatarUpdatedFailed')}</span>
+          )}
           {editingUsername ? (
             <form onSubmit={handleUsernameSave} className="flex items-center gap-1.5 mb-1">
               <input
@@ -264,6 +279,14 @@ export default function ProfilePage() {
 
         </div>
       </div>
+
+      {pendingAvatar && (
+        <AvatarCropModal
+          file={pendingAvatar}
+          onCancel={() => setPendingAvatar(null)}
+          onConfirm={handleAvatarCropped}
+        />
+      )}
     </div>
   );
 }

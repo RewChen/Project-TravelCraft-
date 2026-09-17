@@ -12,6 +12,7 @@ import {
 import { useApp } from '../../../context/AppContext';
 import TrainerMapsModal from '../modals/TrainerMapsModal';
 import { supabase } from '../../../lib/supabaseClient';
+import { isAvatarImage } from '../../../lib/imageUtils';
 
 export default function UserManagementTab() {
   const { showAdminToast, communityMaps, t } = useApp();
@@ -206,8 +207,12 @@ export default function UserManagementTab() {
                       <td className="p-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className="w-10 h-10 bg-gray-100 border-2 border-black rounded-xl flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                              {trainer.avatar || '🧢'}
+                            <div className="w-10 h-10 bg-gray-100 border-2 border-black rounded-xl flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                              {isAvatarImage(trainer.avatar) ? (
+                                <img src={trainer.avatar} alt={trainer.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                              ) : (
+                                trainer.avatar || '🧢'
+                              )}
                             </div>
                             {/* Online / Status dot */}
                             <span
@@ -398,8 +403,12 @@ export default function UserManagementTab() {
 
             <div className="p-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-100 border-2 border-black rounded-xl flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  {confirmAction.trainer.avatar || '🧢'}
+                <div className="w-10 h-10 bg-gray-100 border-2 border-black rounded-xl flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                  {isAvatarImage(confirmAction.trainer.avatar) ? (
+                    <img src={confirmAction.trainer.avatar} alt={confirmAction.trainer.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  ) : (
+                    confirmAction.trainer.avatar || '🧢'
+                  )}
                 </div>
                 <div>
                   <div className="font-black text-sm text-black">{confirmAction.trainer.name}</div>

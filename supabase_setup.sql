@@ -391,7 +391,11 @@ CREATE POLICY "Users can view their own profiles"
 CREATE POLICY "Admins can view all users"
     ON public.users FOR SELECT USING (public.is_admin());
 CREATE POLICY "Admins can update any user"
-    ON public.users FOR UPDATE USING (public.is_admin()) WITH CHECK (public.is_admin());
+    ON public.users FOR UPDATE USING (public.is_admin());
+CREATE POLICY "Users can update own profile"
+    ON public.users FOR UPDATE
+    USING (auth.uid()::text = id::text)
+    WITH CHECK (auth.uid()::text = id::text);
 
 CREATE POLICY "Admins can view all" ON public.admins FOR SELECT USING (public.is_admin());
 

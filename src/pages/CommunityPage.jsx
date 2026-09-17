@@ -176,49 +176,59 @@ export default function CommunityPage() {
             </div>
 
             {/* Content Info */}
-            <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+            <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tight mb-2">
+                <h3
+                  className="text-lg font-black uppercase tracking-tight leading-snug line-clamp-2 mb-2"
+                  title={mapItem.title}
+                >
                   {mapItem.title}
                 </h3>
 
-                {/* Tags (same style as tag selection in the map creation form) */}
+                {/* Tags (compact: max 3 shown, rest collapsed into +N) */}
                 {Array.isArray(mapItem.tags) && mapItem.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    {mapItem.tags.map((tag) => {
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {mapItem.tags.slice(0, 3).map((tag) => {
                       const meta = presetTagMeta[tag];
                       const Icon = meta?.icon;
                       return (
-                        <span key={tag} className={`px-2 py-1 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded ${meta ? 'bg-gray-100' : 'bg-amber-100'}`}>
-                          {Icon && <Icon className="w-3 h-3" />} {meta?.emoji} {meta ? t(meta.labelKey) : tag}
+                        <span key={tag} className={`px-2 py-0.5 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded ${meta ? 'bg-gray-100' : 'bg-amber-100'}`}>
+                          {Icon && <Icon className="w-3 h-3" />} {meta ? t(meta.labelKey) : tag}
                         </span>
                       );
                     })}
+                    {mapItem.tags.length > 3 && (
+                      <span className="px-2 py-0.5 border-2 border-black text-[9px] font-black uppercase rounded bg-white text-slate-600 dark:text-slate-300">
+                        +{mapItem.tags.length - 3}
+                      </span>
+                    )}
                   </div>
                 )}
                 
+                {/* Author Info & Role */}
+                <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-3 h-3 border border-black shrink-0 ${mapItem.authorBadgeColor}`}></div>
+                    <div className="truncate">
+                      {t('community.discoveredBy')} <strong className="font-black text-black dark:text-white">{mapItem.discoveredBy}</strong>
+                    </div>
+                  </div>
+                  <span className="text-[9px] bg-amber-100 border border-black px-1.5 py-0.5 rounded font-black uppercase text-amber-900 shrink-0">
+                    {mapItem.authorRole || t('common.cartographer')}
+                  </span>
+                </div>
+
                 {(() => {
-                  const rawRegion = mapItem.locationCity || mapItem.region || '';
+                  const rawRegion = mapItem.locationCity || mapItem.details?.region || mapItem.region || '';
                   const displayCountry = rawRegion && !rawRegion.toLowerCase().startsWith('editor.') && !placeholderRegions.has(rawRegion)
                     ? rawRegion
                     : '';
                   return displayCountry ? (
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase mb-3">
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase">
                       <MapPin className="w-3 h-3 shrink-0" /> {displayCountry}
                     </div>
                   ) : null;
                 })()}
-
-                {/* Author Info & Role */}
-                <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-300 mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 border border-black ${mapItem.authorBadgeColor}`}></div>
-                    <span>{t('community.discoveredBy')} <strong className="font-black text-black">{mapItem.discoveredBy}</strong></span>
-                  </div>
-                  <span className="text-[9px] bg-amber-100 border border-black px-1.5 py-0.5 rounded font-black uppercase text-amber-900">
-                    {mapItem.authorRole || t('common.cartographer')}
-                  </span>
-                </div>
 
               </div>
 

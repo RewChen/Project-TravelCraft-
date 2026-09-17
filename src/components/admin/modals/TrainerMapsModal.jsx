@@ -1,5 +1,6 @@
 import { Map, X, ExternalLink, Compass } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import { isAvatarImage } from '../../../lib/imageUtils';
 
 export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
   const { navigateTo, trackMapOnWorldMap, communityMaps } = useApp();
@@ -17,7 +18,11 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
         {/* Modal Header */}
         <div className="bg-amber-400 text-black p-4 border-b-4 border-black flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{trainer.avatar || '🧢'}</span>
+            {isAvatarImage(trainer.avatar) ? (
+              <img src={trainer.avatar} alt={trainer.name} className="w-9 h-9 rounded-full border-2 border-black object-cover" />
+            ) : (
+              <span className="text-xl">{trainer.avatar || '🧢'}</span>
+            )}
             <div>
               <h3 className="text-sm font-black uppercase tracking-wider">{trainer.name}'s Cartography Roster</h3>
               <p className="text-[10px] text-gray-700 font-bold">{trainer.email} • {trainerMaps.length} Total Maps (Live)</p>

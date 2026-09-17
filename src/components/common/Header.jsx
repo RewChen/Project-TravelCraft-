@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Compass, Bell, Settings, User, X, CheckCheck, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { isAvatarImage } from '../../lib/imageUtils';
 
 export default function Header() {
   const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, activeCommunityMap, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
@@ -177,7 +178,7 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
             className="w-9 h-9 bg-amber-400 border border-black rounded-full flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-none overflow-hidden" 
             title={t('nav.goToProfile')}
           >
-            {avatar.startsWith('data:image') ? (
+            {isAvatarImage(avatar) ? (
               <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <span className="text-sm font-black">{avatar}</span>
