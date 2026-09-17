@@ -523,6 +523,57 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ============================================================
+-- PART 6b — MAP VIEWS (Location Stats: view count -> rarity)
+-- ============================================================
+-- Views live in their OWN table: RLS on `maps` only lets the owner write their
+-- own row, so a visitor could never increment a counter on someone else's map.
+-- map_id is a loose TEXT with no FK on purpose — we count community maps,
+-- base maps and editor drafts whose ids live in different tables.
+
+CREATE TABLE IF NOT EXISTS public.map_views (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    map_id TEXT NOT NULL,
+    viewer_id UUID DEFAULT auth.uid(),
+    viewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_map_views_map ON public.map_views (map_id, viewed_at DESC);
+
+ALTER TABLE public.map_views ENABLE ROW LEVEL SECURITY;
+
+-- Drop first so re-running this whole file stays idempotent.
+DROP POLICY IF EXISTS "map_views_insert_own" ON public.map_views;
+DROP POLICY IF EXISTS "map_views_select" ON public.map_views;
+-- Signed-in users only: viewer_id defaults to auth.uid(), so the check passes.
+CREATE POLICY "map_views_insert_own" ON public.map_views FOR INSERT
+    WITH CHECK (auth.uid()::text = viewer_id::text);
+-- Everyone (incl. guests) may read view totals.
+CREATE POLICY "map_views_select" ON public.map_views FOR SELECT USING (true);
+
+-- Aggregate counts server-side so the client hydrates every location's total
+-- in one call instead of pulling one row per visit.
+CREATE OR REPLACE FUNCTION public.map_view_counts()
+RETURNS TABLE(map_id TEXT, views BIGINT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT v.map_id, COUNT(*)::bigint AS views
+    FROM public.map_views v
+    GROUP BY v.map_id;
+$$;
+
+GRANT SELECT, INSERT ON public.map_views TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.map_view_counts() TO anon, authenticated;
+DO $$
+BEGIN
+    EXECUTE 'GRANT USAGE, SELECT ON SEQUENCE public.map_views_id_seq TO anon, authenticated';
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
+-- ============================================================
 -- PART 7 — Reload PostgREST schema cache
 -- ============================================================
 NOTIFY pgrst, 'reload schema';

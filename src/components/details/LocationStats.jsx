@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { BarChart2, User, Heart, Share2, X, Copy } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { viewTierInfo, rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
 
 export default function LocationStats() {
-  const { selectedLocation, favorites, toggleFavorite, t } = useApp();
+  const { selectedLocation, favorites, toggleFavorite, t, viewCountFor, effectiveRarityFor } = useApp();
   const [showShare, setShowShare] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const views = viewCountFor(selectedLocation);
+  const tier = effectiveRarityFor(selectedLocation);
+  const tierInfo = viewTierInfo(views, tier);
+  const tierLabel = t(rarityLabelKey(tier));
 
   const isFav = favorites.includes(selectedLocation.title);
   const shareUrl = window.location.href;
@@ -37,19 +43,32 @@ export default function LocationStats() {
       </h3>
       
       <div className="mb-4">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${rarityColorForTier(tier)}`}>
+            {tierLabel}
+          </span>
+          <span className="text-xs font-black text-slate-900 dark:text-slate-100">
+            👁 {t('details.viewsCount', { count: views })}
+          </span>
+        </div>
         <div className="h-3 w-full border-2 border-black rounded-full bg-white overflow-hidden">
           <div 
             className="h-full bg-red-600 border-r-2 border-black transition-all duration-500" 
-            style={{ width: `${selectedLocation.popularity || 95}%` }}
+            style={{ width: `${Math.round(tierInfo.progress * 100)}%` }}
           ></div>
         </div>
+        <p className="text-[10px] font-sans font-bold text-slate-500 dark:text-slate-400 mt-1.5">
+          {tierInfo.nextTier
+            ? t('details.nextTier', { count: tierInfo.remaining, tier: t(rarityLabelKey(tierInfo.nextTier)) })
+            : t('details.maxTier')}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 mb-5">
         <div className="bg-white border-2 border-black rounded-lg p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <User className="w-4 h-4 mx-auto text-red-600 mb-1" />
           <div className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase">{t('details.visitors')}</div>
-          <div className="text-xs font-black text-slate-900">{selectedLocation.visitors}</div>
+          <div className="text-xs font-black text-slate-900">{views}</div>
         </div>
       </div>
 

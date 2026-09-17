@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { translations, languages } from '../i18n';
 import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem, mapItemSummary } from '../lib/supabaseMaps';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { loadViewCounts, readLocalViewCounts, recordMapView, effectiveRarity } from '../lib/mapViews';
 import {
   fetchGlobalSettings,
   saveGlobalSettings,
@@ -1474,6 +1475,47 @@ export const AppProvider = ({ children }) => {
     rarity: 'Legendary'
   });
 
+  // Location view counts (view count -> rarity). Mirrored in localStorage and
+  // hydrated from the map_views table/RPC when available.
+  const [mapViewCounts, setMapViewCounts] = useState(() => readLocalViewCounts());
+
+  useEffect(() => {
+    let cancelled = false;
+    loadViewCounts()
+      .then((counts) => {
+        if (!cancelled) setMapViewCounts((prev) => ({ ...prev, ...counts }));
+      })
+      .catch((err) => console.warn('view counts hydrate skipped:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn]);
+
+  const viewCountFor = useCallback((location) => {
+    const id = typeof location === 'string' ? location : location?.id;
+    if (!id) return 0;
+    return mapViewCounts[id] || 0;
+  }, [mapViewCounts]);
+
+  const effectiveRarityFor = useCallback((location) => {
+    const id = typeof location === 'string' ? location : location?.id;
+    const views = id ? (mapViewCounts[id] || 0) : 0;
+    return effectiveRarity(location?.rarity, views);
+  }, [mapViewCounts]);
+
+  const trackLocationView = useCallback(async (location) => {
+    const id = typeof location === 'string' ? location : location?.id;
+    if (!id) return;
+    try {
+      const result = await recordMapView(id, currentUserIdRef.current);
+      if (result?.counted) {
+        setMapViewCounts((prev) => ({ ...prev, [id]: Math.max(prev[id] || 0, result.count || 0) }));
+      }
+    } catch (err) {
+      console.warn('trackLocationView failed:', err);
+    }
+  }, []);
+
   // Map Filter State
   const [mapFilters, setMapFilters] = useState({
     temples: true,
@@ -2224,6 +2266,10 @@ const loginAsAdmin = (customAdmin) => {
         updateUserAvatar,
         selectedLocation,
         setSelectedLocation,
+        mapViewCounts,
+        viewCountFor,
+        effectiveRarityFor,
+        trackLocationView,
         mapBackgroundImage,
         setMapBackgroundImage,
         resetMapBackgroundImage,
