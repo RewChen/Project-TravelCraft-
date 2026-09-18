@@ -408,6 +408,12 @@ const stripMediaFromMap = (item) => {
 const serializeCommunityMapsForStorage = (items, trimMedia) =>
   Array.isArray(items) ? (trimMedia ? items.map(stripMediaFromMap) : items) : items;
 
+// Session cache of fully-computed map views (element layer + pins + background)
+// so reopening a map in the same session skips the network fetch and the
+// element/pin derivation work entirely. Cleared on editor save/publish/delete
+// and naturally resets on app reload, where localStorage snapshots are trimmed.
+const sessionMapViewCache = new Map();
+
 // Recursively replace embedded media data URLs with null so a snapshot can be
 // squeezed into localStorage without dropping the map metadata.
 const stripDataUrls = (value) => {
@@ -1587,6 +1593,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   // Launch Community Map onto the World Map View
   const [mapViewLoading, setMapViewLoading] = useState(false);
+  // Stale-response guard for map preview taps: tracks the id of the map the
+  // user most recently asked to open, so a slow fetch from an older tap never
+  // clobbers the map opened by a newer one.
+  const mapLoadToken = useRef(null);
 
   // Fetch the full map row (data JSONB) when only a summary row is available, or
   // when the local snapshot was truncated (media/editorState stripped to fit
@@ -1611,68 +1621,108 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   }, []);
 
   const trackMapOnWorldMap = useCallback(async (communityItem) => {
-    const isSummary = Boolean(communityItem && communityItem._summaryOnly);
-    if (isSummary) setMapViewLoading(true);
-    const item = await resolveFullMap(communityItem);
-    if (isSummary) setMapViewLoading(false);
-    if (!item) return;
-    setActiveCommunityMap(item);
-    const editor = item.editorState || {};
-    // The user's editor background (latest edit) wins over any legacy bgThemeUrl.
-    const editorBackground = typeof editor.backgroundImage === 'string' && editor.backgroundImage ? editor.backgroundImage : null;
-    const bg = editorBackground || item.bgThemeUrl || null;
-    if (bg) {
-      setMapBackgroundImage(bg);
-    } else {
-      setMapBackgroundImage(null);
-    }
-    // Template CSS background (used when the map has no uploaded background image).
-    const preview = item.previewBackground || {};
-    if (preview.backgroundColor || (preview.backgroundImage && preview.backgroundImage !== 'none')) {
-      setMapCanvasStyle({
-        backgroundColor: preview.backgroundColor || '#ffffff',
-        backgroundImage: preview.backgroundImage === 'none' ? undefined : preview.backgroundImage
-      });
-    } else {
-      setMapCanvasStyle(null);
-    }
-    // Rebuild pins straight from the editor elements so the world map
-    // shows exactly what the user placed (works for drafts too).
-    const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
-    const rawPositions = editor.elementPositions || {};
-    const scaledPositions = scaleElementPositions(rawPositions) || {};
-    const scaledElements = scaleElementFontSizes(rawElements, rawPositions);
-    const layerItems = scaledElements
-      .map((element) => ({ element, position: scaledPositions[element.id] }))
-      .filter((item) => item.position);
-    setMapElements(layerItems);
+    if (!communityItem || !communityItem.id) return;
+    const mapId = communityItem.id;
+    // Mark this map as the latest preview target.
+    mapLoadToken.current = mapId;
 
-    // Elements marked as Location become clickable pins on the map (the pin
-    // marker is the element itself). Unmarked elements stay as decorations in
-    // the element layer. Legacy maps (no element layer / no marked locations)
-    // fall back to the stored pins so nothing regresses.
-    const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot'));
-    const hasMarkedLocations = layerItems.some((item) => item.element.isLocation === true);
-    let pins = [];
-    if (hasMarkedLocations) {
-      pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
-    } else if (!layerItems.length) {
-      pins = Array.isArray(item.pins) && item.pins.length ? item.pins : [];
-      if (!pins.length && rawElements.length) {
-        pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
-      }
-    }
-    setMapPins(resolvePinOverlaps(pins));
-    setSelectedPin(pins.length ? pins[0] : null);
+    // Navigate to the World Map instantly and show the loading overlay while
+    // the full map data is fetched and derived in the background, instead of
+    // stalling on the previous page during the network round-trip.
+    setActiveCommunityMap(null);
+    setMapElements([]);
+    setMapPins([]);
+    setSelectedPin(null);
+    setMapBackgroundImage(null);
+    setMapCanvasStyle(null);
+    setMapViewLoading(true);
     setCurrentPage('map');
-    if (item?.id) {
-      try {
-        window.history.replaceState(null, '', `#/map/${encodeURIComponent(item.id)}`);
-      } catch (e) {
-        console.warn('URL sync skipped:', e);
-      }
+    try {
+      window.history.replaceState(null, '', `#/map/${encodeURIComponent(mapId)}`);
+    } catch (e) {
+      console.warn('URL sync skipped:', e);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    try {
+      const cached = sessionMapViewCache.get(mapId);
+      const isFull = !communityItem._summaryOnly && !communityItem._snapshotTruncated;
+      const item = (cached && isFull) ? communityItem : await resolveFullMap(communityItem);
+      // A newer preview tap happened while we were loading — bail out quietly.
+      if (!item || mapLoadToken.current !== mapId) return;
+
+      setActiveCommunityMap(item);
+
+      if (cached && isFull) {
+        // Cache hit: reuse the derived element layer, pins and background.
+        if (cached.bg) {
+          setMapBackgroundImage(cached.bg);
+        } else {
+          setMapBackgroundImage(null);
+        }
+        setMapCanvasStyle(cached.canvasStyle);
+        setMapElements(cached.layerItems);
+        setMapPins(cached.pins);
+        setSelectedPin(cached.pins.length ? cached.pins[0] : null);
+        return;
+      }
+
+      const editor = item.editorState || {};
+      // The user's editor background (latest edit) wins over any legacy bgThemeUrl.
+      const editorBackground = typeof editor.backgroundImage === 'string' && editor.backgroundImage ? editor.backgroundImage : null;
+      const bg = editorBackground || item.bgThemeUrl || null;
+      if (bg) {
+        setMapBackgroundImage(bg);
+      } else {
+        setMapBackgroundImage(null);
+      }
+      // Template CSS background (used when the map has no uploaded background image).
+      const preview = item.previewBackground || {};
+      let canvasStyle = null;
+      if (preview.backgroundColor || (preview.backgroundImage && preview.backgroundImage !== 'none')) {
+        canvasStyle = {
+          backgroundColor: preview.backgroundColor || '#ffffff',
+          backgroundImage: preview.backgroundImage === 'none' ? undefined : preview.backgroundImage
+        };
+        setMapCanvasStyle(canvasStyle);
+      } else {
+        setMapCanvasStyle(null);
+      }
+      // Rebuild pins straight from the editor elements so the world map
+      // shows exactly what the user placed (works for drafts too).
+      const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
+      const rawPositions = editor.elementPositions || {};
+      const scaledPositions = scaleElementPositions(rawPositions) || {};
+      const scaledElements = scaleElementFontSizes(rawElements, rawPositions);
+      const layerItems = scaledElements
+        .map((element) => ({ element, position: scaledPositions[element.id] }))
+        .filter((item) => item.position);
+      setMapElements(layerItems);
+
+      // Elements marked as Location become clickable pins on the map (the pin
+      // marker is the element itself). Unmarked elements stay as decorations in
+      // the element layer. Legacy maps (no element layer / no marked locations)
+      // fall back to the stored pins so nothing regresses.
+      const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot'));
+      const hasMarkedLocations = layerItems.some((item) => item.element.isLocation === true);
+      let pins = [];
+      if (hasMarkedLocations) {
+        pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
+      } else if (!layerItems.length) {
+        pins = Array.isArray(item.pins) && item.pins.length ? item.pins : [];
+        if (!pins.length && rawElements.length) {
+          pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
+        }
+      }
+      const resolvedPins = resolvePinOverlaps(pins);
+      setMapPins(resolvedPins);
+      setSelectedPin(pins.length ? pins[0] : null);
+
+      // Remember the computed view so reopening this map is instant.
+      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, bg, canvasStyle });
+    } finally {
+      if (mapLoadToken.current === mapId) setMapViewLoading(false);
+    }
   }, [t, resolveFullMap]);
 
   // Deep-link routing: every map has its own shareable URL (#/map/<mapId>).
@@ -1740,6 +1790,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   // Persist the latest Map Editor state for a map owned by the current user.
   const saveEditorMapState = (mapId, editorState) => {
     if (!mapId || !editorState) return;
+    // The map is being edited — the cached view is stale.
+    sessionMapViewCache.delete(mapId);
     const currentItem = communityMaps.find((item) => item.id === mapId);
     if (currentItem) {
       const details = currentItem.details ? { ...currentItem.details } : {};
@@ -1868,6 +1920,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       }
       return [publishedItem, ...prev];
     });
+    // Republished maps carry fresh editor state — drop any cached view.
+    if (rawId) sessionMapViewCache.delete(rawId);
+    sessionMapViewCache.delete(uniqueId);
     const dbSave = await persistMapToDb(publishedItem);
 
     // Check whether the map actually reached the database. If it did not
@@ -1895,6 +1950,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   };
 
   const deleteCommunityMap = (mapId, reason = '') => {
+    sessionMapViewCache.delete(mapId);
     setCommunityMaps((previous) => previous.filter((map) => !(map.id === mapId && isOwnMap(map))));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
@@ -1903,6 +1959,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   // Admin moderation: remove ANY map from Community Discoveries regardless of ownership.
   const adminDeleteCommunityMap = (mapId, reason = '') => {
+    sessionMapViewCache.delete(mapId);
     setCommunityMaps((previous) => previous.filter((map) => map.id !== mapId));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
