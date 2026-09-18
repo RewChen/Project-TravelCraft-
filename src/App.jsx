@@ -100,7 +100,8 @@ function AppContent() {
   return (
     <div className={`${isDarkMode ? 'dark' : ''} min-h-screen ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} font-mono antialiased relative selection:bg-red-200 flex flex-col justify-between transition-colors duration-200`}>
       <div className={isDarkMode ? 'bg-slate-950' : 'bg-[#e8ecef]'}>
-        <div className="max-w-6xl mx-auto px-4 pt-4">
+        {/* Navbar เกาะติดด้านบนตอนเลื่อน (sticky ต้องอยู่ชั้น parent ที่สูงเต็มหน้า) */}
+        <div className="max-w-6xl mx-auto px-4 pt-4 sticky top-0 z-40">
           <Header />
         </div>
 

@@ -26,6 +26,25 @@ html.dark body {
 }
 
 @layer utilities {
+  /* Scroll-reveal: เลื่อนลงมาแล้วค่อยเฟด + ลอยขึ้น (ใช้คู่กับ <Reveal/>) */
+  .tc-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .tc-reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tc-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
+  }
+
   /* Hide scrollbar but keep scrollability (secondary toolbar) */
   .hide-scrollbar {
     scrollbar-width: none;

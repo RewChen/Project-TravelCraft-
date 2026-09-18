@@ -8,6 +8,7 @@ export default function Header() {
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
   const notifRef = useRef(null);
 
   const getNotificationTitle = (n) => {
@@ -119,6 +120,13 @@ export default function Header() {
   };
 
   useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
     if (!showNotifications && !selectedNotification) return;
     const onClickOutside = (e) => {
       if (selectedNotification) return;
@@ -139,7 +147,7 @@ export default function Header() {
   }, [showNotifications, selectedNotification]);
 
   return (
-    <header className="bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 shadow-none flex items-center justify-between sticky top-4 z-50 transition-colors duration-200 backdrop-blur-sm">
+    <header className={`bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 flex items-center justify-between transition-all duration-200 backdrop-blur-sm ${scrolled ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' : 'shadow-none'}`}>
       <div 
         onClick={() => navigateTo('home')}
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"

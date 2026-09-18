@@ -1,8 +1,10 @@
 import LocationHero from '../components/details/LocationHero';
 import LocationLore from '../components/details/LocationLore';
 import TravelerLogs from '../components/details/TravelerLogs';
+import LocationReviews from '../components/reviews/LocationReviews';
 import LocationStats from '../components/details/LocationStats';
 import WildEncounters from '../components/details/WildEncounters';
+import Reveal from '../components/motion/Reveal';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
@@ -24,19 +26,32 @@ export default function DetailsPage() {
       </button>
 
       {/* Top Hero Banner */}
-      <LocationHero />
+      <Reveal>
+        <LocationHero />
+      </Reveal>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Content Column */}
         <div className="md:col-span-2 space-y-6">
-          <LocationLore />
-          <TravelerLogs />
+          <Reveal delay={80}>
+            <LocationLore />
+          </Reveal>
+          <Reveal delay={120}>
+            <TravelerLogs />
+          </Reveal>
+          <Reveal delay={160}>
+            <LocationReviews />
+          </Reveal>
         </div>
 
         {/* Right Sidebar Column */}
         <div className="space-y-6">
-          <LocationStats />
-          <WildEncounters />
+          <Reveal delay={100}>
+            <LocationStats />
+          </Reveal>
+          <Reveal delay={180}>
+            <WildEncounters />
+          </Reveal>
         </div>
       </div>
     </div>

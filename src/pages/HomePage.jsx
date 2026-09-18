@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Play, Search, Footprints, ArrowUp, Eye, MapPin, ArrowRight, Users, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
+import Reveal from '../components/motion/Reveal';
 
 export default function HomePage() {
   const { navigateTo, communityMaps, trackMapOnWorldMap, userProfile, t } = useApp();
@@ -86,6 +87,7 @@ export default function HomePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12">
       {/* Hero Banner */}
+      <Reveal>
       <section className="bg-white border-4 border-black rounded-2xl overflow-hidden mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-2">
         <div className="p-6 md:p-10 flex flex-col justify-center border-b-4 md:border-b-0 md:border-r-4 border-black">
           <h1 className="text-4xl lg:text-5xl font-black text-black leading-[1.08] mb-5 tracking-tight">
@@ -202,14 +204,16 @@ export default function HomePage() {
           )}
         </div>
       </section>
+      </Reveal>
 
       {/* Stats Strip */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         {[
           { icon: MapPin, label: t('home.statMaps'), value: stats.maps, tint: 'bg-[#cc0000] text-white' },
           { icon: Users, label: t('home.statTrainers'), value: stats.trainers, tint: 'bg-amber-400 text-black' }
-        ].map((stat) => (
-          <div key={stat.label} className="bg-white border-4 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4">
+        ].map((stat, idx) => (
+          <Reveal key={stat.label} delay={idx * 100} className="h-full">
+          <div className="bg-white border-4 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4 h-full">
             <div className={`w-12 h-12 shrink-0 border-2 border-black rounded-lg flex items-center justify-center ${stat.tint}`}>
               <stat.icon className="w-5 h-5" />
             </div>
@@ -218,10 +222,12 @@ export default function HomePage() {
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-1">{stat.label}</div>
             </div>
           </div>
+          </Reveal>
         ))}
       </section>
 
       {/* Core Gameplay Loop */}
+      <Reveal>
       <section className="bg-gray-200 dark:bg-slate-800 border-4 border-black rounded-2xl p-6 md:p-8 mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
         <h3 className="text-center text-2xl font-black uppercase tracking-wider mb-8 text-slate-900 dark:text-slate-100">{t('home.loopTitle')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-5 items-center gap-4">
@@ -246,9 +252,11 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      </Reveal>
 
       {/* Featured Community Maps */}
       <section className="mb-10">
+        <Reveal>
         <div className="flex items-center justify-between gap-4 mb-6">
           <h2 className="text-2xl font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">{t('home.featuredTitle')}</h2>
           {featuredMaps.length > 0 && (
@@ -260,11 +268,13 @@ export default function HomePage() {
             </button>
           )}
         </div>
+        </Reveal>
 
         {featuredMaps.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredMaps.map((mapItem) => (
-              <div key={mapItem.id} className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:-translate-y-0.5 transition-transform">
+            {featuredMaps.map((mapItem, idx) => (
+              <Reveal key={mapItem.id} delay={Math.min(idx, 5) * 90} className="h-full">
+              <div className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:-translate-y-0.5 transition-transform h-full">
                 <div
                   onClick={() => trackMapOnWorldMap(mapItem)}
                   className="relative h-44 bg-sky-200 border-b-4 border-black overflow-hidden flex items-center justify-center cursor-pointer group"
@@ -321,6 +331,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
         ) : (
@@ -333,6 +344,7 @@ export default function HomePage() {
       </section>
 
       {/* Create CTA */}
+      <Reveal>
       <section className="bg-black text-white border-4 border-black rounded-2xl p-6 md:p-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="max-w-xl">
           <h2 className="text-2xl font-black uppercase tracking-wider mb-2">{t('home.createCtaTitle')}</h2>
@@ -346,6 +358,7 @@ export default function HomePage() {
           <Plus className="w-4 h-4" />
         </button>
       </section>
+      </Reveal>
     </div>
   );
 }

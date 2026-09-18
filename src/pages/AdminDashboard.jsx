@@ -5,6 +5,7 @@ import SystemOverviewTab from '../components/admin/tabs/SystemOverviewTab';
 import BaseMapsTab from '../components/admin/tabs/BaseMapsTab';
 import UserManagementTab from '../components/admin/tabs/UserManagementTab';
 import ReportedLocationsTab from '../components/admin/tabs/ReportedLocationsTab';
+import ReviewsTab from '../components/admin/tabs/ReviewsTab';
 import AddBaseMapModal from '../components/admin/modals/AddBaseMapModal';
 import AuthPage from './AuthPage';
 import { AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, LogIn } from 'lucide-react';
@@ -91,6 +92,10 @@ export default function AdminDashboard() {
 
         {adminActiveTab === 'reports' && (
           <ReportedLocationsTab />
+        )}
+
+        {adminActiveTab === 'reviews' && (
+          <ReviewsTab />
         )}
       </main>
 

@@ -3,20 +3,28 @@ import {
   Map as MapIcon,
   Users,
   AlertTriangle,
+  Star,
   LogOut,
   ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function AdminSidebar() {
-  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations, t } = useApp();
+  const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations, reviews, t } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
+  const pendingReviewsCount = reviews?.filter((r) => r.status === 'pending').length || 0;
 
   const navItems = [
     { id: 'overview', label: t('admin.overview'), icon: LayoutGrid },
     { id: 'basemaps', label: t('admin.baseMaps'), icon: MapIcon },
     { id: 'users', label: t('admin.userManagement'), icon: Users },
+    {
+      id: 'reviews',
+      label: t('admin.reviews'),
+      icon: Star,
+      badge: pendingReviewsCount > 0 ? pendingReviewsCount : null
+    },
     {
       id: 'reports',
       label: t('admin.reportedLocations'),

@@ -366,6 +366,8 @@ const initialTrainers = [
 const initialGlobalSettings = {
   maxPinsPerMap: 50,
 autoApproveCommunity: false,
+  // รีวิวขึ้นทันทีโดยไม่ต้องรออนุมัติ (admin ซ่อน/ลบทีหลังได้) — ตั้ง false เพื่อกลับไปใช้คิวตรวจสอบ
+  autoApproveReviews: true,
       maintenanceMode: false,
       allowFastTravel: true,
       autoBanStrikeThreshold: 5,
@@ -1117,6 +1119,9 @@ export const AppProvider = ({ children }) => {
   );
   const [trainers, setTrainers] = useState(() => loadStored('adminTrainers', initialTrainers));
   const [reportedLocations, setReportedLocations] = useState([]);
+  // Location reviews & ratings (status: 'pending' | 'approved' | 'hidden').
+  // Submitted by travelers from the Details page, moderated in Admin → Reviews.
+  const [reviews, setReviews] = useState(() => loadStored('reviews', []));
   const [globalSettings, setGlobalSettings] = useState(() => loadStored('adminSettings', initialGlobalSettings));
   const [adminToast, setAdminToast] = useState(null);
 
@@ -1406,6 +1411,7 @@ export const AppProvider = ({ children }) => {
       localStorage.setItem('project_travelcraft_themeMode', JSON.stringify(themeMode));
       localStorage.setItem('project_travelcraft_language', language);
       localStorage.setItem('project_travelcraft_notifications', JSON.stringify(notifications));
+      localStorage.setItem('project_travelcraft_reviews', JSON.stringify(reviews));
     } catch (err) {
       if (err && err.name === 'QuotaExceededError') {
         // Storage is full (usually uploaded media stored as data URLs). Never
@@ -1425,12 +1431,13 @@ export const AppProvider = ({ children }) => {
         forceTrimmedSave('project_travelcraft_mapPins', mapPins);
         forceTrimmedSave('project_travelcraft_mapBgImage', mapBackgroundImage);
         forceTrimmedSave('project_travelcraft_communityMaps', serializeCommunityMapsForStorage(communityMaps, true));
+        forceTrimmedSave('project_travelcraft_reviews', reviews);
         console.warn('LocalStorage quota reached; saved snapshot without embedded media.');
       } else {
         console.warn('LocalStorage save error:', err);
       }
     }
-  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, globalSettings, themeMode, language, notifications]);
+  }, [mapPins, mapBackgroundImage, favorites, communityMaps, baseMaps, trainers, globalSettings, themeMode, language, notifications, reviews]);
 
   const persistSnapshotRef = useRef(persistSnapshot);
   useEffect(() => {
@@ -1945,6 +1952,67 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     return true;
   }, []);
 
+  // --- Location reviews & ratings ---
+  // ค่าเริ่มต้นโพสต์แล้วขึ้นทันที (autoApproveReviews) เหลือคิว pending ไว้เฉพาะตอนปิดสวิตช์
+  const submitReview = useCallback(({ locationId, locationName, region, rating, text, images, gpsVerified }) => {
+    const id = `REV-${Math.floor(10000 + Math.random() * 90000)}`;
+    const autoApprove = globalSettings?.autoApproveReviews !== false;
+    const review = {
+      id,
+      locationId: locationId || locationName || 'unknown',
+      locationName: locationName || 'Unknown location',
+      region: region || '',
+      authorId: userProfile?.id || null,
+      authorName: userProfile?.name || userProfile?.username || 'Traveler',
+      avatar: userProfile?.avatar || null,
+      authorLevel: userProfile?.level || 1,
+      authorTitle: userProfile?.badges?.[0] || (userProfile?.role === 'admin' ? 'Ranger' : 'Trail Walker'),
+      rating: Math.min(5, Math.max(1, Number(rating) || 5)),
+      text: (text || '').trim(),
+      images: Array.isArray(images) ? images.slice(0, 4) : [],
+      status: autoApprove ? 'approved' : 'pending',
+      pinned: false,
+      reports: 0,
+      helpful: 0,
+      gpsVerified: Boolean(gpsVerified),
+      createdAt: Date.now(),
+    };
+    setReviews((prev) => [review, ...prev]);
+    return review;
+  }, [userProfile, globalSettings]);
+
+  const approveReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'approved' } : r)));
+    showAdminToast('Review approved.', 'success');
+  }, []);
+
+  const hideReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'hidden' } : r)));
+    showAdminToast('Review hidden.', 'warning');
+  }, []);
+
+  const unhideReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'approved' } : r)));
+    showAdminToast('Review restored.', 'success');
+  }, []);
+
+  const togglePinReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, pinned: !r.pinned } : r)));
+  }, []);
+
+  const deleteReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+    showAdminToast('Review deleted.', 'error');
+  }, []);
+
+  const reportReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, reports: (r.reports || 0) + 1 } : r)));
+  }, []);
+
+  const voteHelpful = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, helpful: (r.helpful || 0) + 1 } : r)));
+  }, []);
+
   const warnTrainer = (trainerIdentifier) => {
     setTrainers((prev) =>
       prev.map((tr) =>
@@ -2338,6 +2406,15 @@ const loginAsAdmin = (customAdmin) => {
         resolveReport,
         deleteReportedLocation,
         submitReport,
+        reviews,
+        submitReview,
+        approveReview,
+        hideReview,
+        unhideReview,
+        togglePinReview,
+        deleteReview,
+        reportReview,
+        voteHelpful,
         warnTrainer,
         banTrainer,
         unbanTrainer,

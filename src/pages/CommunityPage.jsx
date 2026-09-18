@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, Trees, Eye, Trash2, Utensils, Plane, Gamepad2, Landmark, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
+import Reveal from '../components/motion/Reveal';
 
 // Older maps may carry placeholder region values (never display those).
 const placeholderRegions = new Set([
@@ -104,6 +105,7 @@ export default function CommunityPage() {
     <div className="max-w-6xl mx-auto px-4 pb-16 font-mono text-black dark:text-slate-100">
       
       {/* Main Title Section */}
+      <Reveal>
       <div className="text-center my-8 space-y-2">
         <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
           {t('community.title')}
@@ -112,8 +114,10 @@ export default function CommunityPage() {
           {t('community.subtitle')}
         </p>
       </div>
+      </Reveal>
 
       {/* Search Input Bar */}
+      <Reveal delay={80}>
       <div className="max-w-2xl mx-auto mb-6">
         <div className="relative">
           <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 dark:text-slate-300" />
@@ -126,6 +130,7 @@ export default function CommunityPage() {
           />
         </div>
       </div>
+      </Reveal>
 
       {/* Tag Filter Chips + Search By Tag Button */}
       <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
@@ -162,10 +167,10 @@ export default function CommunityPage() {
 
       {/* Community Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {filteredMaps.map((mapItem) => (
-          <div 
-            key={mapItem.id}
-            className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:translate-y-[-2px] transition-transform"
+        {filteredMaps.map((mapItem, idx) => (
+          <Reveal key={mapItem.id} delay={Math.min(idx, 8) * 70} className="h-full">
+          <div
+            className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:translate-y-[-2px] transition-transform h-full"
           >
             {/* Top Image Preview Banner (Clickable) */}
             <div 
@@ -291,6 +296,7 @@ export default function CommunityPage() {
             </div>
 
           </div>
+          </Reveal>
         ))}
       </div>
 
