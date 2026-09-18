@@ -9,7 +9,7 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -33,6 +33,10 @@ export default function WorldMapPage() {
   const handleMapClick = () => {
     setSelectedPin(null);
   };
+
+  // The World Map stays hidden until the user has previewed a map at least
+  // once this session. Only a map loading in (or an already-seen map) reveals it.
+  if (!mapViewLoading && !hasEverOpenedMap) return null;
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12 font-mono">

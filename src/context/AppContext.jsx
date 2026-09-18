@@ -1593,6 +1593,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   // Launch Community Map onto the World Map View
   const [mapViewLoading, setMapViewLoading] = useState(false);
+  // Tracks whether the user has previewed at least one map this session. The
+  // World Map page stays hidden (blank) until a first map is opened.
+  const [hasEverOpenedMap, setHasEverOpenedMap] = useState(false);
   // Stale-response guard for map preview taps: tracks the id of the map the
   // user most recently asked to open, so a slow fetch from an older tap never
   // clobbers the map opened by a newer one.
@@ -1651,6 +1654,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       // A newer preview tap happened while we were loading — bail out quietly.
       if (!item || mapLoadToken.current !== mapId) return;
 
+      setHasEverOpenedMap(true);
       setActiveCommunityMap(item);
 
       if (cached && isFull) {
@@ -2353,6 +2357,7 @@ const loginAsAdmin = (customAdmin) => {
         activeCommunityMap,
         setActiveCommunityMap,
         mapViewLoading,
+        hasEverOpenedMap,
         trackMapOnWorldMap,
         publishMapToCommunity,
         deleteCommunityMap,
