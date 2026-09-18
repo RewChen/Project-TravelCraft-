@@ -533,6 +533,10 @@ export default {
     logbookTitle: '勘察记录 & 旅伴评价',
     reviewsCountParen: '(共 {count} 条)',
     helpful: '有帮助',
+    mediaPhotos: '照片画廊',
+    mediaVideo: '视频导览',
+    mediaFeatured: 'FEATURED LANDMARK',
+    mediaVideoTitle: '{title} 视频导览',
   },
   profile: {
     lockedTitle: '旅行者资料已锁定',

@@ -22,20 +22,20 @@ const presetTagMeta = {
 };
 
 export default function CommunityPage() {
-  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, isAdminLoggedIn, showAdminToast, t } = useApp();
+  const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, adminDeleteCommunityMap, isOwnMap, userProfile, isAdminLoggedIn, showAdminToast, t } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTags, setActiveTags] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteReason, setDeleteReason] = useState('');
-  const canDeleteMap = (mapItem) =>
-    isAdminLoggedIn === true ||
-    (mapItem.isEditorMap === true && !mapItem._summaryOnly) ||
-    Boolean(userProfile && (
-    mapItem.ownerId
-      ? mapItem.ownerId === userProfile.id
-      : mapItem.discoveredBy === userProfile.name
-  ));
+  // ปุ่มลบขึ้นเฉพาะของตัวเองเท่านั้น — admin เห็น/ลบได้ทุกอัน
+  const canDeleteMap = (mapItem) => {
+    if (isAdminLoggedIn === true) return true;
+    if (mapItem.ownerId) return Boolean(userProfile) && mapItem.ownerId === userProfile.id;
+    if (mapItem.discoveredBy && userProfile) return mapItem.discoveredBy === userProfile.name;
+    // แผนที่ local ไร้เจ้าของ = สร้างในเบราว์เซอร์นี้ (guest ลบของตัวเองได้)
+    return mapItem.isEditorMap === true && !mapItem._summaryOnly;
+  };
 
   // Only show maps that really came from the database or from this browser's
   // editor. Feed rows from supabaseMaps carry `_summaryOnly`; maps
@@ -348,7 +348,12 @@ export default function CommunityPage() {
                 <button
                   disabled={!deleteReason.trim()}
                   onClick={() => {
-                    deleteCommunityMap(deleteTarget.id, deleteReason.trim());
+                    // admin ลบของใครก็ได้ (ลบออกจาก state ท้องถิ่นด้วย) ส่วน user ทั่วไปลบได้เฉพาะของตัวเอง
+                    if (isAdminLoggedIn === true && !isOwnMap(deleteTarget)) {
+                      adminDeleteCommunityMap(deleteTarget.id, deleteReason.trim());
+                    } else {
+                      deleteCommunityMap(deleteTarget.id, deleteReason.trim());
+                    }
                     showAdminToast(`Map deleted. Reason: ${deleteReason.trim()}`, 'info');
                     setDeleteTarget(null);
                     setDeleteReason('');

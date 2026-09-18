@@ -533,6 +533,10 @@ export default {
     logbookTitle: '탐사 기록 & 동료 여행자 리뷰',
     reviewsCountParen: '({count}개)',
     helpful: '도움됨',
+    mediaPhotos: '사진 갤러리',
+    mediaVideo: '비디오 투어',
+    mediaFeatured: 'FEATURED LANDMARK',
+    mediaVideoTitle: '{title} 비디오 투어',
   },
   profile: {
     lockedTitle: '트레이너 프로필 잠김',

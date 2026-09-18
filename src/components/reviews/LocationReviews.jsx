@@ -69,7 +69,7 @@ export default function LocationReviews() {
         <button
           type="button"
           onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
-          className="shrink-0 bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          className="shrink-0 bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
         >
           <PenLine className="w-4 h-4" /> {t('details.writeReview')}
         </button>

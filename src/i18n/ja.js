@@ -534,6 +534,10 @@ export default {
     logbookTitle: '調査記録 & 仲間のレビュー',
     reviewsCountParen: '({count} 件)',
     helpful: '役に立った',
+    mediaPhotos: 'フォトギャラリー',
+    mediaVideo: 'ビデオツアー',
+    mediaFeatured: 'FEATURED LANDMARK',
+    mediaVideoTitle: '{title} ビデオツアー',
   },
   profile: {
     lockedTitle: 'トレーナープロフィールはロック中',

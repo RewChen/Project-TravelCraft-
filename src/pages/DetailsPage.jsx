@@ -25,7 +25,7 @@ export default function DetailsPage() {
         <ArrowLeft className="w-4 h-4" /> {t('details.backToMap')}
       </button>
 
-      {/* Top Hero Banner */}
+      {/* Top Hero Banner (รูป+วิดีโอสลับในปกเดียว) */}
       <Reveal>
         <LocationHero />
       </Reveal>

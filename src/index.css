@@ -35,7 +35,10 @@ html.dark body {
   }
   .tc-reveal-visible {
     opacity: 1;
-    transform: translateY(0);
+    /* ต้องเป็น none (ไม่ใช่ translateY(0)) + ล้าง will-change ไม่งั้น fixed modal
+       ข้างใน (ดูรูปปก/รูปตัวอย่าง/ฟอร์มรีวิว) จะโดน trap แสดงแค่ในกรอบ */
+    transform: none;
+    will-change: auto;
   }
   @media (prefers-reduced-motion: reduce) {
     .tc-reveal {

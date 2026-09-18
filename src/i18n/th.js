@@ -555,6 +555,10 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     logbookTitle: 'บันทึกสำรวจ & รีวิวจากเพื่อนร่วมทาง',
     reviewsCountParen: '({count} รายการ)',
     helpful: 'มีประโยชน์',
+    mediaPhotos: 'แกลเลอรีภาพถ่าย',
+    mediaVideo: 'วิดีโอทัวร์',
+    mediaFeatured: 'FEATURED LANDMARK',
+    mediaVideoTitle: 'วิดีโอทัวร์ {title}',
   },
   profile: {
     lockedTitle: 'โปรไฟล์นักเดินทางถูกล็อก',

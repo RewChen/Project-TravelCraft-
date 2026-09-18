@@ -1,24 +1,8 @@
-import { MapPin, ImageIcon, X } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, ImageIcon, Images, Clapperboard, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
-
-// รูปปก: imageUrl ก่อน, ถ้าไม่มีให้ใช้รูป template (bgThemeUrl / editorState.backgroundImage)
-// กรองค่า CSS gradient / 'none' ออก เหลือเฉพาะ path รูปจริง (/templates/..., http, data:)
-const isImageSrc = (value) =>
-  typeof value === 'string' &&
-  value.trim() !== '' &&
-  value !== 'none' &&
-  !value.includes('gradient');
-
-const resolveCoverImage = (location, fallbackImage) => {
-  const candidates = [
-    location?.imageUrl,
-    location?.bgThemeUrl,
-    location?.editorState?.backgroundImage,
-  ];
-  return candidates.find(isImageSrc) || fallbackImage;
-};
+import { resolveCoverImage, coverFallbackFor, toEmbedUrl } from '../../lib/imageUtils';
 
 export default function LocationHero() {
   const { selectedLocation, t, effectiveRarityFor } = useApp();
@@ -37,28 +21,64 @@ export default function LocationHero() {
     && !placeholderRegions.has(rawRegion)
     ? rawRegion
     : '';
-  const fallbackImage = selectedLocation.title?.toLowerCase().includes('kyoto')
-    ? 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1400&q=85'
-    : selectedLocation.title?.toLowerCase().includes('grand canyon')
-      ? 'https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=1400&q=85'
-      : 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1400&q=85';
-  const coverImage = resolveCoverImage(selectedLocation, fallbackImage);
+  const fallbackImage = coverFallbackFor(selectedLocation.title);
+  const coverImage = resolveCoverImage(selectedLocation);
   const [coverFailed, setCoverFailed] = useState(false);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
+  const [mediaTab, setMediaTab] = useState('photo'); // photo | video
   const displayCover = coverFailed ? fallbackImage : coverImage;
+  const videoSrc = useMemo(() => toEmbedUrl(selectedLocation?.videoUrl), [selectedLocation]);
+  const hasVideo = Boolean(videoSrc);
+  const isFileVideo = typeof selectedLocation?.videoUrl === 'string' && selectedLocation.videoUrl.startsWith('data:video/');
+  const showVideo = hasVideo && mediaTab === 'video';
 
   return (
     <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-      <button type="button" onClick={() => setCoverPreviewOpen(true)} title="ดูรูปปกขนาดใหญ่" className="h-64 bg-slate-900 relative p-4 flex flex-col justify-between overflow-hidden w-full cursor-zoom-in">
-        <img src={displayCover} alt={selectedLocation.title} onError={() => setCoverFailed(true)} className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/25 pointer-events-none" />
+      <div className="h-64 bg-slate-900 relative overflow-hidden">
+        {showVideo ? (
+          isFileVideo ? (
+            <video src={videoSrc} controls className="absolute inset-0 w-full h-full object-cover bg-black" />
+          ) : (
+            <iframe
+              src={videoSrc}
+              title={t('details.videoTitle', { title: selectedLocation.title })}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          )
+        ) : (
+          <button type="button" onClick={() => setCoverPreviewOpen(true)} title="ดูรูปปกขนาดใหญ่" className="absolute inset-0 w-full h-full cursor-zoom-in">
+            <img src={displayCover} alt={selectedLocation.title} onError={() => setCoverFailed(true)} className="absolute inset-0 w-full h-full object-cover" />
+          </button>
+        )}
+        {!showVideo && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
         {displayRegion && (
-          <div className="inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit relative">
+          <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit">
             <MapPin className="w-3 h-3" /> {displayRegion}
           </div>
         )}
-        <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70" />
-      </button>
+        {/* ปุ่มสลับ ภาพถ่าย / วิดีโอทัวร์ */}
+        {hasVideo && (
+          <div className="absolute top-4 right-4 flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setMediaTab('photo')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 text-[10px] font-black uppercase cursor-pointer ${!showVideo ? 'bg-white text-black border-black' : 'bg-black/60 text-white border-white/40 hover:bg-black/80'}`}
+            >
+              <Images className="w-3.5 h-3.5" /> {t('details.mediaPhotos')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaTab('video')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 text-[10px] font-black uppercase cursor-pointer ${showVideo ? 'bg-white text-black border-black' : 'bg-black/60 text-white border-white/40 hover:bg-black/80'}`}
+            >
+              <Clapperboard className="w-3.5 h-3.5" /> {t('details.mediaVideo')}
+            </button>
+          </div>
+        )}
+        {!showVideo && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
+      </div>
       
       <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
@@ -76,21 +96,7 @@ export default function LocationHero() {
           </span>
         </div>
       </div>
-      {selectedLocation.videoUrl && (
-        <div className="border-t-4 border-black bg-black p-4">
-          {selectedLocation.videoUrl.startsWith('data:video/') ? (
-            <video src={selectedLocation.videoUrl} controls className="w-full max-h-105 bg-black" />
-          ) : (
-            <iframe
-              src={selectedLocation.videoUrl}
-              title={t('details.videoTitle', { title: selectedLocation.title })}
-              className="w-full aspect-video border-2 border-white"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          )}
-        </div>
-      )}
+      {/* วิดีโออยู่ในปกนี้แล้ว (แท็บวิดีโอทัวร์) ไม่ต้องแยก section */}
       {coverPreviewOpen && (
         <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setCoverPreviewOpen(false)}>
           <div className="w-full max-w-3xl bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>

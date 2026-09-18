@@ -68,6 +68,57 @@ export const isAvatarImage = (avatar) =>
   typeof avatar === 'string' &&
   (avatar.startsWith('data:image') || /^https?:\/\//.test(avatar));
 
+// True when a value is a real image src (filters out CSS gradients / 'none' / blanks)
+export const isImageSrc = (value) =>
+  typeof value === 'string' &&
+  value.trim() !== '' &&
+  value !== 'none' &&
+  !value.includes('gradient');
+
+// รูปสำรองตามชื่อสถานที่ (ใช้ตรงกับปก hero)
+export const coverFallbackFor = (title) => {
+  const name = String(title || '').toLowerCase();
+  if (name.includes('kyoto')) return 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1400&q=85';
+  if (name.includes('grand canyon')) return 'https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=1400&q=85';
+  return 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1400&q=85';
+};
+
+// รูปปกที่ hero แสดงจริง: imageUrl ก่อน แล้วรูป template (bgThemeUrl / editor background)
+export const resolveCoverImage = (location) => {
+  const candidates = [
+    location?.imageUrl,
+    location?.bgThemeUrl,
+    location?.editorState?.backgroundImage,
+  ];
+  return candidates.find(isImageSrc) || coverFallbackFor(location?.title);
+};
+
+// แปลงลิงก์วิดีโอทั่วไปให้เป็น embed URL (YouTube watch/shorts/live/youtu.be → embed)
+// ไฟล์อัปโหลด (data:video/) และ mp4 ตรง ๆ คืนค่าเดิม
+export const toEmbedUrl = (url) => {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  try {
+    if (trimmed.startsWith('data:video/')) return trimmed;
+    const parsed = new URL(trimmed);
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host === 'youtube.com' || host === 'm.youtube.com') {
+      const id = parsed.searchParams.get('v');
+      if (id) return `https://www.youtube.com/embed/${id}`;
+      const short = parsed.pathname.match(/^\/(shorts|live)\/([\w-]+)/);
+      if (short) return `https://www.youtube.com/embed/${short[2]}`;
+      return trimmed;
+    }
+    if (host === 'youtu.be') {
+      const id = parsed.pathname.replace('/', '').split(/[?#]/)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : trimmed;
+    }
+    return trimmed;
+  } catch {
+    return trimmed;
+  }
+};
+
 // Render a fitted (optionally zoomed/rotated/offset) image into a square
 // canvas clipped to a centered circle. Used by the profile avatar cropper.
 // The preview simply mirrors this transform with the same parameters, so the

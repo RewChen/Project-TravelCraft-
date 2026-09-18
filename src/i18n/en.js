@@ -555,6 +555,10 @@ export default {
     logbookTitle: 'Field Notes & Reviews from Fellow Travelers',
     reviewsCountParen: '({count} entries)',
     helpful: 'Helpful',
+    mediaPhotos: 'Photo gallery',
+    mediaVideo: 'Video tour',
+    mediaFeatured: 'FEATURED LANDMARK',
+    mediaVideoTitle: '{title} video tour',
   },
   profile: {
     lockedTitle: 'Trainer Profile Locked',

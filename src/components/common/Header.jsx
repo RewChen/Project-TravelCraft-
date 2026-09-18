@@ -147,7 +147,7 @@ export default function Header() {
   }, [showNotifications, selectedNotification]);
 
   return (
-    <header className={`bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 flex items-center justify-between transition-all duration-200 backdrop-blur-sm ${scrolled ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' : 'shadow-none'}`}>
+    <header className={`bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 flex items-center justify-between transition-all duration-200 ${scrolled ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' : 'shadow-none'}`}>
       <div 
         onClick={() => navigateTo('home')}
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"

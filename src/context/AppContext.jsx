@@ -1902,10 +1902,14 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   };
 
   const deleteCommunityMap = (mapId, reason = '') => {
+    const target = (communityMaps || []).find((map) => map.id === mapId);
+    // กันไว้ชั้นนึง: ไม่ใช่ของตัวเองลบไม่ได้ (admin ใช้ adminDeleteCommunityMap แทน)
+    if (!target || !isOwnMap(target)) return false;
     setCommunityMaps((previous) => previous.filter((map) => !(map.id === mapId && isOwnMap(map))));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
     if (reason) console.info(`[moderation] Community map deleted: ${mapId} — reason: ${reason}`);
+    return true;
   };
 
   // Admin moderation: remove ANY map from Community Discoveries regardless of ownership.
