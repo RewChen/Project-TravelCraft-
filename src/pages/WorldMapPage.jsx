@@ -5,16 +5,13 @@ import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Eye, Play, LogIn, UserPlus, X, MousePointerClick } from 'lucide-react';
+import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading, isLoggedIn, setAuthMode } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
-  const [showDemoBanner, setShowDemoBanner] = useState(true);
-
-  const isGuest = !isLoggedIn;
 
   // Zoom Controls State
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -39,61 +36,6 @@ export default function WorldMapPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-12 font-mono">
-      {/* Guest demo / preview banner: visitors can view and try the map without login */}
-      {isGuest && showDemoBanner && (
-        <div className="bg-gradient-to-r from-amber-300 via-amber-200 to-emerald-100 border-4 border-black rounded-2xl p-4 mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="w-10 h-10 bg-[#cc0000] border-2 border-black rounded-xl flex items-center justify-center text-white shrink-0">
-                <Eye className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[10px] font-black uppercase bg-black text-amber-300 px-2 py-0.5 rounded-full">
-                    {t('worldMap.demoBadge')}
-                  </span>
-                  <h2 className="text-sm font-black uppercase">{t('worldMap.demoTitle')}</h2>
-                </div>
-                <p className="text-[11px] font-sans font-bold text-slate-700 mt-1 leading-relaxed">
-                  {t('worldMap.demoDesc')}
-                </p>
-                <p className="text-[11px] font-sans text-slate-600 mt-1 flex items-center gap-1">
-                  <MousePointerClick className="w-3.5 h-3.5 shrink-0" />
-                  {t('worldMap.demoTryHint')}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <button
-                    onClick={() => setShowDemoBanner(false)}
-                    className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-                  >
-                    <Play className="w-3.5 h-3.5" /> {t('worldMap.demoTryNow')}
-                  </button>
-                  <button
-                    onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
-                    className="bg-white hover:bg-gray-100 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-                  >
-                    <LogIn className="w-3.5 h-3.5" /> {t('worldMap.demoLogin')}
-                  </button>
-                  <button
-                    onClick={() => { setAuthMode('register'); navigateTo('auth'); }}
-                    className="bg-emerald-400 hover:bg-emerald-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" /> {t('worldMap.demoRegister')}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowDemoBanner(false)}
-              title={t('worldMap.demoDismiss')}
-              className="w-7 h-7 bg-white border-2 border-black rounded-lg flex items-center justify-center hover:bg-gray-100 shrink-0 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Top Control Header Bar */}
       <div className="bg-white border-4 border-black rounded-2xl p-4 mb-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-2 min-w-0">
@@ -235,69 +177,7 @@ export default function WorldMapPage() {
           <span>{mapBackgroundImage ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>
 
-        {/* Demo ribbon for visitors */}
-        {isGuest && (
-          <div className="absolute top-4 right-4 z-20 bg-black text-amber-300 border-2 border-amber-300 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-            <Eye className="w-3.5 h-3.5" /> {t('worldMap.demoBadge')}
-          </div>
-        )}
-
       </div>
-
-      {/* Guest how-to-play strip: 3 try-it steps + CTAs */}
-      {isGuest && (
-        <div className="mt-4 bg-white border-4 border-black rounded-2xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <h3 className="text-xs font-black uppercase tracking-widest mb-3 flex items-center gap-2">
-            <Play className="w-4 h-4 text-[#cc0000]" /> {t('worldMap.demoHowToTitle')}
-          </h3>
-          <div className="grid sm:grid-cols-3 gap-2.5">
-            <button
-              onClick={() => handleZoomIn()}
-              className="text-left bg-amber-50 hover:bg-amber-100 border-2 border-black rounded-xl p-3 cursor-pointer transition-colors"
-            >
-              <div className="text-lg mb-1">🔍</div>
-              <div className="text-xs font-black uppercase">{t('worldMap.demoStep1Title')}</div>
-              <div className="text-[11px] font-sans text-slate-600 leading-relaxed mt-0.5">{t('worldMap.demoStep1Desc')}</div>
-            </button>
-            <button
-              onClick={() => {
-                const first = mapPins?.[0];
-                if (first) setSelectedPin(first);
-              }}
-              className="text-left bg-emerald-50 hover:bg-emerald-100 border-2 border-black rounded-xl p-3 cursor-pointer transition-colors"
-            >
-              <div className="text-lg mb-1">📍</div>
-              <div className="text-xs font-black uppercase">{t('worldMap.demoStep2Title')}</div>
-              <div className="text-[11px] font-sans text-slate-600 leading-relaxed mt-0.5">{t('worldMap.demoStep2Desc')}</div>
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="text-left bg-red-50 hover:bg-red-100 border-2 border-black rounded-xl p-3 cursor-pointer transition-colors"
-            >
-              <div className="text-lg mb-1">📷</div>
-              <div className="text-xs font-black uppercase">{t('worldMap.demoStep3Title')}</div>
-              <div className="text-[11px] font-sans text-slate-600 leading-relaxed mt-0.5">{t('worldMap.demoStep3Desc')}</div>
-            </button>
-          </div>
-          <p className="text-[10px] font-sans text-slate-500 font-bold mt-3">
-            {t('worldMap.demoTemporaryNote')}
-          </p>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <button
-              onClick={() => navigateTo('community')}
-              className="bg-amber-400 hover:bg-amber-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-            >
-              {t('worldMap.demoGoCommunity')}
-            </button>
-            <button
-              onClick={() => { setAuthMode('register'); navigateTo('auth'); }}
-              className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-            >
-              <UserPlus className="w-3.5 h-3.5" /> {t('worldMap.demoRegister')}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Whole Map Image Background Upload Modal */}
       {showBgModal && (

@@ -9,7 +9,7 @@ import {
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, ChevronLeft, ChevronRight, Wand2,
-  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon
+  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon, Eye
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
@@ -18,6 +18,7 @@ import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
+import { mapTemplates } from '../data/templates';
 
 const editorTabs = [
   { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates', defaultLabel: 'เทมเพลต' },
@@ -68,89 +69,6 @@ const locationBestTimeOptions = [
 const locationTravelOptions = [
   '🚶 Walking', '🚲 Bicycle', '🛵 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
   '🚇 Metro', '🚢 Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
-];
-
-const mapTemplates = [
-  {
-    id: 'blank',
-    labelKey: 'editor.templateBlank',
-    preview: '#ffffff',
-    canvas: {
-      backgroundColor: '#ffffff',
-      backgroundImage: 'none'
-    }
-  },
-  {
-    id: 'tropical',
-    labelKey: 'editor.templateTropical',
-    preview: 'linear-gradient(#48b4ed 0 24%, #f8d58b 24% 58%, #42b8d7 58%)',
-    canvas: {
-      backgroundColor: '#f8d58b',
-      backgroundImage: 'linear-gradient(180deg, transparent 0 44%, #d9a866 44% 45%, #f8d58b 45% 66%, #42b8d7 66% 67%, #278fc8 67%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(49,78,75,.22) 50px 51px)'
-    }
-  },
-  {
-    id: 'island',
-    labelKey: 'editor.templateGreen',
-    preview: 'linear-gradient(135deg, #58b74d 0 30%, #96df4e 30% 70%, #58b74d 70%)',
-    canvas: {
-      backgroundColor: '#85d64d',
-      backgroundImage: 'radial-gradient(ellipse at center, #a0e65c 0 45%, transparent 46%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(25,83,49,.35) 50px 51px)'
-    }
-  },
-  {
-    id: 'river',
-    labelKey: 'editor.templateRiver',
-    preview: 'linear-gradient(135deg, #77cf3d 0 45%, #398ac1 45% 58%, #77cf3d 58%)',
-    canvas: {
-      backgroundColor: '#78ce3d',
-      backgroundImage: 'linear-gradient(90deg, transparent 0 42%, #328ec4 43% 48%, #78ce3d 49%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(38,92,50,.3) 50px 51px)'
-    }
-  },
-  {
-    id: 'boardwalk',
-    labelKey: 'editor.templateBeach',
-    preview: 'linear-gradient(#f5cf7b 0 40%, #98613d 40% 53%, #35afd2 53%)',
-    canvas: {
-      backgroundColor: '#f5cf7b',
-      backgroundImage: 'linear-gradient(180deg, transparent 0 39%, #98613d 40% 52%, #f5cf7b 53% 62%, #35afd2 63%), repeating-linear-gradient(90deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px), repeating-linear-gradient(0deg, transparent 0 49px, rgba(74,74,44,.24) 50px 51px)'
-    }
-  },
-  {
-    id: 'gametion-village-lake',
-    labelKey: 'editor.templateGametionVillageLake',
-    preview: 'url("/templates/map1.png") center / cover, #e2f0d9',
-    image: '/templates/map1.png',
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
-  },
-  {
-    id: 'gametion-region-fields',
-    labelKey: 'editor.templateGametionRegionFields',
-    preview: 'url("/templates/map2.jpg") center / cover, #e2f0d9',
-    image: '/templates/map2.jpg',
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
-  },
-  {
-    id: 'gametion-lighthouse-cave',
-    labelKey: 'editor.templateGametionLighthouseCave',
-    preview: 'url("/templates/map3.jpg") center / cover, #e2f0d9',
-    image: '/templates/map3.jpg',
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
-  },
-  {
-    id: 'gametion-volcanic-cavern',
-    labelKey: 'editor.templateGametionVolcanicCavern',
-    preview: 'url("/templates/map4.jpg") center / cover, #201818',
-    image: '/templates/map4.jpg',
-    canvas: { backgroundColor: '#201818', backgroundImage: 'none' }
-  },
-  {
-    id: 'gametion-world-region',
-    labelKey: 'editor.templateGametionWorldRegion',
-    preview: 'url("/templates/map5.jpg") center / cover, #1377b9',
-    image: '/templates/map5.jpg',
-    canvas: { backgroundColor: '#1377b9', backgroundImage: 'none' }
-  }
 ];
 
 const elementOptions = [
@@ -261,6 +179,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
   const [selectedElement, setSelectedElement] = useState(null); 
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(() => savedEditorState?.selectedTemplate || 'blank');
+  const [previewTemplateId, setPreviewTemplateId] = useState(null);
   const [showTextAnimMenu, setShowTextAnimMenu] = useState(false);
   const [showTextPositionMenu, setShowTextPositionMenu] = useState(false);
   const [liveDrawing, setLiveDrawing] = useState(null);
@@ -1616,6 +1535,38 @@ if (updates.privacy === 'private') {
         </div>
       </div>}
 
+      {previewTemplateId && (() => {
+        const previewTemplate = mapTemplates.find((item) => item.id === previewTemplateId);
+        if (!previewTemplate) return null;
+        return (
+          <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setPreviewTemplateId(null)}>
+            <div className="w-full max-w-2xl bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
+              <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black">
+                <h3 className="font-black text-sm uppercase">{t(previewTemplate.labelKey)}</h3>
+                <button type="button" onClick={() => setPreviewTemplateId(null)} title={t('editor.close')} className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="bg-gray-100 flex items-center justify-center max-h-[65vh] overflow-hidden">
+                {previewTemplate.image ? (
+                  <img src={previewTemplate.image} alt={t(previewTemplate.labelKey)} className="w-full max-h-[65vh] object-contain" />
+                ) : (
+                  <div className="w-full h-72" style={{ background: previewTemplate.preview }} />
+                )}
+              </div>
+              <div className="flex items-center justify-end gap-2 px-4 py-3 border-t-2 border-black bg-white">
+                <button type="button" onClick={() => setPreviewTemplateId(null)} className="border-2 border-black rounded-lg px-4 py-2 text-xs font-black uppercase hover:bg-gray-100">
+                  {t('editor.close')}
+                </button>
+                <button type="button" onClick={() => { selectTemplate(previewTemplate.id); setPreviewTemplateId(null); }} className="border-2 border-black rounded-lg px-4 py-2 text-xs font-black uppercase bg-amber-300 hover:bg-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  ใช้ template นี้
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {showPublishModal && (
         <PublishMapModal
           initial={{
@@ -1719,12 +1670,17 @@ if (updates.privacy === 'private') {
               <div>
                 <div className="flex flex-wrap gap-3">
                   {mapTemplates.map((template) => (
-                    <button key={template.id} type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} className={`aspect-square w-[calc(50%-0.375rem)] border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-105 transition-transform flex flex-col items-center justify-end p-2 relative overflow-hidden ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
-                      <div className="absolute inset-0" style={{ background: template.preview }}></div>
-                      <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
-                      {selectedTemplate === template.id && <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>}
-                      <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
-                    </button>
+                    <div key={template.id} className={`aspect-square w-[calc(50%-0.375rem)] border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden relative ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
+                      <button type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} title={t(template.labelKey)} className="absolute inset-0 cursor-pointer hover:scale-105 transition-transform flex flex-col items-center justify-end p-2">
+                        <div className="absolute inset-0" style={{ background: template.preview }}></div>
+                        <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
+                        <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
+                      </button>
+                      {selectedTemplate === template.id && <span className="absolute top-1 right-1 z-10 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center pointer-events-none"><Check className="w-3 h-3 stroke-[4]" /></span>}
+                      <button type="button" onClick={(event) => { event.stopPropagation(); setPreviewTemplateId(template.id); }} title="ดูรูปตัวอย่าง" className="absolute bottom-1 left-1 z-10 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-amber-200">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   ))}
                 </div>
 

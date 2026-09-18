@@ -10,6 +10,9 @@ export default function TravelerLogs() {
   const fallbackSelfies = !selfieLogs.length && (selectedLocation?.selfieUrls || (selectedLocation?.selfieUrl ? [selectedLocation.selfieUrl] : []));
   const displaySelfies = selfieLogs.length ? selfieLogs : (fallbackSelfies?.length ? fallbackSelfies.map((img, i) => ({ id: `fallback-${i}`, image: img, caption: selectedLocation?.title })) : []);
   const hasSelfies = displaySelfies.length > 0;
+  // โชว์แค่ 3 รูปด้านล่าง ที่เหลือต้องกด "ดูทั้งหมด"
+  const visibleSelfies = displaySelfies.slice(0, 3);
+  const hiddenCount = Math.max(0, displaySelfies.length - visibleSelfies.length);
   const [activeIdx, setActiveIdx] = useState(null);
   const [showAll, setShowAll] = useState(false);
   const activeLog = activeIdx !== null ? displaySelfies[activeIdx] : null;
@@ -36,27 +39,34 @@ export default function TravelerLogs() {
           disabled={!hasSelfies}
           className={`text-xs font-bold hover:underline ${hasSelfies ? 'text-red-600 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
         >
-          {t('details.viewAll')}
+          {t('details.viewAll')}{displaySelfies.length > 3 ? ` (${displaySelfies.length})` : ''}
         </button>
       </div>
       {hasSelfies ? (
         <div className="grid grid-cols-3 gap-3">
-          {displaySelfies.map((log, idx) => (
+          {visibleSelfies.map((log, idx) => (
             <button
               key={log.id}
               type="button"
-              onClick={() => setActiveIdx(idx)}
+              onClick={() => (idx === 2 && hiddenCount > 0 ? setShowAll(true) : setActiveIdx(idx))}
               className="aspect-square border-2 border-black rounded overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:scale-[1.02] transition-transform bg-gray-100 group relative cursor-pointer text-left"
             >
               <img src={log.image} alt={log.caption || 'selfie'} className="w-full h-full object-cover" />
               <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[8px] font-bold p-1 truncate opacity-0 group-hover:opacity-100 transition-opacity">
                 {log.caption} {log.author ? `· ${log.author}` : ''}
               </div>
-              <span className="absolute top-1 right-1 bg-white/90 border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px]">🔍</span>
+              {idx === 2 && hiddenCount > 0 ? (
+                <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white font-black">
+                  <span className="text-lg">+{hiddenCount}</span>
+                  <span className="text-[9px] uppercase">{t('details.viewAll')}</span>
+                </div>
+              ) : (
+                <span className="absolute top-1 right-1 bg-white/90 border border-black rounded-full w-5 h-5 flex items-center justify-center text-[10px]">🔍</span>
+              )}
             </button>
           ))}
           {/* Fill remaining slots with placeholders if less than 3 */}
-          {Array.from({ length: Math.max(0, 3 - displaySelfies.length) }).map((_, i) => (
+          {Array.from({ length: Math.max(0, 3 - visibleSelfies.length) }).map((_, i) => (
             <div key={`ph-${i}`} className="aspect-square bg-sky-100 border-2 border-dashed border-black rounded flex items-center justify-center text-xl opacity-60">
               {['🗼','🌅','✨'][i % 3]}
             </div>

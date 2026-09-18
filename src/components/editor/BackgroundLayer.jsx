@@ -59,12 +59,44 @@ const templateLayouts = {
       { from: 0.63, to: 1, fill: '#35afd2' }
     ],
     verticalBands: []
+  },
+  // --- Image templates (รูปจาก public/templates/) ---
+  // ไม่มีลายวาดทับ ให้โชว์รูปภาพเต็มผืนใบ
+  'gametion-village-lake': {
+    base: '#e2f0d9',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
+  },
+  'gametion-region-fields': {
+    base: '#e2f0d9',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
+  },
+  'gametion-lighthouse-cave': {
+    base: '#e2f0d9',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
+  },
+  'gametion-volcanic-cavern': {
+    base: '#201818',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
+  },
+  'gametion-world-region': {
+    base: '#1377b9',
+    gridColor: null,
+    horizontalBands: [],
+    verticalBands: []
   }
 };
 
 export default function BackgroundLayer({ templateId, backgroundImage, width, height }) {
-  const [image] = useImage(backgroundImage || '');
-  const layout = templateLayouts[templateId] || templateLayouts.tropical;
+  const [image, status] = useImage(backgroundImage || '', 'anonymous');
+  const layout = templateLayouts[templateId] || templateLayouts.blank;
 
   const gridTile = useMemo(() => (
     layout.gridColor ? createGridTile(layout.gridColor) : null
@@ -115,7 +147,7 @@ export default function BackgroundLayer({ templateId, backgroundImage, width, he
           fillPatternRepeat="repeat"
         />
       )}
-      {image && <KonvaImage image={image} width={width} height={height} />}
+      {image && status === 'loaded' && <KonvaImage image={image} x={0} y={0} width={width} height={height} listening={false} />}
     </Layer>
   );
 }
