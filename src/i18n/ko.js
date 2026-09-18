@@ -498,7 +498,6 @@ export default {
     copied: '복사됨',
     videoTitle: '{title} 동영상',
     wildEncounters: '🗺️ 야생 조우',
-<<<<<<< HEAD
     writeReview: '리뷰 쓰기',
     reviewsTitle: '여행자 리뷰',
     noReviews: '아직 리뷰가 없습니다. 첫 리뷰를 남겨보세요.',
@@ -520,9 +519,7 @@ export default {
     mediaVideo: '비디오 투어',
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} 비디오 투어',
-=======
     reportLocation: '신고',
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
   },
   profile: {
     lockedTitle: '트레이너 프로필 잠김',

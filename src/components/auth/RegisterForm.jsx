@@ -122,7 +122,7 @@ export default function RegisterForm() {
         }
         login(); // Context login function sets isLoggedIn and moves to home
       }
-    } catch (err) {
+    } catch {
       setErrorMsg(t('auth.registerFailed'));
     } finally {
       setLoading(false);

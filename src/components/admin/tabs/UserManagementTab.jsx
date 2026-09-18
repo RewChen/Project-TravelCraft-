@@ -24,10 +24,6 @@ export default function UserManagementTab() {
   const [isMapsModalOpen, setIsMapsModalOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
 
-  useEffect(() => {
-    fetchTrainers();
-  }, []);
-
   const fetchTrainers = async () => {
     setLoading(true);
     try {
@@ -57,6 +53,11 @@ export default function UserManagementTab() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch-on-mount from Supabase
+    fetchTrainers();
+  }, []);
 
   const banTrainer = async (id) => {
     try {

@@ -5,13 +5,9 @@ import TravelerLogs from '../components/details/TravelerLogs';
 import LocationReviews from '../components/reviews/LocationReviews';
 import LocationStats from '../components/details/LocationStats';
 import WildEncounters from '../components/details/WildEncounters';
-<<<<<<< HEAD
 import Reveal from '../components/motion/Reveal';
-import { ArrowLeft } from 'lucide-react';
-=======
 import ReportLocationModal from '../components/report/ReportLocationModal';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
 import { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 

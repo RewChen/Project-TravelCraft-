@@ -498,7 +498,6 @@ export default {
     copied: '已复制',
     videoTitle: '{title} 视频',
     wildEncounters: '🗺️ 野外遭遇',
-<<<<<<< HEAD
     writeReview: '写评价',
     reviewsTitle: '旅行者评价',
     noReviews: '还没有评价，来写第一条吧。',
@@ -520,9 +519,7 @@ export default {
     mediaVideo: '视频导览',
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} 视频导览',
-=======
     reportLocation: '举报',
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
   },
   profile: {
     lockedTitle: '旅行者资料已锁定',

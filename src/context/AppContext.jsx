@@ -1961,13 +1961,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   };
 
   const deleteCommunityMap = (mapId, reason = '') => {
-<<<<<<< HEAD
     const target = (communityMaps || []).find((map) => map.id === mapId);
     // กันไว้ชั้นนึง: ไม่ใช่ของตัวเองลบไม่ได้ (admin ใช้ adminDeleteCommunityMap แทน)
     if (!target || !isOwnMap(target)) return false;
-=======
     sessionMapViewCache.delete(mapId);
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
     setCommunityMaps((previous) => previous.filter((map) => !(map.id === mapId && isOwnMap(map))));
     deleteMapFromDb(mapId);
     deleteMapAssets(mapId);
@@ -2254,64 +2251,6 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       console.warn(e);
     }
     showAdminToast('🔒 Command Center Session Terminated.', 'info');
-  };
-
-const loginAsAdmin = (customAdmin) => {
-    setIsLoggedIn(true);
-    setIsAdminLoggedIn(true);
-    const profile = {
-      id: customAdmin?.id || 'admin-local',
-      name: customAdmin?.name || 'Admin_01',
-      email: customAdmin?.email || 'admin@travelcraft.com',
-      avatar: customAdmin?.avatar || '🛡️',
-      role: 'Admin',
-      coins: 9999,
-      level: 99,
-      badges: ['Master Admin', 'System Lord'],
-      visitedCount: 99
-    };
-    setUserProfile(profile);
-    setAdminUser({
-      name: profile.name,
-      email: profile.email,
-      role: 'SUPERUSER',
-      badge: 'A1',
-      clearanceLevel: 5
-    });
-    try {
-      localStorage.setItem('project_travelcraft_isAdmin', 'true');
-      sessionStorage.setItem('project_travelcraft_isAdmin', 'true');
-      localStorage.setItem('project_travelcraft_session', JSON.stringify({ type: 'admin', profile, adminUser: { name: profile.name, email: profile.email, role: 'SUPERUSER', badge: 'A1', clearanceLevel: 5 } }));
-    } catch (e) {
-      console.warn(e);
-    }
-    showAdminToast('🛡️ Welcome, Admin_01! Command Center unlocked.', 'success');
-    setCurrentPage('home');
-  };
-
-  const loginAsTrainer = (customTrainer) => {
-    setIsLoggedIn(true);
-    setIsAdminLoggedIn(false);
-    const profile = {
-      id: customTrainer?.id || 'trainer-local',
-      name: customTrainer?.name || 'Ash K.',
-      email: customTrainer?.email || '',
-      avatar: customTrainer?.avatar || '🧢',
-      role: customTrainer?.role || 'Cartographer',
-      coins: 1245,
-      level: 1,
-      badges: ['Pioneer'],
-      visitedCount: 4
-    };
-    setUserProfile(profile);
-    try {
-      localStorage.removeItem('project_travelcraft_isAdmin');
-      sessionStorage.removeItem('project_travelcraft_isAdmin');
-      localStorage.setItem('project_travelcraft_session', JSON.stringify({ type: 'trainer', profile }));
-    } catch (e) {
-      console.warn(e);
-    }
-    setCurrentPage('home');
   };
 
   const signInWithOAuth = async (provider) => {

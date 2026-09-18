@@ -499,7 +499,6 @@ export default {
     copied: 'コピー済み',
     videoTitle: '{title} のビデオ',
     wildEncounters: '🗺️ 野生の出会い',
-<<<<<<< HEAD
     writeReview: 'レビューを書く',
     reviewsTitle: '旅行者のレビュー',
     noReviews: 'まだレビューがありません。この場所の最初のレビューを書こう。',
@@ -521,9 +520,7 @@ export default {
     mediaVideo: 'ビデオツアー',
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} ビデオツアー',
-=======
     reportLocation: '通報',
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
   },
   profile: {
     lockedTitle: 'トレーナープロフィールはロック中',

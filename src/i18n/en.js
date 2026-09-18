@@ -520,7 +520,6 @@ export default {
     copied: 'Copied',
     videoTitle: '{title} video',
     wildEncounters: '🗺️ Wild Encounters',
-<<<<<<< HEAD
     writeReview: 'Write a review',
     reviewsTitle: 'Traveler reviews',
     noReviews: 'No reviews yet. Be the first to review this place.',
@@ -542,9 +541,7 @@ export default {
     mediaVideo: 'Video tour',
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} video tour',
-=======
     reportLocation: 'Report',
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
   },
   profile: {
     lockedTitle: 'Trainer Profile Locked',

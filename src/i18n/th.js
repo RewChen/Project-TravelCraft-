@@ -520,7 +520,6 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     copied: 'คัดลอกแล้ว',
     videoTitle: 'วิดีโอ {title}',
     wildEncounters: '🗺️ การพบเจอในป่า',
-<<<<<<< HEAD
     writeReview: 'เขียนรีวิว',
     reviewsTitle: 'รีวิวจากนักเดินทาง',
     noReviews: 'ยังไม่มีรีวิว เป็นคนแรกที่รีวิวสถานที่นี้',
@@ -542,9 +541,7 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     mediaVideo: 'วิดีโอทัวร์',
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: 'วิดีโอทัวร์ {title}',
-=======
     reportLocation: 'รายงาน',
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
   },
   profile: {
     lockedTitle: 'โปรไฟล์นักเดินทางถูกล็อก',

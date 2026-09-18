@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { Search, Eye, Trash2, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
-<<<<<<< HEAD
 import Reveal from '../components/motion/Reveal';
-=======
 import { PRESET_TAG_META as presetTagMeta } from '../lib/tags';
->>>>>>> 04f8f4a53df3d5d93075da036478471868f67703
 
 // Older maps may carry placeholder region values (never display those).
 const placeholderRegions = new Set([
