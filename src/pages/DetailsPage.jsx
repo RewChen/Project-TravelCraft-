@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import LocationHero from '../components/details/LocationHero';
 import LocationLore from '../components/details/LocationLore';
 import TravelerLogs from '../components/details/TravelerLogs';
 import LocationStats from '../components/details/LocationStats';
 import WildEncounters from '../components/details/WildEncounters';
-import { ArrowLeft } from 'lucide-react';
+import ReportLocationModal from '../components/report/ReportLocationModal';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function DetailsPage() {
-  const { navigateTo, t, selectedLocation, trackLocationView } = useApp();
+  const { navigateTo, t, selectedLocation, trackLocationView, isLoggedIn, setAuthMode } = useApp();
+  const [showReport, setShowReport] = useState(false);
 
   useEffect(() => {
     trackLocationView(selectedLocation);
@@ -39,6 +42,29 @@ export default function DetailsPage() {
           <WildEncounters />
         </div>
       </div>
+
+      {/* Report Location — floating button, bottom-right */}
+      <button
+        onClick={() => {
+          if (!isLoggedIn) {
+            setAuthMode('login');
+            navigateTo('auth');
+            return;
+          }
+          setShowReport(true);
+        }}
+        className="fixed bottom-6 right-6 z-50 bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+      >
+        <AlertTriangle className="w-4 h-4" /> {t('details.reportLocation')}
+      </button>
+
+      <ReportLocationModal
+        key={showReport ? 'open' : 'closed'}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        locationName={selectedLocation?.title}
+        mapId={selectedLocation?.id || null}
+      />
     </div>
   );
 }

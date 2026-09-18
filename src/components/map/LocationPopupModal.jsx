@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import ReportLocationModal from '../report/ReportLocationModal';
 
 export default function LocationPopupModal({ pin, onClose }) {
-  const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin } = useApp();
+  const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin, isLoggedIn, setAuthMode } = useApp();
   const [showReport, setShowReport] = useState(false);
 
   if (!pin) return null;
@@ -111,7 +111,14 @@ export default function LocationPopupModal({ pin, onClose }) {
               </button>
             ) : null}
             <button
-              onClick={() => setShowReport(true)}
+              onClick={() => {
+                if (!isLoggedIn) {
+                  setAuthMode('login');
+                  navigateTo('auth');
+                  return;
+                }
+                setShowReport(true);
+              }}
               className="text-[10px] font-black uppercase text-amber-700 hover:text-amber-900 underline underline-offset-2 flex items-center gap-1 cursor-pointer"
             >
               <AlertTriangle className="w-3 h-3" /> {t('map.reportLocationTitle')}
@@ -120,6 +127,7 @@ export default function LocationPopupModal({ pin, onClose }) {
         </div>
 
         <ReportLocationModal
+          key={showReport ? 'open' : 'closed'}
           isOpen={showReport}
           onClose={() => setShowReport(false)}
           locationName={pin.title}

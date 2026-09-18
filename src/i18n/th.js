@@ -520,6 +520,7 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     copied: 'คัดลอกแล้ว',
     videoTitle: 'วิดีโอ {title}',
     wildEncounters: '🗺️ การพบเจอในป่า',
+    reportLocation: 'รายงาน',
   },
   profile: {
     lockedTitle: 'โปรไฟล์นักเดินทางถูกล็อก',
@@ -707,6 +708,7 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     publishLocalOnly: 'แผนที่ถูกบันทึกเฉพาะในเครื่อง — เข้าสู่ระบบด้วยบัญชีจริงเพื่อแชร์ให้คนอื่นเห็นในชุมชน',
     reportSuccess: 'ส่งรายงานแล้ว ขอบคุณที่ช่วยดูแลชุมชน',
     reportRequiredReason: 'กรุณาเลือกเหตุผลก่อนส่งรายงาน',
+    reportDetailsRequired: 'กรุณากรอกรายละเอียดเพิ่มเติมสำหรับเหตุผลที่เลือก',
     reportAlreadySubmitted: 'คุณรายงานสถานที่นี้ไปแล้ว',
     reportLoginRequired: 'กรุณาเข้าสู่ระบบก่อนส่งรายงาน',
   },

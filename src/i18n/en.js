@@ -520,6 +520,7 @@ export default {
     copied: 'Copied',
     videoTitle: '{title} video',
     wildEncounters: '🗺️ Wild Encounters',
+    reportLocation: 'Report',
   },
   profile: {
     lockedTitle: 'Trainer Profile Locked',
@@ -708,6 +709,7 @@ export default {
     publishLocalOnly: 'Map saved locally only - log in with a real account to share it with the community.',
     reportSuccess: 'Report submitted. Thank you for helping keep the community safe.',
     reportRequiredReason: 'Please select a reason to report.',
+    reportDetailsRequired: 'Please add some details for the selected reason.',
     reportAlreadySubmitted: 'You have already reported this location.',
     reportLoginRequired: 'Please log in to report a location.',
   },
