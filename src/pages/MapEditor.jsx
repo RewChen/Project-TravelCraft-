@@ -2387,11 +2387,16 @@ if (updates.privacy === 'private') {
               </div>
 
               {/* MARK AS LOCATION TOGGLE */}
-              <div>
+              <div className="space-y-2">
                 {selectedData.isLocation ? (
-                  <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); setLocationModalOpen(false); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
-                    <X className="w-3.5 h-3.5" /> {t('editor.unmarkLocation')}
-                  </button>
+                  <>
+                    <button type="button" onClick={() => setLocationModalOpen(true)} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-amber-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none">
+                      <Pencil className="w-3.5 h-3.5" /> {t('editor.editLocation')}
+                    </button>
+                    <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); setLocationModalOpen(false); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
+                      <X className="w-3.5 h-3.5" /> {t('editor.unmarkLocation')}
+                    </button>
+                  </>
                 ) : (
                   <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: true } : el)); setLocationModalOpen(true); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-emerald-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-emerald-500 active:translate-y-0.5 active:shadow-none">
                     {t('editor.markAsLocation')}
@@ -2702,7 +2707,7 @@ if (updates.privacy === 'private') {
                     <span className="font-black text-[10px] truncate">{loc.locationDetails?.name || getElementLabel(loc)}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedElement(loc.id); }} className="p-1 hover:bg-gray-100 rounded border border-transparent hover:border-black"><Pencil className="w-3 h-3 text-blue-600" /></button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedElement(loc.id); setLocationModalOpen(true); }} title={t('editor.editLocation')} className="p-1 hover:bg-gray-100 rounded border border-transparent hover:border-black"><Pencil className="w-3 h-3 text-blue-600" /></button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); pushHistory(); setElements(prev => prev.map(el => el.id === loc.id ? { ...el, isLocation: false, locationDetails: undefined } : el)); if (selectedElement === loc.id) setSelectedElement(null); }} className="p-1 hover:bg-red-50 rounded border border-transparent hover:border-black" title={t('editor.unmarkLocationTitle')}><X className="w-3 h-3 text-red-600" /></button>
                   </div>
                 </div>
