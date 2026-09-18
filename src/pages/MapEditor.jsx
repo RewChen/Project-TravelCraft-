@@ -889,6 +889,20 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
     const publishedPins = derivePinsFromElements(elements, elementPositions, (el) => (el.labelKey ? t(el.labelKey) : el.label));
 
+    // ฝังรูปพื้นหลังจริง (รูป template / base map / อัปโหลดเอง) ลง previewBackground
+    // เดิมใช้ activeTemplate.canvas ตรง ๆ ซึ่งของ template รูปภาพเป็น 'none'
+    // ทำให้การ์ดหน้า Home/Community เห็นแค่สีพื้น ไม่เห็นรูป
+    const canvasBase = activeTemplate.canvas || {};
+    const previewBackground = (typeof backgroundImage === 'string' && backgroundImage)
+      ? {
+          ...canvasBase,
+          backgroundImage: `url("${backgroundImage}")`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }
+      : canvasBase;
+
     const mapData = {
 id: mapId,
       title: updates.title.trim() || t('editor.untitledMap'),
@@ -899,7 +913,7 @@ id: mapId,
       }),
       imageUrl: updates.imageUrl || editorSetup?.imageUrl || null,
       videoUrl: updates.videoUrl,
-      previewBackground: activeTemplate.canvas,
+      previewBackground,
       bgThemeUrl: typeof backgroundImage === 'string' && backgroundImage ? backgroundImage : null,
       isEditorMap: true,
       hours: editorSetup?.hours || '24/7',
@@ -1673,7 +1687,9 @@ if (updates.privacy === 'private') {
                     <div key={template.id} className={`aspect-square w-[calc(50%-0.375rem)] border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden relative ${selectedTemplate === template.id ? 'ring-4 ring-[#4895ef] ring-offset-2' : ''}`}>
                       <button type="button" onClick={() => selectTemplate(template.id)} aria-pressed={selectedTemplate === template.id} title={t(template.labelKey)} className="absolute inset-0 cursor-pointer hover:scale-105 transition-transform flex flex-col items-center justify-end p-2">
                         <div className="absolute inset-0" style={{ background: template.preview }}></div>
-                        <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
+                        {!template.image && (
+                          <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
+                        )}
                         <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
                       </button>
                       {selectedTemplate === template.id && <span className="absolute top-1 right-1 z-10 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center pointer-events-none"><Check className="w-3 h-3 stroke-[4]" /></span>}

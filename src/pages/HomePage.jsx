@@ -3,6 +3,7 @@ import { Play, Search, Footprints, ArrowUp, Eye, MapPin, ArrowRight, Users, Plus
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
 import Reveal from '../components/motion/Reveal';
+import { resolveCardBackground } from '../lib/imageUtils';
 
 export default function HomePage() {
   const { navigateTo, communityMaps, trackMapOnWorldMap, userProfile, t } = useApp();
@@ -120,8 +121,8 @@ export default function HomePage() {
             <>
               {heroMap.imageUrl ? (
                 <img src={heroMap.imageUrl} alt={heroMap.title} className="absolute inset-0 w-full h-full object-cover" />
-              ) : heroMap.previewBackground ? (
-                <div role="img" aria-label={heroMap.title} className="absolute inset-0 w-full h-full" style={heroMap.previewBackground} />
+              ) : resolveCardBackground(heroMap) ? (
+                <div role="img" aria-label={heroMap.title} className="absolute inset-0 w-full h-full" style={resolveCardBackground(heroMap)} />
               ) : null}
 
               {overlayPins.map((pin, idx) => (
@@ -282,8 +283,8 @@ export default function HomePage() {
                 >
                   {mapItem.imageUrl ? (
                     <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  ) : mapItem.previewBackground ? (
-                    <div role="img" aria-label={mapItem.title} className="w-full h-full group-hover:scale-105 transition-transform duration-300" style={mapItem.previewBackground} />
+                  ) : resolveCardBackground(mapItem) ? (
+                    <div role="img" aria-label={mapItem.title} className="w-full h-full group-hover:scale-105 transition-transform duration-300" style={resolveCardBackground(mapItem)} />
                   ) : (
                     <div className="w-full h-full bg-sky-200 flex items-center justify-center text-4xl">🗺️</div>
                   )}

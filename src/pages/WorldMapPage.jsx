@@ -98,7 +98,7 @@ export default function WorldMapPage() {
           ) : mapCanvasStyle ? (
             <div
               className="absolute inset-0 z-0"
-              style={{ backgroundColor: mapCanvasStyle.backgroundColor, backgroundImage: mapCanvasStyle.backgroundImage }}
+              style={mapCanvasStyle}
             />
           ) : (
             <>

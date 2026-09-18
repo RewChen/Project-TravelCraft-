@@ -1695,6 +1695,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
           backgroundColor: preview.backgroundColor || '#ffffff',
           backgroundImage: preview.backgroundImage === 'none' ? undefined : preview.backgroundImage
         };
+        // ส่ง longhand ของรูปต่อด้วย ไม่งั้นรูป template จะ tile จากมุมซ้ายบน
+        for (const key of ['backgroundSize', 'backgroundPosition', 'backgroundRepeat']) {
+          if (typeof preview[key] === 'string' && preview[key]) canvasStyle[key] = preview[key];
+        }
         setMapCanvasStyle(canvasStyle);
       } else {
         setMapCanvasStyle(null);

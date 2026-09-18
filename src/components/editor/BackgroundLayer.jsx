@@ -95,7 +95,7 @@ const templateLayouts = {
 };
 
 export default function BackgroundLayer({ templateId, backgroundImage, width, height }) {
-  const [image, status] = useImage(backgroundImage || '', 'anonymous');
+  const [image, status] = useImage(backgroundImage || undefined, 'anonymous');
   const layout = templateLayouts[templateId] || templateLayouts.blank;
 
   const gridTile = useMemo(() => (

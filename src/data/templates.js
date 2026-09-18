@@ -6,7 +6,10 @@
 //  3. ไม่ต้องแก้ไฟล์อื่น — MapEditor.jsx จะดึงจากไฟล์นี้อัตโนมัติ
 // ============================================================
 
-export const TEMPLATE_IMAGE_BASE = '/templates';
+// ใช้ BASE_URL ของ Vite แทน path ตายตัว '/templates' เพื่อให้รูปยังโหลดได้
+// แม้ deploy ใต้ subpath (เช่น GitHub Pages) — dev (BASE_URL='/') ได้ '/templates' เหมือนเดิม
+const BASE = import.meta.env.BASE_URL || '/';
+export const TEMPLATE_IMAGE_BASE = `${BASE}templates`;
 
 // รวม path รูปทั้งหมดไว้ที่เดียว เอาไว้ใส่รูปใน template
 export const templateImages = {
@@ -68,37 +71,67 @@ export const mapTemplates = [
   {
     id: 'gametion-village-lake',
     labelKey: 'editor.templateGametionVillageLake',
-    preview: `url("${templateImages.map1}") center / cover, #e2f0d9`,
+    preview: `url("${templateImages.map1}") center / cover no-repeat, #e2f0d9`,
     image: templateImages.map1,
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+    canvas: {
+      backgroundColor: '#e2f0d9',
+      backgroundImage: `url("${templateImages.map1}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
   },
   {
     id: 'gametion-region-fields',
     labelKey: 'editor.templateGametionRegionFields',
-    preview: `url("${templateImages.map2}") center / cover, #e2f0d9`,
+    preview: `url("${templateImages.map2}") center / cover no-repeat, #e2f0d9`,
     image: templateImages.map2,
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+    canvas: {
+      backgroundColor: '#e2f0d9',
+      backgroundImage: `url("${templateImages.map2}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
   },
   {
     id: 'gametion-lighthouse-cave',
     labelKey: 'editor.templateGametionLighthouseCave',
-    preview: `url("${templateImages.map3}") center / cover, #e2f0d9`,
+    preview: `url("${templateImages.map3}") center / cover no-repeat, #e2f0d9`,
     image: templateImages.map3,
-    canvas: { backgroundColor: '#e2f0d9', backgroundImage: 'none' }
+    canvas: {
+      backgroundColor: '#e2f0d9',
+      backgroundImage: `url("${templateImages.map3}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
   },
   {
     id: 'gametion-volcanic-cavern',
     labelKey: 'editor.templateGametionVolcanicCavern',
-    preview: `url("${templateImages.map4}") center / cover, #201818`,
+    preview: `url("${templateImages.map4}") center / cover no-repeat, #201818`,
     image: templateImages.map4,
-    canvas: { backgroundColor: '#201818', backgroundImage: 'none' }
+    canvas: {
+      backgroundColor: '#201818',
+      backgroundImage: `url("${templateImages.map4}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
   },
   {
     id: 'gametion-world-region',
     labelKey: 'editor.templateGametionWorldRegion',
-    preview: `url("${templateImages.map5}") center / cover, #1377b9`,
+    preview: `url("${templateImages.map5}") center / cover no-repeat, #1377b9`,
     image: templateImages.map5,
-    canvas: { backgroundColor: '#1377b9', backgroundImage: 'none' }
+    canvas: {
+      backgroundColor: '#1377b9',
+      backgroundImage: `url("${templateImages.map5}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
   }
 ];
 

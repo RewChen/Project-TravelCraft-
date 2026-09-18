@@ -3,6 +3,7 @@ import { Search, Eye, Trash2, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
 import Reveal from '../components/motion/Reveal';
+import { resolveCardBackground } from '../lib/imageUtils';
 import { PRESET_TAG_META as presetTagMeta } from '../lib/tags';
 
 // Older maps may carry placeholder region values (never display those).
@@ -179,12 +180,12 @@ export default function CommunityPage() {
                   decoding="async"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
-              ) : mapItem.previewBackground ? (
+              ) : resolveCardBackground(mapItem) ? (
                 <div
                   role="img"
                   aria-label={t('community.mapPreviewAlt', { title: mapItem.title })}
                   className="w-full h-full group-hover:scale-105 transition-transform duration-300"
-                  style={mapItem.previewBackground}
+                  style={resolveCardBackground(mapItem)}
                 />
               ) : (
                 <div className="w-full h-full bg-sky-200 flex items-center justify-center text-4xl">🗺️</div>

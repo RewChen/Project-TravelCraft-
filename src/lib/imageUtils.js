@@ -83,6 +83,25 @@ export const coverFallbackFor = (title) => {
   return 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=1400&q=85';
 };
 
+// สไตล์พื้นหลังการ์ดแผนที่: ใช้ previewBackground ถ้ามีลาย (gradient/รูป)
+// ถ้าเป็นสีพื้นล้วนแต่มีรูปพื้นหลังจริง (bgThemeUrl/editor background)
+// ให้ใช้รูปแทน — ช่วยแมพที่ publish ก่อน canvas จะฝัง url รูป template
+export const resolveCardBackground = (mapItem) => {
+  const preview = mapItem?.previewBackground;
+  if (preview?.backgroundImage && preview.backgroundImage !== 'none') return preview;
+  const bgSrc = mapItem?.bgThemeUrl || mapItem?.editorState?.backgroundImage;
+  if (isImageSrc(bgSrc)) {
+    return {
+      backgroundColor: preview?.backgroundColor || '#e2f0d9',
+      backgroundImage: `url("${bgSrc}")`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    };
+  }
+  return preview || undefined;
+};
+
 // รูปปกที่ hero แสดงจริง: imageUrl ก่อน แล้วรูป template (bgThemeUrl / editor background)
 export const resolveCoverImage = (location) => {
   const candidates = [
