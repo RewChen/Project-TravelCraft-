@@ -176,7 +176,6 @@ export default function WorldMapPage() {
           <ImageIcon className="w-4 h-4 text-red-600" />
           <span>{mapBackgroundImage ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>
-
       </div>
 
       {/* Whole Map Image Background Upload Modal */}

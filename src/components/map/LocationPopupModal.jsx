@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import ReportLocationModal from '../report/ReportLocationModal';
 
 export default function LocationPopupModal({ pin, onClose }) {
-  const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin, isLoggedIn, setAuthMode } = useApp();
+  const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin } = useApp();
   const [showReport, setShowReport] = useState(false);
 
   if (!pin) return null;
@@ -131,16 +131,6 @@ export default function LocationPopupModal({ pin, onClose }) {
             </button>
           </div>
         </div>
-
-        {/* Guest demo hint: login to keep favorites permanently */}
-        {!isLoggedIn && (
-          <button
-            onClick={() => { onClose(); setAuthMode('register'); navigateTo('auth'); }}
-            className="mt-3 w-full bg-amber-100 hover:bg-amber-200 border-2 border-black rounded-lg px-2 py-1.5 text-[10px] font-black uppercase text-amber-900 cursor-pointer"
-          >
-            {t('worldMap.demoPopupCta')}
-          </button>
-        )}
 
         <ReportLocationModal
           isOpen={showReport}
