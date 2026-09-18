@@ -24,6 +24,10 @@ export default function ReportLocationModal({ isOpen, onClose, locationName, map
       setError(t('map.reportRequiredReason'));
       return;
     }
+    if (reason === 'other' && !details.trim()) {
+      setError(t('map.reportDetailsRequired'));
+      return;
+    }
     if (!userProfile) {
       setError(t('map.reportLoginRequired'));
       return;

@@ -1,13 +1,6 @@
-import { BookOpen, Calendar, MapPin, Utensils, Plane, Trees, Gamepad2, Landmark } from 'lucide-react';
+import { BookOpen, Calendar, MapPin } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-
-const presetTagMeta = {
-  restaurant: { labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
-  travel: { labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
-  park: { labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
-  game: { labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
-  attraction: { labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
-};
+import { PRESET_TAG_META as presetTagMeta } from '../../lib/tags';
 
 export default function LocationLore() {
   const { selectedLocation, t } = useApp();

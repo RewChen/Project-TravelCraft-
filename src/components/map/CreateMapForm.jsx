@@ -1,19 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   X, ImagePlus, MapPin, Clock3, CircleDollarSign, Sun, Train,
-  Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Check, ChevronDown
+  Tag, Check, ChevronDown
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { uploadMapCover } from '../../lib/supabaseUploads';
 import { compressForUpload } from '../../lib/imageUtils';
-
-const presetTags = [
-  { value: 'restaurant', labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
-  { value: 'travel', labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
-  { value: 'park', labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
-  { value: 'game', labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
-  { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
-];
+import { PRESET_TAGS as presetTags } from '../../lib/tags';
 
 const privacyOptions = [
   { value: 'public', labelKey: 'myMaps.public', descKey: 'myMaps.publicDesc' },

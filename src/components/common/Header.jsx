@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps, hasEverOpenedMap } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -175,13 +175,15 @@ className={`${currentPage === 'community' ? 'text-red-600 underline underline-of
           {t('nav.community')}
         </button>
 
-        {/* World Map — always visible so visitors can open the demo/preview map */}
+        {/* World Map — hidden until the user previews a map at least once */}
+        {hasEverOpenedMap && (
         <button 
           onClick={() => navigateTo('map')}
 className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
         >
           {t('nav.worldMap')}
         </button>
+        )}
 
         <button 
           onClick={() => navigateTo('mymaps')}
