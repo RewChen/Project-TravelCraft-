@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Search, Trees, Eye, Trash2, Utensils, Plane, Gamepad2, Landmark, MapPin } from 'lucide-react';
+import { Search, Eye, Trash2, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
+import { PRESET_TAG_META as presetTagMeta } from '../lib/tags';
 
 // Older maps may carry placeholder region values (never display those).
 const placeholderRegions = new Set([
@@ -11,14 +12,6 @@ const placeholderRegions = new Set([
   'Global Realm',
   'Custom Realms'
 ]);
-
-const presetTagMeta = {
-  restaurant: { labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
-  travel: { labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
-  park: { labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
-  game: { labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
-  attraction: { labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
-};
 
 export default function CommunityPage() {
   const { communityMaps, trackMapOnWorldMap, navigateTo, deleteCommunityMap, userProfile, isAdminLoggedIn, showAdminToast, t } = useApp();

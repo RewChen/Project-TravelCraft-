@@ -630,6 +630,7 @@ export default {
     tagRestaurant: 'Restaurant',
     tagTravel: 'Travel',
     tagPark: 'Park',
+    tagNationalPark: 'National Park',
     tagGame: 'Game',
     tagAttraction: 'Attraction',
     customTagPh: 'Type a new tag and press Enter...',

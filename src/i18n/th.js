@@ -629,6 +629,7 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     tagRestaurant: 'ร้านอาหาร',
     tagTravel: 'ท่องเที่ยว',
     tagPark: 'อุทยาน',
+    tagNationalPark: 'อุทยานแห่งชาติ',
     tagGame: 'เกม',
     tagAttraction: 'สถานที่ท่องเที่ยว',
     customTagPh: 'พิมพ์แท็กใหม่แล้วกด Enter...',

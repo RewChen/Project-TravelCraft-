@@ -607,6 +607,7 @@ export default {
     tagRestaurant: '레스토랑',
     tagTravel: '여행',
     tagPark: '공원',
+    tagNationalPark: '국립공원',
     tagGame: '게임',
     tagAttraction: '관광지',
     customTagPh: '새 태그를 입력하고 Enter...',

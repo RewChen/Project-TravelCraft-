@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import {
-  Check, X, Video, Camera, Tag, Utensils, Plane, Trees, Gamepad2, Landmark,
+  Check, X, Video, Camera, Tag,
   Image as ImageIcon, Link
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { PRESET_TAGS as presetTags } from '../../lib/tags';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -29,14 +30,6 @@ const privacyOptions = [
   { value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' },
   { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' },
   { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }
-];
-
-const presetTags = [
-  { value: 'restaurant', labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
-  { value: 'travel', labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
-  { value: 'park', labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
-  { value: 'game', labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
-  { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
 ];
 
 export default function PublishMapModal({ initial = {}, onClose, onPublish, onValuesChange }) {

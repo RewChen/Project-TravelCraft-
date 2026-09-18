@@ -608,6 +608,7 @@ export default {
     tagRestaurant: 'レストラン',
     tagTravel: '旅行',
     tagPark: '公園',
+    tagNationalPark: '国立公園',
     tagGame: 'ゲーム',
     tagAttraction: '観光地',
     customTagPh: '新しいタグを入力してEnter...',

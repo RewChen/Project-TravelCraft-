@@ -607,6 +607,7 @@ export default {
     tagRestaurant: '餐厅',
     tagTravel: '旅行',
     tagPark: '公园',
+    tagNationalPark: '国家公园',
     tagGame: '游戏',
     tagAttraction: '景点',
     customTagPh: '输入新标签并按回车...',
