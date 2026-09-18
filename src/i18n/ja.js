@@ -38,6 +38,7 @@ export default {
     videoSelected: '動画ファイルを選択しました',
     videoTooLarge: '動画ファイルは25MB以下にしてください',
     videoHelper: 'どちらか一方: YouTubeリンクまたは25MB以下の動画ファイル',
+    removeVideo: 'ビデオを削除',
     onlyVideo: '動画ファイルのみ選択してください',
     ytInvalid: '有効なYouTubeリンクを入力するか、動画ファイルをアップロードしてください',
     selfiePhoto: '自撮り写真（トラベラーログ）',

@@ -38,6 +38,7 @@ export default {
     videoSelected: 'Video file selected',
     videoTooLarge: 'Video files must be no larger than 25 MB',
     videoHelper: 'Choose either: a YouTube link or a video file no larger than 25 MB',
+    removeVideo: 'Remove video',
     onlyVideo: 'Please choose a video file only',
     ytInvalid: 'Please enter a valid YouTube link or upload a video file',
     selfiePhoto: 'Selfie Photos (Travel Log)',

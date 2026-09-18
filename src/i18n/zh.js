@@ -38,6 +38,7 @@ export default {
     videoSelected: '已选择视频文件',
     videoTooLarge: '视频文件不能超过 25 MB',
     videoHelper: '二选一：YouTube 链接或不超过 25 MB 的视频文件',
+    removeVideo: '移除视频',
     onlyVideo: '请仅选择视频文件',
     ytInvalid: '请输入有效的 YouTube 链接或上传视频文件',
     selfiePhoto: '自拍照片（旅行日志）',

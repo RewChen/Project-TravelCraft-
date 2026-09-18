@@ -385,16 +385,23 @@ const rarityColorForTier = (tier) => {
 const stripMediaFromMap = (item) => {
   if (!item || typeof item !== 'object') return item;
   const clone = { ...item };
+  let truncated = false;
   for (const key of ['imageUrl', 'bgThemeUrl', 'previewBackground', 'selfieUrl', 'videoUrl']) {
-    if (typeof clone[key] === 'string' && clone[key].startsWith('data:')) clone[key] = null;
+    if (typeof clone[key] === 'string' && clone[key].startsWith('data:')) { clone[key] = null; truncated = true; }
   }
   if (Array.isArray(clone.selfieUrls)) {
-    clone.selfieUrls = clone.selfieUrls.map((u) => (typeof u === 'string' && u.startsWith('data:') ? null : u));
+    clone.selfieUrls = clone.selfieUrls.map((u) => {
+      if (typeof u === 'string' && u.startsWith('data:')) { truncated = true; return null; }
+      return u;
+    });
   }
   if (clone.details && typeof clone.details === 'object') {
     clone.details = stripMediaFromMap(clone.details);
   }
-  delete clone.editorState;
+  if (clone.editorState) { delete clone.editorState; truncated = true; }
+  // Flag truncated snapshots so deep-link hydration knows to refetch the full
+  // row from Supabase instead of trusting the incomplete local copy.
+  if (truncated) clone._snapshotTruncated = true;
   return clone;
 };
 
@@ -1581,10 +1588,12 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   // Launch Community Map onto the World Map View
   const [mapViewLoading, setMapViewLoading] = useState(false);
 
-  // Fetch the full map row (data JSONB) when only a summary row is available, and
-  // cache the result back into communityMaps so subsequent opens are instant.
+  // Fetch the full map row (data JSONB) when only a summary row is available, or
+  // when the local snapshot was truncated (media/editorState stripped to fit
+  // localStorage), and cache the result back into communityMaps so subsequent
+  // opens are instant.
   const resolveFullMap = useCallback(async (communityItem) => {
-    if (!communityItem || !communityItem._summaryOnly) return communityItem;
+    if (!communityItem || (!communityItem._summaryOnly && !communityItem._snapshotTruncated)) return communityItem;
     try {
       const full = await fetchMapById(communityItem.id);
       if (full) {

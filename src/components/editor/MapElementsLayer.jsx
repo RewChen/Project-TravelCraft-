@@ -26,7 +26,7 @@ export default function MapElementsLayer({ items, onLocationClick }) {
               transform: `rotate(${element.rotation ?? 0}deg)`
             }}
           >
-            <div className="w-full h-full flex items-center justify-center transition-transform duration-200 hover:animate-soft-bounce" style={getElementFrameStyle(element)}>
+            <div className={`w-full h-full flex items-center justify-center transition-transform duration-200 ${element.isLocation ? 'hover:animate-soft-bounce' : ''}`} style={getElementFrameStyle(element)}>
             {element.type === 'image' ? (
               element.filter === 'polaroid' ? (
                 <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">

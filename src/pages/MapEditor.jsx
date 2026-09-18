@@ -5,38 +5,19 @@ import {
   Undo2, Redo2, Compass, LayoutGrid, Shapes, Type, Upload, 
   BringToFront, SendToBack, Trash2, Settings, ArrowLeft, Check,
   MousePointer2, Pencil, Minus, Square, Circle, Eraser, Grid3X3,
-  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Video, Camera, Image as ImageIcon, Maximize, MapPin,
+  Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Maximize, MapPin,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, ChevronLeft, ChevronRight, Wand2,
-  Utensils, Plane, Trees, Gamepad2, Landmark, Tag, Link
+  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
+import PublishMapModal from '../components/map/PublishMapModal';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
-
-const getYouTubeEmbedUrl = (value) => {
-  try {
-    const url = new URL(value.trim());
-    const hostname = url.hostname.replace('www.', '').toLowerCase();
-    let videoId = '';
-
-    if (hostname === 'youtu.be') {
-      videoId = url.pathname.slice(1);
-    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
-      if (url.pathname === '/watch') videoId = url.searchParams.get('v') || '';
-      if (url.pathname.startsWith('/shorts/')) videoId = url.pathname.split('/')[2] || '';
-      if (url.pathname.startsWith('/embed/')) videoId = url.pathname.split('/')[2] || '';
-    }
-
-    return /^[a-zA-Z0-9_-]{11}$/.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : '';
-  } catch {
-    return '';
-  }
-};
 
 const editorTabs = [
   { id: 'TEMPLATES', icon: LayoutGrid, labelKey: 'editor.templates', defaultLabel: 'เทมเพลต' },
@@ -60,6 +41,34 @@ const tabLabelKeys = {
   APPS: 'editor.apps',
   BACKGROUND: 'editor.background'
 };
+
+const locationHoursOptions = [
+  '24/7',
+  'Open 24 hours',
+  '6:00 AM - 10:00 PM',
+  '7:00 AM - 9:00 PM',
+  '8:00 AM - 6:00 PM',
+  '9:00 AM - 5:00 PM',
+  '10:00 AM - 8:00 PM',
+  '10:00 AM - 10:00 PM',
+  'Sunrise - Sunset',
+  'Weekdays only',
+  'Closed Mondays'
+];
+
+const locationBestTimeOptions = [
+  'Anytime',
+  'Every season',
+  'Morning',
+  'Afternoon',
+  'Sunset',
+  'Night'
+];
+
+const locationTravelOptions = [
+  '🚶 Walking', '🚲 Bicycle', '🛵 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
+  '🚇 Metro', '🚢 Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
+];
 
 const mapTemplates = [
   {
@@ -142,20 +151,6 @@ const mapTemplates = [
     image: '/templates/map5.jpg',
     canvas: { backgroundColor: '#1377b9', backgroundImage: 'none' }
   }
-];
-
-const privacyOptions = [
-  { value: 'public', labelKey: 'editor.public', descKey: 'editor.publicDesc' },
-  { value: 'unlisted', labelKey: 'editor.unlisted', descKey: 'editor.unlistedDesc' },
-  { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }
-];
-
-const publishPresetTags = [
-  { value: 'restaurant', labelKey: 'myMaps.tagRestaurant', icon: Utensils, emoji: '🍽️' },
-  { value: 'travel', labelKey: 'myMaps.tagTravel', icon: Plane, emoji: '✈️' },
-  { value: 'park', labelKey: 'myMaps.tagPark', icon: Trees, emoji: '🌲' },
-  { value: 'game', labelKey: 'myMaps.tagGame', icon: Gamepad2, emoji: '🎮' },
-  { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
 ];
 
 const elementOptions = [
@@ -313,19 +308,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [publishTags, setPublishTags] = useState(() => savedEditorState?.publishTags || editorSetup?.tags?.join(', ') || '');
   const [publishPrivacy, setPublishPrivacy] = useState(() => savedEditorState?.publishPrivacy || editorSetup?.privacy || 'public');
   const [publishVideoUrl, setPublishVideoUrl] = useState(() => savedEditorState?.publishVideoUrl || editorSetup?.videoUrl || '');
-  const [publishVideoError, setPublishVideoError] = useState('');
   const [publishSelfieUrls, setPublishSelfieUrls] = useState(() => {
     if (Array.isArray(savedEditorState?.publishSelfieUrls)) return savedEditorState.publishSelfieUrls;
     if (typeof savedEditorState?.publishSelfieUrl === 'string' && savedEditorState.publishSelfieUrl) return [savedEditorState.publishSelfieUrl];
     return [];
   });
-  const [publishSelfieError, setPublishSelfieError] = useState('');
   const [publishCoverImage, setPublishCoverImage] = useState(() => {
     if (typeof savedEditorState?.publishCoverImage === 'string' && savedEditorState.publishCoverImage) return savedEditorState.publishCoverImage;
     return editorSetup?.imageUrl || '';
   });
-  const [publishCoverError, setPublishCoverError] = useState('');
-  const [customTagInput, setCustomTagInput] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [editingTextId, setEditingTextId] = useState(null);
@@ -336,10 +327,10 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const [elementUploadError, setElementUploadError] = useState('');
   const fileInputRef = useRef(null);
   const elementImageInputRef = useRef(null);
-  const videoInputRef = useRef(null);
-  const selfieInputRef = useRef(null);
-  const coverInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
+  const locationCoverInputRef = useRef(null);
+  const locationVideoInputRef = useRef(null);
+  const locationSelfieInputRef = useRef(null);
   const nextElementId = useRef(0);
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
@@ -474,6 +465,98 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         };
       }
       return element;
+    }));
+  };
+
+  const patchLocationDetails = (patch) => {
+    pushHistory();
+    setElements((previous) => previous.map((element) => {
+      if (element.id === selectedElement) {
+        return {
+          ...element,
+          locationDetails: {
+            ...(element.locationDetails || {}),
+            ...patch
+          }
+        };
+      }
+      return element;
+    }));
+  };
+
+  const removeLocationMedia = (key) => {
+    pushHistory();
+    setElements((previous) => previous.map((element) => {
+      if (element.id !== selectedElement) return element;
+      const details = { ...(element.locationDetails || {}) };
+      delete details[key];
+      return { ...element, locationDetails: details };
+    }));
+  };
+
+  const handleLocationCoverUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 8 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => patchLocationDetails({ image: reader.result });
+    reader.readAsDataURL(file);
+  };
+
+  const handleLocationVideoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = '';
+    if (!file.type.startsWith('video/')) return;
+    if (file.size > 25 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => patchLocationDetails({ video: reader.result });
+    reader.readAsDataURL(file);
+  };
+
+  const addLocationSelfie = (url) => {
+    pushHistory();
+    setElements((previous) => previous.map((element) => {
+      if (element.id !== selectedElement) return element;
+      const existing = Array.isArray(element.locationDetails?.selfies) ? element.locationDetails.selfies : [];
+      return {
+        ...element,
+        locationDetails: {
+          ...(element.locationDetails || {}),
+          selfies: [...existing, url].slice(0, 9)
+        }
+      };
+    }));
+  };
+
+  const handleLocationSelfieUpload = (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    event.target.value = '';
+    const currentCount = Array.isArray(selectedData?.locationDetails?.selfies) ? selectedData.locationDetails.selfies.length : 0;
+    files.slice(0, Math.max(0, 9 - currentCount)).forEach((file) => {
+      if (!file.type.startsWith('image/')) return;
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onload = () => addLocationSelfie(reader.result);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeLocationSelfie = (idx) => {
+    pushHistory();
+    setElements((previous) => previous.map((element) => {
+      if (element.id !== selectedElement) return element;
+      const existing = Array.isArray(element.locationDetails?.selfies) ? element.locationDetails.selfies : [];
+      return {
+        ...element,
+        locationDetails: {
+          ...(element.locationDetails || {}),
+          selfies: existing.filter((_, i) => i !== idx)
+        }
+      };
     }));
   };
 
@@ -868,25 +951,17 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setSaveStatus(t('editor.statusDraftSaved'));
   };
 
-  const publishMap = async () => {
-    const videoUrl = publishVideoUrl.trim();
-    if (videoUrl && !videoUrl.startsWith('data:video/')) {
-      const youtubeUrl = getYouTubeEmbedUrl(videoUrl);
-      if (!youtubeUrl) {
-        setPublishVideoError(t('editor.ytInvalid'));
-        return;
-      }
-    }
+  const publishMap = async (updates) => {
     // Build traveler logs with all attached selfies (multi)
     let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
-    if (publishSelfieUrls.length) {
+    if (Array.isArray(updates.selfieUrls) && updates.selfieUrls.length) {
       // eslint-disable-next-line react-hooks/purity -- unique id for publish-time log entries (event handler, not render)
       const baseTime = Date.now();
-      const selfieLogs = publishSelfieUrls.map((img, idx) => ({
+      const selfieLogs = updates.selfieUrls.map((img, idx) => ({
         id: `selfie-${baseTime}-${idx}`,
         type: 'selfie',
         image: img,
-        caption: mapTitle.trim() || t('editor.untitledMap'),
+        caption: updates.title.trim() || t('editor.untitledMap'),
         author: userProfile?.name || 'Traveler',
         date: new Date().toLocaleDateString(),
       }));
@@ -897,14 +972,14 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
     const mapData = {
 id: mapId,
-      title: mapTitle.trim() || t('editor.untitledMap'),
+      title: updates.title.trim() || t('editor.untitledMap'),
       region: editorSetup?.locationCity || editorSetup?.region || '',
-      description: publishDescription.trim() || t('editor.generatingDesc', {
+      description: updates.description.trim() || t('editor.generatingDesc', {
         user: userProfile?.name || 'a TravelCraft traveler',
         name: t(activeTemplate.labelKey)
       }),
-      imageUrl: publishCoverImage || editorSetup?.imageUrl || null,
-      videoUrl: videoUrl.startsWith('data:video/') ? videoUrl : getYouTubeEmbedUrl(videoUrl),
+      imageUrl: updates.imageUrl || editorSetup?.imageUrl || null,
+      videoUrl: updates.videoUrl,
       previewBackground: activeTemplate.canvas,
       bgThemeUrl: typeof backgroundImage === 'string' && backgroundImage ? backgroundImage : null,
       isEditorMap: true,
@@ -913,16 +988,16 @@ id: mapId,
       bestTime: editorSetup?.bestTime || t('editor.anytime'),
       travel: editorSetup?.travel || t('editor.communityGateway'),
       logs: finalLogs,
-      selfieUrl: publishSelfieUrls[0] || null,
-      selfieUrls: publishSelfieUrls.length ? [...publishSelfieUrls] : null,
+      selfieUrl: updates.selfieUrl || null,
+      selfieUrls: Array.isArray(updates.selfieUrls) && updates.selfieUrls.length ? [...updates.selfieUrls] : null,
       rarity: editorSetup?.rarity || 'common',
-      tags: publishTags.split(',').map((tag) => tag.trim()).filter(Boolean),
-      privacy: publishPrivacy,
+      tags: Array.isArray(updates.tags) ? updates.tags : [],
+      privacy: updates.privacy,
       pins: publishedPins,
       editorState: editorDraftState
     };
 
-if (publishPrivacy === 'private') {
+if (updates.privacy === 'private') {
       localStorage.setItem('project_travelcraft_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
       setSaveStatus(t('editor.statusPrivateSaved'));
       setShowPublishModal(false);
@@ -931,7 +1006,7 @@ if (publishPrivacy === 'private') {
 
     publishMapToCommunity(mapData);
 
-    if (publishPrivacy === 'unlisted') {
+    if (updates.privacy === 'unlisted') {
       setShareUrl(`${window.location.origin}${window.location.pathname}#/map/${mapId}`);
       setShowPublishModal(false);
       setShowShareModal(true);
@@ -1224,111 +1299,6 @@ if (publishPrivacy === 'private') {
     setSelectedElement(null);
     setContextMenuElementId(null);
     setSaveStatus(t('editor.statusDraftSaved'));
-  };
-
-  const handleVideoUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      setPublishVideoError(t('editor.onlyVideo'));
-      event.target.value = '';
-      return;
-    }
-    if (file.size > 25 * 1024 * 1024) {
-      setPublishVideoError(t('editor.videoTooLarge'));
-      event.target.value = '';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPublishVideoUrl(reader.result);
-      setPublishVideoError('');
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-  };
-
-  const handleSelfieUpload = (event) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
-    const remainingSlots = 9 - publishSelfieUrls.length;
-    if (files.length > remainingSlots) {
-      setPublishSelfieError(t('editor.selfieTooMany', { max: 9 }));
-    }
-    const toProcess = files.slice(0, remainingSlots);
-    let hasError = false;
-    toProcess.forEach((file) => {
-      if (!file.type.startsWith('image/')) {
-        setPublishSelfieError(t('editor.onlyImage'));
-        hasError = true;
-        return;
-      }
-      if (file.size > 8 * 1024 * 1024) {
-        setPublishSelfieError(t('editor.imageTooLarge'));
-        hasError = true;
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        setPublishSelfieUrls((prev) => {
-          if (prev.length >= 9) return prev;
-          return [...prev, reader.result];
-        });
-        setPublishSelfieError('');
-      };
-      reader.readAsDataURL(file);
-    });
-    if (!hasError && toProcess.length) setPublishSelfieError('');
-    event.target.value = '';
-  };
-
-  const removeSelfieAt = (idx) => {
-    setPublishSelfieUrls((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleCoverUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setPublishCoverError(t('editor.onlyImage'));
-      event.target.value = '';
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setPublishCoverError(t('editor.imageTooLarge'));
-      event.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPublishCoverImage(reader.result);
-      setPublishCoverError('');
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
-  };
-
-  const publishTagList = () => (publishTags || '')
-    .split(',')
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-  const hasPublishTag = (tag) => publishTagList().some((existing) => existing.toLowerCase() === tag.toLowerCase());
-  const togglePublishTag = (tag) => {
-    const current = publishTagList();
-    const next = hasPublishTag(tag)
-      ? current.filter((existing) => existing.toLowerCase() !== tag.toLowerCase())
-      : [...current, tag];
-    setPublishTags(next.join(', '));
-  };
-  const addPublishCustomTag = () => {
-    const tag = customTagInput.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!tag) return;
-    if (!hasPublishTag(tag)) setPublishTags([...publishTagList(), tag].join(', '));
-    setCustomTagInput('');
-  };
-  const removePublishTag = (tag) => {
-    setPublishTags(publishTagList().filter((existing) => existing.toLowerCase() !== tag.toLowerCase()).join(', '));
   };
 
   const selectedData = elements.find((element) => element.id === selectedElement);
@@ -1646,190 +1616,30 @@ if (publishPrivacy === 'private') {
         </div>
       </div>}
 
-      {showPublishModal && <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowPublishModal(false)}>
-        <form onSubmit={(event) => { event.preventDefault(); publishMap(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-          <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
-            <h2 className="font-black uppercase tracking-wide">{t('editor.publishTitle')}</h2>
-            <button type="button" onClick={() => setShowPublishModal(false)} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
-          </div>
-          <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-            <div>
-              <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapTitle')}</label>
-              <input id="publish-title" value={mapTitle} onChange={(event) => setMapTitle(event.target.value)} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
-            </div>
-            <div>
-              <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">{t('editor.description')}</label>
-              <textarea id="publish-description" rows="3" value={publishDescription} onChange={(event) => setPublishDescription(event.target.value)} placeholder={t('editor.descriptionPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
-            </div>
-            {/* Cover Image — used as the map cover shown in the Community feed */}
-            <div>
-              <label className="block text-xs font-black uppercase mb-1.5">{t('editor.mapCover')}</label>
-              <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverUpload} className="hidden" />
-              <div className="flex gap-2 items-start">
-                <button
-                  type="button"
-                  onClick={() => coverInputRef.current?.click()}
-                  className="shrink-0 border-2 border-black rounded bg-amber-400 hover:bg-amber-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
-                >
-                  <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')}
-                </button>
-                <div className="flex-1 min-w-0">
-                  {publishCoverImage ? (
-                    <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
-                      <img src={publishCoverImage} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setPublishCoverImage('')}
-                        className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
-                        title={t('editor.removeCover')}
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.coverHelper')}</p>
-                  )}
-                  {publishCoverError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishCoverError}</p>}
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1"><Tag className="w-3.5 h-3.5 text-[#cc0000]" /> {t('myMaps.tagsTitle')}</label>
-              <p className="mb-2 text-[10px] text-gray-500 font-bold">{t('myMaps.tagsHelp')}</p>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {publishPresetTags.map(({ value, labelKey, emoji, icon: Icon }) => {
-                  const active = hasPublishTag(value);
-                  return (
-                    <button
-                      type="button"
-                      key={value}
-                      onClick={() => togglePublishTag(value)}
-                      className={`px-2.5 py-1.5 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded cursor-pointer ${active ? 'bg-amber-300' : 'bg-gray-100 hover:bg-gray-200'}`}
-                    >
-                      {active ? <Check className="w-3 h-3" /> : <span className="text-[11px]">+</span>} <Icon className="w-3 h-3" /> {emoji} {t(labelKey)}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 flex items-center gap-1 border-2 border-black bg-gray-50 p-1.5">
-                  <Tag className="w-4 h-4 text-[#cc0000] shrink-0" />
-                  <input
-                    value={customTagInput}
-                    onChange={(event) => setCustomTagInput(event.target.value)}
-                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addPublishCustomTag(); } }}
-                    placeholder={t('myMaps.customTagPh')}
-                    className="w-full text-xs font-bold bg-transparent outline-none"
-                  />
-                </div>
-                <button type="button" onClick={addPublishCustomTag} className="shrink-0 px-4 py-2 bg-[#cc0000] text-white border-2 border-black font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">{t('myMaps.addTag')}</button>
-              </div>
-              {publishTagList().filter((tag) => !publishPresetTags.some((preset) => preset.value === tag)).length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {publishTagList().filter((tag) => !publishPresetTags.some((preset) => preset.value === tag)).map((tag) => (
-                    <span key={tag} className="px-2 py-1 border-2 border-black bg-amber-100 text-[9px] font-black uppercase flex items-center gap-1">
-                      {tag}
-                      <button type="button" onClick={() => removePublishTag(tag)} className="text-red-600 font-black cursor-pointer">&times;</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor="publish-video-url" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapVideo')}</label>
-              <div className="flex gap-2">
-                <input
-                  id="publish-video-url"
-                  type="url"
-                  value={publishVideoUrl.startsWith('data:') ? '' : publishVideoUrl}
-                  onChange={(event) => { setPublishVideoUrl(event.target.value); setPublishVideoError(''); }}
-                  placeholder={t('editor.videoYtPh')}
-                  className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
-                />
-                <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-                <button type="button" onClick={() => videoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <Video className="w-4 h-4 mx-auto" />
-                  <span className="sr-only">{t('editor.uploadVideo')}</span>
-                </button>
-              </div>
-              {publishVideoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">{t('editor.videoSelected')}</p>}
-              {publishVideoError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishVideoError}</p>}
-              <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
-            </div>
-            {/* Selfie attachment for Traveler Logs (บันทึกการเดินทาง) */}
-            <div>
-              <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5" /> {t('editor.selfiePhoto')}
-              </label>
-              <div className="flex gap-2 items-start">
-                <input ref={selfieInputRef} type="file" accept="image/*" multiple onChange={handleSelfieUpload} className="hidden" />
-                <button
-                  type="button"
-                  onClick={() => selfieInputRef.current?.click()}
-                  className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
-                >
-                  <ImageIcon className="w-4 h-4" /> {t('editor.attachSelfie')} {publishSelfieUrls.length ? `(${publishSelfieUrls.length}/9)` : ''}
-                </button>
-                <div className="flex-1 min-w-0">
-                  {publishSelfieUrls.length ? (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-3 gap-2">
-                        {publishSelfieUrls.map((url, idx) => (
-                          <div key={`${url.slice(0,20)}-${idx}`} className="relative border-2 border-black rounded overflow-hidden bg-gray-50 group">
-                            <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => removeSelfieAt(idx)}
-                              className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
-                              title={t('editor.removeSelfie')}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                            <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.5">{idx + 1}/9</span>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-[10px] text-emerald-700 font-bold">{t('editor.selfieSelected')} · {publishSelfieUrls.length} {t('editor.imagesAttached')}</p>
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.selfieHelper')}</p>
-                  )}
-                  {publishSelfieError && <p className="mt-1 text-[10px] text-red-600 font-bold">{publishSelfieError}</p>}
-                </div>
-              </div>
-            </div>
-            <fieldset>
-              <legend className="block text-xs font-black uppercase mb-2">{t('editor.privacy')}</legend>
-              <div className="grid grid-cols-3 gap-2">
-                {privacyOptions.map((option) => (
-                  <label key={option.value} className={`border-2 border-black rounded p-2 cursor-pointer ${publishPrivacy === option.value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                    <input type="radio" name="privacy" value={option.value} checked={publishPrivacy === option.value} onChange={(event) => setPublishPrivacy(event.target.value)} className="sr-only" />
-                    <span className="block text-xs font-black uppercase">{t(option.labelKey)}</span>
-                    <span className="block mt-1 text-[9px] leading-tight font-bold text-gray-600">{t(option.descKey)}</span>
-                  </label>
-                ))}
-              </div>
-              {publishPrivacy === 'unlisted' && (
-                <div className="mt-2 border-2 border-amber-400 bg-amber-50 rounded p-2.5 text-[10px] font-bold text-amber-800 leading-relaxed">
-                  {t('editor.publishUnlistedNotice')}
-                </div>
-              )}
-              {publishPrivacy === 'private' && (
-                <div className="mt-2 border-2 border-red-400 bg-red-50 rounded p-2.5 text-[10px] font-bold text-red-700 leading-relaxed">
-                  {t('editor.publishPrivateNotice')}
-                </div>
-              )}
-            </fieldset>
-            <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
-              <button type="button" onClick={() => setShowPublishModal(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
-              <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5">
-                {publishPrivacy === 'unlisted' && <Link className="w-3.5 h-3.5" />}
-                {publishPrivacy === 'unlisted' ? t('editor.shareMap') : publishPrivacy === 'private' ? t('editor.saveDraft') : t('editor.publishMap')}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>}
+      {showPublishModal && (
+        <PublishMapModal
+          initial={{
+            title: mapTitle,
+            description: publishDescription,
+            imageUrl: publishCoverImage,
+            tags: (publishTags || '').split(',').map((tag) => tag.trim()).filter(Boolean),
+            privacy: publishPrivacy,
+            videoUrl: publishVideoUrl,
+            selfieUrls: publishSelfieUrls
+          }}
+          onValuesChange={(values) => {
+            setMapTitle(values.title);
+            setPublishDescription(values.description);
+            setPublishCoverImage(values.imageUrl);
+            setPublishTags(Array.isArray(values.tags) ? values.tags.join(', ') : '');
+            setPublishPrivacy(values.privacy);
+            setPublishVideoUrl(values.videoUrl);
+            setPublishSelfieUrls(Array.isArray(values.selfieUrls) ? values.selfieUrls : []);
+          }}
+          onClose={() => setShowPublishModal(false)}
+          onPublish={(updates) => { publishMap(updates); }}
+        />
+      )}
 
       {showBadgeCelebration && (
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowBadgeCelebration(false)}>
@@ -2590,35 +2400,150 @@ if (publishPrivacy === 'private') {
               </div>
 
               {selectedData.isLocation && locationModalOpen && (
-                <div className="fixed inset-0 z-[70] bg-black/45 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLocationModalOpen(false)}>
-                  <div className="w-full max-w-md space-y-3 border-4 border-black p-5 bg-white rounded-2xl shadow-[8px_8px_0_0_rgba(0,0,0,1)]" onClick={(event) => event.stopPropagation()}>
-                    <div className="flex items-center justify-between border-b-2 border-black pb-3">
-                      <h3 className="font-black text-sm uppercase text-red-600 flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
-                      <button type="button" onClick={() => setLocationModalOpen(false)} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded bg-red-50 hover:bg-red-100"><X className="w-4 h-4" /></button>
+                <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLocationModalOpen(false)}>
+                  <div className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0_0_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
+                    <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
+                      <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
+                      <button type="button" onClick={() => setLocationModalOpen(false)} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
                     </div>
-                  <div>
-                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locName')}</label>
-                    <input type="text" value={selectedData.locationDetails?.name || ''} onChange={(e) => updateSelectedLocationData('name', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none rounded" placeholder="Starting Town" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locDescription')}</label>
-                    <textarea value={selectedData.locationDetails?.description || ''} onChange={(e) => updateSelectedLocationData('description', e.target.value)} className="w-full h-16 px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none resize-none rounded" placeholder="Where the journey begins." />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locYoutube')}</label>
-                    <input type="url" value={selectedData.locationDetails?.youtubeUrl || ''} onChange={(e) => updateSelectedLocationData('youtubeUrl', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-xs font-bold outline-none rounded" placeholder="https://youtube.com/..." />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locOpen')}</label>
-                      <input type="time" value={selectedData.locationDetails?.openTime || ''} onChange={(e) => updateSelectedLocationData('openTime', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-[10px] font-bold outline-none rounded" />
+                    <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5">{t('editor.locName')}</label>
+                        <input type="text" value={selectedData.locationDetails?.name || ''} onChange={(e) => updateSelectedLocationData('name', e.target.value)} placeholder="Starting Town" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5">{t('editor.locDescription')}</label>
+                        <textarea rows="3" value={selectedData.locationDetails?.description || ''} onChange={(e) => updateSelectedLocationData('description', e.target.value)} placeholder="Where the journey begins." className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+                      </div>
+                      <div className="border-t-4 border-black" />
+                      <div>
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase mb-3">
+                          <span className="text-red-600">2.</span> {t('myMaps.logisticsTitle')}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <label className="border-2 border-black p-2.5 block">
+                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Clock3 className="w-3.5 h-3.5" /> {t('myMaps.hours')}</span>
+                            <input value={selectedData.locationDetails?.hours || (selectedData.locationDetails?.openTime && selectedData.locationDetails?.closeTime ? `${selectedData.locationDetails.openTime} - ${selectedData.locationDetails.closeTime}` : '')} onChange={(e) => updateSelectedLocationData('hours', e.target.value)} placeholder="24/7" list="loc-hours-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                            <datalist id="loc-hours-options">{locationHoursOptions.map((option) => <option key={option} value={option} />)}</datalist>
+                          </label>
+                          <label className="border-2 border-black p-2.5 block">
+                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><CircleDollarSign className="w-3.5 h-3.5" /> {t('myMaps.fee')}</span>
+                            <input value={selectedData.locationDetails?.fee || ''} onChange={(e) => updateSelectedLocationData('fee', e.target.value)} placeholder={t('editor.freeExploration')} className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                          </label>
+                          <label className="border-2 border-black p-2.5 block">
+                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Sun className="w-3.5 h-3.5" /> {t('myMaps.bestTime')}</span>
+                            <input value={selectedData.locationDetails?.bestTime || ''} onChange={(e) => updateSelectedLocationData('bestTime', e.target.value)} placeholder={t('editor.anytime')} list="loc-besttime-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                            <datalist id="loc-besttime-options">{locationBestTimeOptions.map((option) => <option key={option} value={option} />)}</datalist>
+                          </label>
+                          <label className="border-2 border-black p-2.5 block">
+                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Train className="w-3.5 h-3.5" /> {t('myMaps.travel')}</span>
+                            <input value={selectedData.locationDetails?.travel || ''} onChange={(e) => updateSelectedLocationData('travel', e.target.value)} placeholder={t('editor.communityGateway')} list="loc-travel-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
+                            <datalist id="loc-travel-options">{locationTravelOptions.map((option) => <option key={option} value={option} />)}</datalist>
+                          </label>
+                        </div>
+                      </div>
+                      <div className="border-t-4 border-black" />
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-[#cc0000]" /> {t('editor.mapCover')}</label>
+                        <input ref={locationCoverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLocationCoverUpload} className="hidden" />
+                        <div className="flex gap-2 items-start">
+                          <button
+                            type="button"
+                            onClick={() => locationCoverInputRef.current?.click()}
+                            className="shrink-0 border-2 border-black rounded bg-amber-400 hover:bg-amber-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                          >
+                            <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            {selectedData.locationDetails?.image ? (
+                              <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
+                                <img src={selectedData.locationDetails.image} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => removeLocationMedia('image')}
+                                  className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
+                                  title={t('editor.removeCover')}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.coverHelper')}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
+                          <Video className="w-3.5 h-3.5" /> {t('editor.mapVideo')}
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={selectedData.locationDetails?.video?.startsWith?.('data:') ? '' : (selectedData.locationDetails?.youtubeUrl || '')}
+                            onChange={(e) => updateSelectedLocationData('youtubeUrl', e.target.value)}
+                            placeholder={t('editor.videoYtPh')}
+                            className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
+                          />
+                          <input ref={locationVideoInputRef} type="file" accept="video/*" onChange={handleLocationVideoUpload} className="hidden" />
+                          <button type="button" onClick={() => locationVideoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Video className="w-4 h-4 mx-auto" />
+                            <span className="sr-only">{t('editor.uploadVideo')}</span>
+                          </button>
+                        </div>
+                        {selectedData.locationDetails?.video && (
+                          <div className="mt-2 flex items-center gap-2 border-2 border-black rounded p-2 bg-emerald-50">
+                            <span className="text-[10px] text-emerald-800 font-black uppercase flex-1 min-w-0 truncate">{t('editor.videoSelected')}</span>
+                            <button type="button" onClick={() => removeLocationMedia('video')} className="shrink-0 w-5 h-5 bg-white border border-black rounded-full flex items-center justify-center text-red-600 hover:bg-red-50" title={t('editor.removeVideo')}><X className="w-3 h-3" /></button>
+                          </div>
+                        )}
+                        <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
+                          <Camera className="w-3.5 h-3.5" /> {t('editor.selfiePhoto')}
+                        </label>
+                        <div className="flex gap-2 items-start">
+                          <input ref={locationSelfieInputRef} type="file" accept="image/*" multiple onChange={handleLocationSelfieUpload} className="hidden" />
+                          <button
+                            type="button"
+                            onClick={() => locationSelfieInputRef.current?.click()}
+                            className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                          >
+                            <ImageIcon className="w-4 h-4" /> {t('editor.attachSelfie')} {selectedData.locationDetails?.selfies?.length ? `(${selectedData.locationDetails.selfies.length}/9)` : ''}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            {selectedData.locationDetails?.selfies?.length ? (
+                              <div className="space-y-2">
+                                <div className="grid grid-cols-3 gap-2">
+                                  {selectedData.locationDetails.selfies.map((url, idx) => (
+                                    <div key={`${url.slice(0, 20)}-${idx}`} className="relative border-2 border-black rounded overflow-hidden bg-gray-50 group">
+                                      <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={() => removeLocationSelfie(idx)}
+                                        className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
+                                        title={t('editor.removeSelfie')}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.5">{idx + 1}/9</span>
+                                    </div>
+                                  ))}
+                                </div>
+                                <p className="text-[10px] text-emerald-700 font-bold">{t('editor.selfieSelected')} · {selectedData.locationDetails.selfies.length} {t('editor.imagesAttached')}</p>
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.selfieHelper')}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
+                        <button type="button" onClick={() => setLocationModalOpen(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
+                        <button type="button" onClick={() => setLocationModalOpen(false)} className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{t('editor.saveLocation')}</button>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-black text-gray-700 uppercase tracking-widest block mb-1">{t('editor.locClose')}</label>
-                      <input type="time" value={selectedData.locationDetails?.closeTime || ''} onChange={(e) => updateSelectedLocationData('closeTime', e.target.value)} className="w-full px-2 py-1.5 border-2 border-black bg-white text-[10px] font-bold outline-none rounded" />
-                    </div>
-                  </div>
-                    <button type="button" onClick={() => setLocationModalOpen(false)} className="w-full bg-amber-400 border-2 border-black mt-1 py-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none transition-all rounded">{t('editor.saveLocation')}</button>
                   </div>
                 </div>
               )}

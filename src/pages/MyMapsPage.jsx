@@ -285,7 +285,15 @@ const openMapInEditor = async (mapItem) => {
 
       {publishTarget && (
         <PublishMapModal
-          mapItem={publishTarget}
+          initial={{
+            title: publishTarget.title || publishTarget.details?.title || '',
+            description: publishTarget.description || publishTarget.details?.lore || '',
+            imageUrl: publishTarget.imageUrl || '',
+            tags: Array.isArray(publishTarget.tags) ? publishTarget.tags : [],
+            privacy: 'public',
+            videoUrl: publishTarget.videoUrl || publishTarget.details?.videoUrl || '',
+            selfieUrls: publishTarget.selfieUrls || (publishTarget.selfieUrl ? [publishTarget.selfieUrl] : [])
+          }}
           onClose={() => setPublishTarget(null)}
           onPublish={(updates) => {
             handlePublishMap(publishTarget, updates);

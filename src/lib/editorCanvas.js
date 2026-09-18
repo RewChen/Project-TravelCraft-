@@ -137,6 +137,9 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
       const isImageSrc = element.type === 'image'
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));
+      const locationSelfies = Array.isArray(details.selfies) ? details.selfies : [];
+      const pinHours = details.hours
+        || (details.openTime && details.closeTime ? `${details.openTime} - ${details.closeTime}` : null);
       return {
         id: `editor-${element.id}`,
         title: details.name || fallbackLabel,
@@ -151,12 +154,18 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         elementType: element.type,
         shape: element.shape,
         shapeColor: element.color,
-        previewUrl: isImageSrc ? element.content : undefined,
+        previewUrl: isImageSrc ? element.content : details.image || null,
+        imageUrl: details.image || (isImageSrc ? element.content : null),
         youtubeUrl: details.youtubeUrl || null,
-        videoUrl: details.youtubeUrl ? toYouTubeEmbedUrl(details.youtubeUrl) || null : null,
+        videoUrl: details.video ? details.video : (details.youtubeUrl ? toYouTubeEmbedUrl(details.youtubeUrl) || null : null),
         openTime: details.openTime || null,
         closeTime: details.closeTime || null,
-        hours: details.openTime && details.closeTime ? `${details.openTime} - ${details.closeTime}` : null
+        hours: pinHours,
+        fee: details.fee || null,
+        bestTime: details.bestTime || null,
+        travel: details.travel || null,
+        selfieUrl: locationSelfies[0] || null,
+        selfieUrls: locationSelfies.length ? [...locationSelfies] : null
       };
     })
     .filter(Boolean);

@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react';
-import { Check, X, Video, Camera, Tag, Utensils, Plane, Trees, Gamepad2, Landmark, Image as ImageIcon } from 'lucide-react';
+import {
+  Check, X, Video, Camera, Tag, Utensils, Plane, Trees, Gamepad2, Landmark,
+  Image as ImageIcon, Link
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const getYouTubeEmbedUrl = (value) => {
@@ -36,40 +39,57 @@ const presetTags = [
   { value: 'attraction', labelKey: 'myMaps.tagAttraction', icon: Landmark, emoji: '⛩️' }
 ];
 
-export default function PublishMapModal({ mapItem, onClose, onPublish }) {
+export default function PublishMapModal({ initial = {}, onClose, onPublish, onValuesChange }) {
   const { t } = useApp();
-  const [title, setTitle] = useState(mapItem.title || mapItem.details?.title || '');
-  const [description, setDescription] = useState(mapItem.description || mapItem.details?.lore || '');
-  const [coverImage, setCoverImage] = useState(mapItem.imageUrl || '');
+  const [title, setTitle] = useState(initial.title || '');
+  const [description, setDescription] = useState(initial.description || '');
+  const [coverImage, setCoverImage] = useState(initial.imageUrl || '');
   const [coverError, setCoverError] = useState('');
-  const [tags, setTags] = useState(Array.isArray(mapItem.tags) ? [...mapItem.tags] : []);
+  const [tags, setTags] = useState(Array.isArray(initial.tags) ? [...initial.tags] : []);
   const [customTagInput, setCustomTagInput] = useState('');
-  const [privacy, setPrivacy] = useState('public');
-  const [videoUrl, setVideoUrl] = useState(mapItem.videoUrl || mapItem.details?.videoUrl || '');
+  const [privacy, setPrivacy] = useState(initial.privacy === 'private' ? 'private' : (initial.privacy === 'unlisted' ? 'unlisted' : 'public'));
+  const [videoUrl, setVideoUrl] = useState(initial.videoUrl || '');
   const [videoError, setVideoError] = useState('');
-  const [selfieUrls, setSelfieUrls] = useState(
-    mapItem.selfieUrls || (mapItem.selfieUrl ? [mapItem.selfieUrl] : []) || []
-  );
+  const [selfieUrls, setSelfieUrls] = useState(Array.isArray(initial.selfieUrls) ? [...initial.selfieUrls] : []);
   const [selfieError, setSelfieError] = useState('');
 
   const coverInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
 
+  const notify = (patch) => {
+    if (!onValuesChange) return;
+    onValuesChange({
+      title: patch.title ?? title,
+      description: patch.description ?? description,
+      imageUrl: patch.imageUrl ?? coverImage,
+      tags: patch.tags ?? tags,
+      privacy: patch.privacy ?? privacy,
+      videoUrl: patch.videoUrl ?? videoUrl,
+      selfieUrls: patch.selfieUrls ?? selfieUrls
+    });
+  };
+
   const hasTag = (tag) => tags.some((existing) => existing.toLowerCase() === tag.toLowerCase());
   const toggleTag = (tag) => {
-    setTags((prev) => hasTag(tag)
-      ? prev.filter((existing) => existing.toLowerCase() !== tag.toLowerCase())
-      : [...prev, tag]);
+    const next = hasTag(tag)
+      ? tags.filter((existing) => existing.toLowerCase() !== tag.toLowerCase())
+      : [...tags, tag];
+    setTags(next);
+    notify({ tags: next });
   };
   const addCustomTag = () => {
     const tag = customTagInput.trim().toLowerCase().replace(/\s+/g, '-');
     if (!tag) return;
-    if (!hasTag(tag)) setTags((prev) => [...prev, tag]);
+    const next = hasTag(tag) ? tags : [...tags, tag];
+    setTags(next);
+    notify({ tags: next });
     setCustomTagInput('');
   };
   const removeTag = (tag) => {
-    setTags((prev) => prev.filter((existing) => existing.toLowerCase() !== tag.toLowerCase()));
+    const next = tags.filter((existing) => existing.toLowerCase() !== tag.toLowerCase());
+    setTags(next);
+    notify({ tags: next });
   };
 
   const handleCoverUpload = (event) => {
@@ -89,6 +109,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
     reader.onload = () => {
       setCoverImage(reader.result);
       setCoverError('');
+      notify({ imageUrl: reader.result });
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -111,6 +132,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
     reader.onload = () => {
       setVideoUrl(reader.result);
       setVideoError('');
+      notify({ videoUrl: reader.result });
     };
     reader.readAsDataURL(file);
     event.target.value = '';
@@ -138,11 +160,10 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
       }
       const reader = new FileReader();
       reader.onload = () => {
-        setSelfieUrls((prev) => {
-          if (prev.length >= 9) return prev;
-          return [...prev, reader.result];
-        });
+        const next = selfieUrls.length >= 9 ? selfieUrls : [...selfieUrls, reader.result];
+        setSelfieUrls(next);
         setSelfieError('');
+        notify({ selfieUrls: next });
       };
       reader.readAsDataURL(file);
     });
@@ -151,7 +172,9 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
   };
 
   const removeSelfieAt = (idx) => {
-    setSelfieUrls((prev) => prev.filter((_, i) => i !== idx));
+    const next = selfieUrls.filter((_, i) => i !== idx);
+    setSelfieUrls(next);
+    notify({ selfieUrls: next });
   };
 
   const handleSubmit = () => {
@@ -159,7 +182,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
     if (finalVideoUrl && !finalVideoUrl.startsWith('data:video/')) {
       const embedUrl = getYouTubeEmbedUrl(finalVideoUrl);
       if (!embedUrl) {
-        setVideoError(t('editor.videoUrlError'));
+        setVideoError(t('editor.ytInvalid'));
         return;
       }
     }
@@ -185,11 +208,11 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
             <label htmlFor="publish-title" className="block text-xs font-black uppercase mb-1.5">{t('editor.mapTitle')}</label>
-            <input id="publish-title" value={title} onChange={(event) => setTitle(event.target.value)} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
+            <input id="publish-title" value={title} onChange={(event) => { setTitle(event.target.value); notify({ title: event.target.value }); }} required className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
           </div>
           <div>
             <label htmlFor="publish-description" className="block text-xs font-black uppercase mb-1.5">{t('editor.description')}</label>
-            <textarea id="publish-description" rows="3" value={description} onChange={(event) => setDescription(event.target.value)} placeholder={t('editor.descriptionPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
+            <textarea id="publish-description" rows="3" value={description} onChange={(event) => { setDescription(event.target.value); notify({ description: event.target.value }); }} placeholder={t('editor.descriptionPh')} className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
           </div>
           {/* Cover Image — used as the map cover shown in the Community feed */}
           <div>
@@ -209,7 +232,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
                     <img src={coverImage} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
                     <button
                       type="button"
-                      onClick={() => setCoverImage('')}
+                      onClick={() => { setCoverImage(''); notify({ imageUrl: '' }); }}
                       className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
                       title={t('editor.removeCover')}
                     >
@@ -274,7 +297,7 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
                 id="publish-video"
                 type="url"
                 value={videoUrl.startsWith('data:') ? '' : videoUrl}
-                onChange={(event) => { setVideoUrl(event.target.value); setVideoError(''); }}
+                onChange={(event) => { setVideoUrl(event.target.value); setVideoError(''); notify({ videoUrl: event.target.value }); }}
                 placeholder={t('editor.videoYtPh')}
                 className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
               />
@@ -335,16 +358,29 @@ export default function PublishMapModal({ mapItem, onClose, onPublish }) {
             <div className="grid grid-cols-3 gap-2">
               {privacyOptions.map((option) => (
                 <label key={option.value} className={`border-2 border-black rounded p-2 cursor-pointer ${privacy === option.value ? 'bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-gray-50 hover:bg-gray-100'}`}>
-                  <input type="radio" name="privacy" value={option.value} checked={privacy === option.value} onChange={(event) => setPrivacy(event.target.value)} className="sr-only" />
+                  <input type="radio" name="privacy" value={option.value} checked={privacy === option.value} onChange={(event) => { setPrivacy(event.target.value); notify({ privacy: event.target.value }); }} className="sr-only" />
                   <span className="block text-xs font-black uppercase">{t(option.labelKey)}</span>
                   <span className="block mt-1 text-[9px] leading-tight font-bold text-gray-600">{t(option.descKey)}</span>
                 </label>
               ))}
             </div>
+            {privacy === 'unlisted' && (
+              <div className="mt-2 border-2 border-amber-400 bg-amber-50 rounded p-2.5 text-[10px] font-bold text-amber-800 leading-relaxed">
+                {t('editor.publishUnlistedNotice')}
+              </div>
+            )}
+            {privacy === 'private' && (
+              <div className="mt-2 border-2 border-red-400 bg-red-50 rounded p-2.5 text-[10px] font-bold text-red-700 leading-relaxed">
+                {t('editor.publishPrivateNotice')}
+              </div>
+            )}
           </fieldset>
           <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
             <button type="button" onClick={onClose} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
-            <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{t('editor.publishMap')}</button>
+            <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5">
+              {privacy === 'unlisted' && <Link className="w-3.5 h-3.5" />}
+              {privacy === 'unlisted' ? t('editor.shareMap') : privacy === 'private' ? t('editor.saveDraft') : t('editor.publishMap')}
+            </button>
           </div>
         </div>
       </form>

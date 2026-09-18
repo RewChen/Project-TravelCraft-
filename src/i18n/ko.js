@@ -38,6 +38,7 @@ export default {
     videoSelected: '동영상 파일을 선택했습니다',
     videoTooLarge: '동영상 파일은 25MB 이하여야 합니다',
     videoHelper: '하나를 선택하세요: YouTube 링크 또는 25MB 이하의 동영상 파일',
+    removeVideo: '동영상 제거',
     onlyVideo: '동영상 파일만 선택해 주세요',
     ytInvalid: '올바른 YouTube 링크를 입력하거나 동영상 파일을 업로드하세요',
     selfiePhoto: '셀카 사진 (여행 로그)',
