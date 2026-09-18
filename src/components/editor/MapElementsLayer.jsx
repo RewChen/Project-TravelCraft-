@@ -31,21 +31,21 @@ export default function MapElementsLayer({ items, onLocationClick }) {
               element.filter === 'polaroid' ? (
                 <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">
                   <div className="w-full h-full bg-white border-2 border-black p-1 pb-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] rotate-[-2deg]">
-                    <img src={element.content} alt={element.label || 'element'} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
+<img src={element.content} alt={element.label || 'element'} loading="lazy" decoding="async" className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
                   </div>
                 </div>
               ) : element.filter === 'sticker' ? (
                 <div className="w-full h-full p-[4%] pointer-events-none">
                   <div className="w-full h-full bg-white rounded-[28%] border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden">
-                    <img src={element.content} alt={element.label || 'element'} className="w-full h-full object-cover pointer-events-none" style={getImageFilterStyle(element)} />
+                    <img src={element.content} alt={element.label || 'element'} loading="lazy" decoding="async" className="w-full h-full object-cover pointer-events-none" style={getImageFilterStyle(element)} />
                   </div>
                 </div>
               ) : (
-                <img src={element.content} alt={element.label || 'element'} className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
+                <img src={element.content} alt={element.label || 'element'} loading="lazy" decoding="async" className="w-full h-full object-contain pointer-events-none" style={getImageFilterStyle(element)} />
               )
             ) : element.type === 'shape' ? (
               <div className="w-full h-full pointer-events-none" style={{ ...getShapeStyle(element), ...getFramePlaceholderStyle(element), overflow: element.frameImage || element.isFrame ? 'hidden' : undefined }}>
-                {element.frameImage && (element.frameImage.type === 'image' ? <img src={element.frameImage.content} alt={element.frameImage.label || 'framed element'} className="w-full h-full object-cover" /> : <span className="flex w-full h-full items-center justify-center text-[min(18cqw,180px)]">{element.frameImage.content}</span>)}
+                {element.frameImage && (element.frameImage.type === 'image' ? <img src={element.frameImage.content} alt={element.frameImage.label || 'framed element'} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <span className="flex w-full h-full items-center justify-center text-[min(18cqw,180px)]">{element.frameImage.content}</span>)}
               </div>
             ) : (
               <span
