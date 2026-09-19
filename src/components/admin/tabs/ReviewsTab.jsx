@@ -3,6 +3,7 @@ import {
   Star, Check, X, Pin, PinOff, EyeOff, Eye, MapPin, ShieldCheck, Image as ImageIcon, Trash2,
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
+import DeleteReviewModal from '../../reviews/DeleteReviewModal';
 
 const timeAgo = (timestamp, language) => {
   try {
@@ -38,6 +39,7 @@ export default function ReviewsTab() {
   const [locationFilter, setLocationFilter] = useState('all');
   const [photoOnly, setPhotoOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(null);
 
   const pendingCount = (reviews || []).filter((r) => r.status === 'pending').length;
   const approvedCount = (reviews || []).filter((r) => r.status === 'approved').length;
@@ -287,7 +289,7 @@ export default function ReviewsTab() {
                 )}
                 <button
                   type="button"
-                  onClick={() => deleteReview(review.id)}
+                  onClick={() => setDeleting(review)}
                   title={review.id}
                   className="w-full px-3 py-1.5 rounded-lg text-gray-300 hover:text-red-600 text-[10px] font-black uppercase flex items-center justify-center gap-1 cursor-pointer"
                 >
@@ -298,6 +300,18 @@ export default function ReviewsTab() {
           );
         })}
       </div>
+
+      {deleting && (
+        <DeleteReviewModal
+          review={deleting}
+          isAdmin
+          onConfirm={(reason) => {
+            deleteReview(deleting.id, reason);
+            setDeleting(null);
+          }}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

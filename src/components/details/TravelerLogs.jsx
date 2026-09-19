@@ -28,6 +28,8 @@ export default function TravelerLogs() {
     return () => window.removeEventListener('keydown', onKey);
   }, [activeIdx, displaySelfies.length]);
 
+  if (!hasSelfies) return null;
+
   return (
     <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
@@ -35,16 +37,14 @@ export default function TravelerLogs() {
           <Camera className="w-5 h-5" /> {t('details.logsTitle')}
         </h3>
         <button
-          onClick={() => hasSelfies && setShowAll(true)}
-          disabled={!hasSelfies}
-          className={`text-xs font-bold hover:underline ${hasSelfies ? 'text-red-600 cursor-pointer' : 'text-gray-400 cursor-not-allowed'}`}
+          onClick={() => setShowAll(true)}
+          className="text-xs font-bold hover:underline text-red-600 cursor-pointer"
         >
           {t('details.viewAll')}{displaySelfies.length > 3 ? ` (${displaySelfies.length})` : ''}
         </button>
       </div>
-      {hasSelfies ? (
-        <div className="grid grid-cols-3 gap-3">
-          {visibleSelfies.map((log, idx) => (
+      <div className="grid grid-cols-3 gap-3">
+        {visibleSelfies.map((log, idx) => (
             <button
               key={log.id}
               type="button"
@@ -65,26 +65,7 @@ export default function TravelerLogs() {
               )}
             </button>
           ))}
-          {/* Fill remaining slots with placeholders if less than 3 */}
-          {Array.from({ length: Math.max(0, 3 - visibleSelfies.length) }).map((_, i) => (
-            <div key={`ph-${i}`} className="aspect-square bg-sky-100 border-2 border-dashed border-black rounded flex items-center justify-center text-xl opacity-60">
-              {['🗼','🌅','✨'][i % 3]}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-3">
-          <div className="aspect-square bg-sky-200 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold hover:scale-105 transition-transform cursor-pointer">
-            🗼
-          </div>
-          <div className="aspect-square bg-sky-300 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold hover:scale-105 transition-transform cursor-pointer">
-            🌅
-          </div>
-          <div className="aspect-square bg-sky-100 border-2 border-black rounded flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-2xl font-bold hover:scale-105 transition-transform cursor-pointer">
-            ✨
-          </div>
-        </div>
-      )}
+      </div>
       {showAll && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowAll(false)}>
           <div className="relative w-full max-w-3xl bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>

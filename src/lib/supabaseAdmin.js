@@ -23,6 +23,7 @@ export const saveGlobalSettings = async (settings) => {
     id: 1,
     max_pins_per_map: settings.maxPinsPerMap,
     auto_approve_community: settings.autoApproveCommunity,
+    auto_approve_reviews: settings.autoApproveReviews,
     maintenance_mode: settings.maintenanceMode,
     allow_fast_travel: settings.allowFastTravel,
     auto_ban_strike_threshold: settings.autoBanStrikeThreshold,
@@ -39,6 +40,29 @@ export const saveGlobalSettings = async (settings) => {
   }
   clearSchemaMissing('global_settings');
   return data;
+};
+
+export const reportRowToItem = (r) => {
+  const reason = (r.reason || '').toUpperCase();
+  const category = reason || 'OTHER';
+  const categoryColor =
+    category === 'SPAM'
+      ? 'bg-red-100 text-red-700 border-red-400'
+      : category === 'FAKE LOCATION'
+      ? 'bg-amber-100 text-amber-800 border-amber-400'
+      : 'bg-blue-100 text-blue-800 border-blue-400';
+  return {
+    id: r.id,
+    locationName: r.location_name || 'Unknown Location',
+    creator: r.reporter_name || 'Anonymous',
+    category,
+    categoryColor,
+    count: 0,
+    status: r.status,
+    reason: r.details || r.reason || '',
+    reportedAt: r.created_at,
+    mapId: r.map_id || null,
+  };
 };
 
 export const fetchReports = async () => {
@@ -92,6 +116,24 @@ export const deleteReportRow = async (reportId) => {
     .from('reports')
     .delete()
     .eq('id', reportId);
+  if (error) throw error;
+};
+
+export const deleteReportsByLocation = async (locationName) => {
+  if (!isSupabaseConfigured || !locationName) return;
+  const { error } = await supabase
+    .from('reports')
+    .delete()
+    .eq('location_name', locationName);
+  if (error) throw error;
+};
+
+export const deleteReportsByMap = async (mapId) => {
+  if (!isSupabaseConfigured || !mapId) return;
+  const { error } = await supabase
+    .from('reports')
+    .delete()
+    .eq('map_id', mapId);
   if (error) throw error;
 };
 

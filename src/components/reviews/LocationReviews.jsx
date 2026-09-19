@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Star, BadgeCheck, ThumbsUp, Flag, PenLine } from 'lucide-react';
+import { Star, BadgeCheck, Heart, Flag, PenLine, BookOpen, ChevronDown, X, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import ReviewModal from './ReviewModal';
+import ReportReviewModal from './ReportReviewModal';
+import DeleteReviewModal from './DeleteReviewModal';
 import Reveal from '../motion/Reveal';
 
 const timeAgo = (timestamp, language) => {
@@ -29,13 +31,36 @@ const loadVotes = () => {
   }
 };
 
-// บันทึกสำรวจ & รีวิวจากเพื่อนร่วมทาง — สไตล์ Community Logbook
+const ROLE_LABEL_KEYS = {
+  'Novice Traveler': 'auth.roleNovice',
+  Cartographer: 'auth.roleCartographer',
+  'Gym Leader': 'auth.roleGymLeader',
+  'Game Master': 'auth.roleGameMaster',
+};
+const ADMIN_TITLES = ['Master Admin', 'System Lord'];
+
+// Legacy reviews only carry a badge (authorTitle). Fall back to the closest
+// role so old data still shows a sensible label instead of a stale Lv.X title.
+const roleOf = (review) => (
+  review.authorRole ||
+  (ADMIN_TITLES.includes(review.authorTitle) ? 'Admin' : null) ||
+  'Cartographer'
+);
+const roleLabel = (role, t) => (ROLE_LABEL_KEYS[role] ? t(ROLE_LABEL_KEYS[role]) : role || '');
+
+// Traveler Reviews — สไตล์ Community Logbook
 export default function LocationReviews() {
-  const { t, language, selectedLocation, reviews, reportReview, voteHelpful } = useApp();
+  const { t, language, selectedLocation, reviews, reportReview, voteHelpful, deleteReview, isAdminLoggedIn, userProfile } = useApp();
   const [reportedIds, setReportedIds] = useState([]);
   const [votedIds, setVotedIds] = useState(loadVotes);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewStatus, setReviewStatus] = useState(null); // 'approved' | 'pending' | null
+  const [starFilter, setStarFilter] = useState('all'); // 'all' | '1'..'5'
+  const [visibleCount, setVisibleCount] = useState(9);
+  const [fullReview, setFullReview] = useState(null);
+  const [reporting, setReporting] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [photoView, setPhotoView] = useState(null); // { review, idx } | null
 
   const locationKey = selectedLocation?.id || selectedLocation?.title || selectedLocation?.name;
 
@@ -44,6 +69,25 @@ export default function LocationReviews() {
       .filter((r) => r.status === 'approved' && (r.locationId === locationKey || r.locationName === (selectedLocation?.title || selectedLocation?.name)))
       .sort((a, b) => Number(b.pinned || false) - Number(a.pinned || false) || (b.helpful || 0) - (a.helpful || 0) || (b.createdAt || 0) - (a.createdAt || 0))
   ), [reviews, locationKey, selectedLocation]);
+
+  const starCounts = useMemo(() => {
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    approved.forEach((r) => {
+      const s = Math.min(5, Math.max(1, Math.round(Number(r.rating))));
+      counts[s] += 1;
+    });
+    return counts;
+  }, [approved]);
+
+  const filtered = useMemo(() => {
+    if (starFilter === 'all') return approved;
+    const s = Number(starFilter);
+    return approved.filter((r) => Math.round(Number(r.rating)) === s);
+  }, [approved, starFilter]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const remaining = filtered.length - visibleCount;
+  const hasMore = visibleCount < filtered.length;
 
   const handleHelpful = (id) => {
     if (votedIds.includes(id)) return;
@@ -57,120 +101,374 @@ export default function LocationReviews() {
     }
   };
 
+  const handleStarFilter = (value) => {
+    setStarFilter(value);
+    setVisibleCount(9);
+  };
+
+  const avatarBlock = (review) => (
+    review.avatar ? (
+      <img src={review.avatar} alt={review.authorName} className="w-11 h-11 rounded-full object-cover border border-gray-200 shrink-0" />
+    ) : (
+      <span className="w-11 h-11 rounded-full bg-emerald-900 text-white flex items-center justify-center font-black text-lg shrink-0">
+        {(review.authorName || 'T').charAt(0).toUpperCase()}
+      </span>
+    )
+  );
+
+  const isOwnReview = (review) => Boolean(userProfile?.id) && review.authorId === userProfile.id;
+  const canDeleteReview = (review) => isAdminLoggedIn === true || isOwnReview(review);
+
+  const actionsBlock = (review, compact) => (
+    <div className={`flex items-center justify-between ${compact ? 'mt-3 pt-2.5 border-t-2 border-black' : 'mt-4 pt-3 border-t-2 border-black'}`}>
+      <button
+        type="button"
+        onClick={() => handleHelpful(review.id)}
+        disabled={votedIds.includes(review.id)}
+        className={`text-[11px] font-bold flex items-center gap-1.5 ${votedIds.includes(review.id) ? 'text-red-600 cursor-default' : 'text-gray-500 hover:text-red-600 cursor-pointer'}`}
+      >
+        <Heart className={`w-3.5 h-3.5 ${votedIds.includes(review.id) ? 'fill-red-500 text-red-500' : ''}`} />
+        {t('details.like')} ({review.helpful || 0})
+      </button>
+      <div className="flex items-center gap-2 min-w-0">
+        {canDeleteReview(review) && (
+          <button
+            type="button"
+            onClick={() => setDeleting(review)}
+            title={t('details.deleteReview')}
+            className="text-[10px] font-bold text-gray-300 hover:text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
+        )}
+        {review.gpsVerified ? (
+          <span className="text-[10px] font-black tracking-widest text-amber-700 uppercase whitespace-nowrap">Verified check-in</span>
+        ) : (
+          reportedIds.includes(review.id) ? (
+            <span className="text-[10px] font-bold text-gray-400">{t('details.reportedReview')}</span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setReporting(review)}
+              className="text-[10px] font-bold text-gray-300 hover:text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              <Flag className="w-3 h-3" /> {t('details.reportReview')}
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  );
+
+  const starRow = (review, size) => (
+    <div className="flex items-center gap-1.5">
+      <span className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star key={star} className={`${size} ${star <= Math.round(Number(review.rating)) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} strokeWidth={2} />
+        ))}
+      </span>
+      <span className="text-sm font-black">{Number(review.rating).toFixed(1)}</span>
+    </div>
+  );
+
   return (
     <section>
-      <p className="text-[11px] font-black tracking-[0.2em] text-emerald-900 uppercase">
-        {t('details.logbookEyebrow')}
-      </p>
-      <div className="flex items-start justify-between gap-3 mt-1">
-        <h2 className="text-2xl sm:text-3xl font-black text-emerald-950 tracking-tight">
-          {t('details.logbookTitle')} {t('details.reviewsCountParen', { count: approved.length })}
-        </h2>
-        <button
-          type="button"
-          onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
-          className="shrink-0 bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-        >
-          <PenLine className="w-4 h-4" /> {t('details.writeReview')}
-        </button>
-      </div>
+      <Reveal>
+      <div className="bg-white border-4 border-black rounded-xl p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
+          <h3 className="text-lg font-black flex items-center gap-2 text-indigo-700 min-w-0">
+            <BookOpen className="w-5 h-5 shrink-0" /> {t('details.reviewsTitle')} <span className="text-xs text-gray-500 font-black whitespace-nowrap">{t('details.reviewsCountParen', { count: approved.length })}</span>
+          </h3>
+          <button
+            type="button"
+            onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
+            className="shrink-0 bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+          >
+            <PenLine className="w-4 h-4" /> {t('details.writeReview')}
+          </button>
+        </div>
 
-      {reviewStatus === 'pending' && (
-        <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border-2 border-amber-600 rounded-lg px-3 py-2 mt-3">
-          {t('details.pendingNotice')}
-        </p>
-      )}
-      {reviewStatus === 'approved' && (
-        <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-600 rounded-lg px-3 py-2 mt-3">
-          {t('details.reviewLiveNotice')}
-        </p>
-      )}
+        {reviewStatus === 'pending' && (
+          <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border-2 border-amber-600 rounded-lg px-3 py-2 mb-4">
+            {t('details.pendingNotice')}
+          </p>
+        )}
+        {reviewStatus === 'approved' && (
+          <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-600 rounded-lg px-3 py-2 mb-4">
+            {t('details.reviewLiveNotice')}
+          </p>
+        )}
 
-      {approved.length === 0 ? (
-        <p className="text-xs font-bold text-gray-500 text-center py-8">{t('details.noReviews')}</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
-          {approved.map((review, idx) => (
-            <Reveal key={review.id} delay={Math.min(idx, 5) * 70} className="h-full">
-            <article className="bg-indigo-50/60 border border-indigo-100/70 rounded-2xl p-4 flex flex-col h-full">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {review.avatar ? (
-                    <img src={review.avatar} alt={review.authorName} className="w-11 h-11 rounded-full object-cover border border-gray-200 shrink-0" />
-                  ) : (
-                    <span className="w-11 h-11 rounded-full bg-emerald-900 text-white flex items-center justify-center font-black text-lg shrink-0">
-                      {(review.authorName || 'T').charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-sm font-black truncate flex items-center gap-1">
-                      {review.authorName}
-                      {review.gpsVerified && <BadgeCheck className="w-4 h-4 text-amber-600 shrink-0" />}
-                    </div>
-                    <div className="text-[11px] font-bold text-amber-700 truncate">
-                      Lv.{review.authorLevel || 1} {review.authorTitle || 'Trail Walker'}
+        {approved.length === 0 ? (
+          <div className="border-2 border-dashed border-black rounded-xl p-10 text-center space-y-4 bg-gray-50">
+            <div className="text-5xl">📓</div>
+            <p className="text-sm font-black uppercase text-gray-500 max-w-md mx-auto">{t('details.noReviews')}</p>
+            <button
+              type="button"
+              onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
+              className="inline-flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white font-black px-4 py-2 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+            >
+              <PenLine className="w-3.5 h-3.5" /> {t('details.writeReview')}
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black rounded-xl bg-gray-50 p-3">
+              <div className="flex flex-wrap gap-2">
+                {[5, 4, 3, 2, 1].map((stars) => (
+                  <button
+                    key={stars}
+                    type="button"
+                    onClick={() => handleStarFilter(starFilter === String(stars) ? 'all' : String(stars))}
+                    className={`px-2.5 py-1.5 rounded-lg border-2 border-black flex items-center gap-1 text-[11px] font-black transition-all cursor-pointer ${starFilter === String(stars) ? 'bg-[#cc0000] text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-yellow-50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'}`}
+                  >
+                    <Star className={`w-3.5 h-3.5 ${starFilter === String(stars) ? 'fill-white' : 'fill-amber-400 text-amber-500'}`} />
+                    {stars} <span className="opacity-80">({starCounts[stars]})</span>
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <select
+                  value={starFilter}
+                  onChange={(e) => handleStarFilter(e.target.value)}
+                  className="appearance-none bg-white border-2 border-black rounded-xl pl-3 pr-8 py-2 text-xs font-black cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
+                >
+                  <option value="all">{t('details.allRatings')} ({approved.length})</option>
+                  {[5, 4, 3, 2, 1].map((stars) => (
+                    <option key={stars} value={String(stars)}>{'★'.repeat(stars)} ({starCounts[stars]})</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="border-2 border-dashed border-black rounded-xl p-8 text-center bg-gray-50 mt-4">
+                <p className="text-sm font-black uppercase text-gray-500">{t('details.noReviews')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
+                {visible.map((review, idx) => (
+                  <Reveal key={review.id} delay={Math.min(idx, 5) * 70} className="h-full">
+                  <article className="bg-white border-2 border-black rounded-xl p-4 flex flex-col h-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div>
+                  <div className="flex justify-end mb-2">
+                    <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{timeAgo(review.createdAt, language)}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    {avatarBlock(review)}
+                    <div className="min-w-0">
+                      <div className="text-sm font-black truncate flex items-center gap-1">
+                        {review.authorName}
+                        {review.gpsVerified && <BadgeCheck className="w-4 h-4 text-amber-600 shrink-0" />}
+                      </div>
+                      <div className="text-[11px] font-bold text-amber-700 truncate">
+                        {roleLabel(roleOf(review), t)}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{timeAgo(review.createdAt, language)}</span>
-              </div>
 
-              <div className="flex items-center gap-1.5 mt-2.5">
-                <span className="flex items-center gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className={`w-4 h-4 ${star <= Math.round(review.rating) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} strokeWidth={2} />
-                  ))}
-                </span>
-                <span className="text-sm font-black">{Number(review.rating).toFixed(1)}</span>
-              </div>
+                  <div className="mt-2.5">{starRow(review, 'w-4 h-4')}</div>
 
-              <div className="mt-2">
-                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-white/70 border border-gray-200 rounded-full px-2.5 py-1">
-                  <span className="text-gray-400 font-black">#</span> {review.locationName}
-                </span>
-              </div>
+                  <div className="mt-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-white/70 border border-gray-200 rounded-full px-2.5 py-1">
+                      <span className="text-gray-400 font-black">#</span> {review.locationName}
+                    </span>
+                  </div>
 
-              {review.text && (
-                <p className="text-[13px] font-sans leading-relaxed text-gray-700 mt-2.5 break-words line-clamp-4">{review.text}</p>
-              )}
+                  {review.text && (
+                    <p
+                      onClick={() => setFullReview(review)}
+                      className="text-[13px] font-sans leading-relaxed text-gray-700 mt-2.5 break-words line-clamp-2 cursor-pointer"
+                    >
+                      {review.text}
+                    </p>
+                  )}
 
-              {review.images?.length > 0 && (
-                <div className="grid grid-cols-3 gap-1.5 mt-2.5">
-                  {review.images.slice(0, 3).map((url, idx) => (
-                    <img key={idx} src={url} alt={`review-${idx}`} loading="lazy" className="aspect-square w-full object-cover rounded-lg" />
-                  ))}
-                </div>
-              )}
+                  {review.images?.length > 0 && (
+                    <div className="grid grid-cols-3 gap-1.5 mt-2.5">
+                      {review.images.slice(0, 3).map((url, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setPhotoView({ review, idx })}
+                          className="aspect-square w-full overflow-hidden rounded-lg cursor-zoom-in bg-gray-100"
+                        >
+                          <img src={url} alt={`review-${idx}`} loading="lazy" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-              <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-indigo-100">
-                <button
-                  type="button"
-                  onClick={() => handleHelpful(review.id)}
-                  disabled={votedIds.includes(review.id)}
-                  className={`text-[11px] font-bold flex items-center gap-1.5 ${votedIds.includes(review.id) ? 'text-emerald-700 cursor-default' : 'text-gray-500 hover:text-emerald-700 cursor-pointer'}`}
-                >
-                  <ThumbsUp className={`w-3.5 h-3.5 ${votedIds.includes(review.id) ? 'fill-emerald-200' : ''}`} />
-                  {t('details.helpful')} ({review.helpful || 0})
-                </button>
-                {review.gpsVerified ? (
-                  <span className="text-[10px] font-black tracking-widest text-amber-700 uppercase">Verified check-in</span>
-                ) : (
-                  reportedIds.includes(review.id) ? (
-                    <span className="text-[10px] font-bold text-gray-400">{t('details.reportedReview')}</span>
-                  ) : (
+                  <div className="mt-3">
                     <button
                       type="button"
-                      onClick={() => { reportReview(review.id); setReportedIds((prev) => [...prev, review.id]); }}
-                      className="text-[10px] font-bold text-gray-300 hover:text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      onClick={() => setFullReview(review)}
+                      className="inline-flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
                     >
-                      <Flag className="w-3 h-3" /> {t('details.reportReview')}
+                      <BookOpen className="w-3.5 h-3.5" /> {t('details.viewFullReview')}
                     </button>
-                  )
-                )}
+                  </div>
+
+                  {actionsBlock(review, true)}
+                </article>
+                </Reveal>
+              ))}
               </div>
-            </article>
-            </Reveal>
-          ))}
+            )}
+
+            {hasMore && (
+              <div className="mt-4 text-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleCount((c) => c + 9)}
+                  className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-100 text-black font-black border-2 border-black rounded-xl px-5 py-2.5 text-xs uppercase tracking-wide shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <ChevronDown className="w-4 h-4" /> {t('details.loadMore', { count: remaining })}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+      </Reveal>
+
+      {fullReview && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setFullReview(null)}>
+          <div className="bg-white border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2 border-b-2 border-black pb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                {avatarBlock(fullReview)}
+                <div className="min-w-0">
+                  <div className="text-sm font-black truncate flex items-center gap-1">
+                    {fullReview.authorName}
+                    {fullReview.gpsVerified && <BadgeCheck className="w-4 h-4 text-amber-600 shrink-0" />}
+                  </div>
+                  <div className="text-[11px] font-bold text-amber-700 truncate">
+                    {roleLabel(roleOf(fullReview), t)}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {canDeleteReview(fullReview) && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleting(fullReview)}
+                    title={t('details.deleteReview')}
+                    className="bg-[#cc0000] hover:bg-red-700 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFullReview(null)}
+                  className="shrink-0 bg-black hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                >
+                <X className="w-4 h-4" />
+              </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 mt-3">
+              <div>{starRow(fullReview, 'w-4 h-4')}</div>
+              <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{timeAgo(fullReview.createdAt, language)}</span>
+            </div>
+
+            <div className="mt-2">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-white/70 border border-gray-200 rounded-full px-2.5 py-1">
+                <span className="text-gray-400 font-black">#</span> {fullReview.locationName}
+              </span>
+            </div>
+
+            {fullReview.text && (
+              <p className="text-[14px] font-sans leading-relaxed text-gray-800 mt-3 break-words">{fullReview.text}</p>
+            )}
+
+            {fullReview.images?.length > 0 && (
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {fullReview.images.map((url, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPhotoView({ review: fullReview, idx })}
+                    className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200 cursor-zoom-in bg-gray-100"
+                  >
+                    <img src={url} alt={`review-${idx}`} loading="lazy" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {actionsBlock(fullReview, false)}
+          </div>
+        </div>
+      )}
+
+      {reporting && (
+        <ReportReviewModal
+          review={reporting}
+          onClose={(reason) => {
+            if (reason) {
+              reportReview(reporting.id);
+              setReportedIds((prev) => [...prev, reporting.id]);
+            }
+            setReporting(null);
+          }}
+        />
+      )}
+
+      {deleting && (
+        <DeleteReviewModal
+          review={deleting}
+          isAdmin={isAdminLoggedIn === true}
+          onConfirm={(reason) => {
+            deleteReview(deleting.id, reason);
+            if (fullReview?.id === deleting.id) setFullReview(null);
+            setDeleting(null);
+          }}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+
+      {photoView && (
+        <div className="fixed inset-0 z-[120] bg-black/90 flex items-center justify-center p-4" onClick={() => setPhotoView(null)}>
+          <button
+            type="button"
+            onClick={() => setPhotoView(null)}
+            className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center cursor-pointer z-10"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          {photoView.idx > 0 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setPhotoView({ ...photoView, idx: photoView.idx - 1 }); }}
+              className="absolute left-3 bg-black/60 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center cursor-pointer z-10"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          )}
+          {photoView.idx < photoView.review.images.length - 1 && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setPhotoView({ ...photoView, idx: photoView.idx + 1 }); }}
+              className="absolute right-3 bg-black/60 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center cursor-pointer z-10"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          )}
+          <img
+            src={photoView.review.images[photoView.idx]}
+            alt="review-gallery"
+            className="max-h-[85vh] max-w-full object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <span className="absolute bottom-4 bg-black/60 text-white text-xs font-black px-3 py-1.5 rounded-full">
+            {photoView.idx + 1} / {photoView.review.images.length}
+          </span>
         </div>
       )}
 
