@@ -4,7 +4,7 @@ import LocationLore from '../components/details/LocationLore';
 import TravelerLogs from '../components/details/TravelerLogs';
 import LocationReviews from '../components/reviews/LocationReviews';
 import LocationStats from '../components/details/LocationStats';
-import WildEncounters from '../components/details/WildEncounters';
+import OtherMaps from '../components/details/OtherMaps';
 import Reveal from '../components/motion/Reveal';
 import ReportLocationModal from '../components/report/ReportLocationModal';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
@@ -53,7 +53,7 @@ export default function DetailsPage() {
             <LocationStats />
           </Reveal>
           <Reveal delay={180}>
-            <WildEncounters />
+            <OtherMaps />
           </Reveal>
         </div>
       </div>
