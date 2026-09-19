@@ -574,6 +574,31 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ============================================================
+-- PART 6c — REALTIME PUBLICATION (Postgres Changes)
+-- ============================================================
+-- Supabase streams `postgres_changes` ONLY for tables listed in the
+-- `supabase_realtime` publication. Without this, `src/context/AppContext.jsx`
+-- live-sync channels (maps / users / reviews / reports) subscribe fine but
+-- NEVER receive an event — the DB write succeeds, everyone reloads and sees
+-- the row, yet nothing pushes in realtime and no error is raised anywhere.
+-- Idempotent: skips tables that are already members so re-running is safe.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['maps','users','reviews','reports']
+  LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = t
+    ) THEN
+      EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE public.%I', t);
+    END IF;
+  END LOOP;
+END $$;
+
+-- ============================================================
 -- PART 7 — Reload PostgREST schema cache
 -- ============================================================
 NOTIFY pgrst, 'reload schema';

@@ -59,8 +59,10 @@ const mapItemToRow = (item) => ({
 });
 
 // A summary DB row mapped into a shape the cards expect (imageUrl, details,
-// tags, rarity, author info...) WITHOUT the heavy `data` blob.
-const summaryToItem = (row) => {
+// tags, rarity, author info...) WITHOUT the heavy `data` blob. Also used by the
+// realtime channel: the live INSERT/UPDATE payload is requested with a lean
+// `select` so we never ship the multi-MB JSONB `data` blob to every observer.
+export const summaryToItem = (row) => {
   const s = row.summary && typeof row.summary === 'object' ? row.summary : {};
   const d = s.details && typeof s.details === 'object' ? s.details : {};
   return {

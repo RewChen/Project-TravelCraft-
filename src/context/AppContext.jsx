@@ -1304,13 +1304,24 @@ export const AppProvider = ({ children }) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           const row = payload.new;
           if (!row) return;
-          const item = mapRowToItem(row);
+          // Realtime carries a lean column set (see `select` below) because the
+          // full `data` JSONB can be multi-MB with base64 media. Rebuild the card
+          // shape from the summary instead of shipping that blob per subscriber.
+          const item = summaryToItem(row);
           const isOwn = row.owner_id && currentUserIdRef.current && row.owner_id === currentUserIdRef.current;
           setCommunityMaps((prev) => {
             const idx = prev.findIndex((m) => m.id === item.id);
             if (idx >= 0) {
+              const existing = prev[idx];
               const next = [...prev];
-              next[idx] = { ...next[idx], ...item };
+              if (existing && !existing._summaryOnly && item._summaryOnly) {
+                // Never downgrade a full local copy (logs/selfies/editorState)
+                // with a lean summary row — refresh only the card-level metadata.
+                const { details, _summaryOnly, ...cardMeta } = item;
+                next[idx] = { ...existing, ...cardMeta };
+              } else {
+                next[idx] = { ...existing, ...item };
+              }
               return next;
             }
             return [item, ...prev];
