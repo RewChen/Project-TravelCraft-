@@ -1082,7 +1082,6 @@ export const AppProvider = ({ children }) => {
     let cancelled = false;
     const hydrateMapsFromDb = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
         const dbMaps = await fetchMapFeed();
         if (cancelled) return;
         setCommunityMaps((previous) => {
@@ -1108,9 +1107,14 @@ export const AppProvider = ({ children }) => {
           }
           for (const localItem of previous) {
             if (seen.has(localItem.id)) continue;
-            if (session && localItem.ownerId === session.user.id) continue;
-            seen.add(localItem.id);
-            merged.push(localItem);
+            // Keep only hardcoded seed data (comm-1, comm-2, ...). Everything
+            // else that no longer exists in the DB is dropped so deleted maps
+            // are never resurrected from the localStorage cache.
+            if (String(localItem.id).startsWith('comm-') && !String(localItem.id).startsWith('comm-user-')) {
+              seen.add(localItem.id);
+              merged.push(localItem);
+              continue;
+            }
           }
           return merged;
         });
