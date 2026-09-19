@@ -10,12 +10,16 @@ import {
   insertReport,
   updateReportStatus,
   deleteReportRow,
+  deleteReportsByLocation,
+  deleteReportsByMap,
+  reportRowToItem,
   upsertAdminBaseMap,
   fetchAdminBaseMaps,
   deleteBaseMapRow
 } from '../lib/supabaseAdmin';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import { uploadAvatar } from '../lib/supabaseAvatar';
+import { fetchReviews, insertReview, updateReviewStatus, setReviewPinned, deleteReviewRow, bumpReviewCounter, rowToReview } from '../lib/supabaseReviews';
 import { fileToDataUrl, compressForUpload } from '../lib/imageUtils';
 import {
   fetchUserAssets,
@@ -1200,6 +1204,7 @@ export const AppProvider = ({ children }) => {
           const next = { ...prev };
           if (row.max_pins_per_map != null) next.maxPinsPerMap = row.max_pins_per_map;
           if (row.auto_approve_community != null) next.autoApproveCommunity = row.auto_approve_community;
+          if (row.auto_approve_reviews != null) next.autoApproveReviews = row.auto_approve_reviews;
           if (row.maintenance_mode != null) next.maintenanceMode = row.maintenance_mode;
           if (row.allow_fast_travel != null) next.allowFastTravel = row.allow_fast_travel;
           if (row.auto_ban_strike_threshold != null) next.autoBanStrikeThreshold = row.auto_ban_strike_threshold;
@@ -1224,28 +1229,7 @@ export const AppProvider = ({ children }) => {
       try {
         const rows = await fetchReports();
         if (cancelled) return;
-        const mapped = rows.map((r) => {
-          const reason = (r.reason || '').toUpperCase();
-          const category = reason || 'OTHER';
-          const categoryColor =
-            category === 'SPAM'
-              ? 'bg-red-100 text-red-700 border-red-400'
-              : category === 'FAKE LOCATION'
-              ? 'bg-amber-100 text-amber-800 border-amber-400'
-              : 'bg-blue-100 text-blue-800 border-blue-400';
-          return {
-            id: r.id,
-            locationName: r.location_name || 'Unknown Location',
-            creator: r.reporter_name || 'Anonymous',
-            category,
-            categoryColor,
-            count: 0,
-            status: r.status,
-            reason: r.details || r.reason || '',
-            reportedAt: r.created_at,
-            mapId: r.map_id || null,
-          };
-        });
+        const mapped = rows.map(reportRowToItem);
         setReportedLocations(mapped);
       } catch (err) {
         console.warn('Reports hydration skipped:', err);
@@ -1387,9 +1371,75 @@ export const AppProvider = ({ children }) => {
         .subscribe();
     }
 
+    // Reviews live sync — new/updated/hidden reviews flow into the UI without a reload.
+    // Realtime deliveries respect RLS, so guests/others only see rows they may read.
+    const reviewsChannel = supabase
+      .channel('reviews-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old?.id;
+          if (deletedId) setReviews((prev) => prev.filter((r) => r.id !== deletedId));
+          return;
+        }
+        const row = payload.new;
+        if (!row) return;
+        const item = rowToReview(row);
+        setReviews((prev) => {
+          const idx = prev.findIndex((r) => r.id === item.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...item };
+            return next;
+          }
+          return [item, ...prev];
+        });
+      })
+      .subscribe();
+
+    // Reports live sync — new location reports appear in the Admin Reported Locations
+    // tab instantly. Realtime respects RLS, so only admins receive full rows.
+    const reportsChannel = supabase
+      .channel('reports-live-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old?.id;
+          if (deletedId) setReportedLocations((prev) => prev.filter((r) => r.id !== deletedId));
+          return;
+        }
+        const row = payload.new;
+        if (!row) return;
+        const item = reportRowToItem(row);
+        setReportedLocations((prev) => {
+          const idx = prev.findIndex((r) => r.id === item.id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...item };
+            return next;
+          }
+          return [item, ...prev];
+        });
+        if (payload.eventType === 'INSERT' && isAdminLoggedIn) {
+          const reporter = row.reporter_name || 'A Trainer';
+          const isOwn = row.reporter_id === currentUserIdRef.current;
+          if (!isOwn) {
+            addNotification({
+              titleKey: 'notifications.newReportTitle',
+              messageKey: 'notifications.newReportMsg',
+              titleParam: row.location_name || 'Location',
+              messageParam: reporter,
+              icon: '🚨',
+              data: { page: 'admin' },
+            });
+          }
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
       if (usersChannel) supabase.removeChannel(usersChannel);
+      if (reviewsChannel) supabase.removeChannel(reviewsChannel);
+      if (reportsChannel) supabase.removeChannel(reportsChannel);
     };
   }, [addNotification, isAdminLoggedIn]);
 
@@ -1997,7 +2047,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     } catch (err) {
       console.warn('Resolve report DB write skipped:', err);
     }
-    showAdminToast('Report marked as RESOLVED.', 'success');
+    showAdminToast(t('admin.resolvedNoViolation'), 'success');
   };
 
   const deleteReportedLocation = async (reportId) => {
@@ -2007,17 +2057,56 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     } catch (err) {
       console.warn('Delete report DB write skipped:', err);
     }
-    showAdminToast('Reported location deleted from registry.', 'error');
+    showAdminToast(t('admin.reportDeleted'), 'error');
+  };
+
+  // Delete ALL report rows for a location at once (moderation cleanup).
+  const deleteReportedLocationBatch = async (locationName) => {
+    const lower = (locationName || '').toLowerCase();
+    setReportedLocations((prev) =>
+      prev.filter((rep) => (rep.locationName || '').toLowerCase() !== lower)
+    );
+    try {
+      await deleteReportsByLocation(locationName);
+      showAdminToast(t('admin.reportsDeleted'), 'success');
+    } catch (err) {
+      console.warn('Batch report delete DB write skipped:', err);
+      showAdminToast(t('admin.reportDeleteFailed'), 'error');
+    }
+  };
+
+  // Delete the reported COMMUNITY map (whole map + all its reports) in one go.
+  const deleteReportedMap = async ({ id, mapId, locationName }) => {
+    const mapKey = mapId || id || null;
+    const lower = (locationName || '').toLowerCase();
+    setReportedLocations((prev) =>
+      prev.filter((rep) =>
+        rep.id !== id &&
+        (mapKey ? rep.mapId !== mapKey : true) &&
+        (lower ? (rep.locationName || '').toLowerCase() !== lower : true)
+      )
+    );
+    try {
+      if (mapKey) adminDeleteCommunityMap(mapKey, 'Reported location removed');
+      if (mapKey) {
+        try { await deleteReportsByMap(mapKey); } catch (e) { console.warn('Delete reports by map skipped:', e); }
+      }
+      if (locationName) {
+        try { await deleteReportsByLocation(locationName); } catch (e) { console.warn('Delete reports by location skipped:', e); }
+      }
+      showAdminToast(t('admin.reportMapDeleted'), 'success');
+    } catch (err) {
+      console.warn('Reported map delete DB write skipped:', err);
+      showAdminToast(t('admin.reportMapDeleteFailed'), 'error');
+    }
   };
 
   // Submit a new report from a trainer (world map / details page).
   const submitReport = useCallback(async ({ reporterId, reporterName, mapId, locationName, reason, details }) => {
-    try {
-      await insertReport({ reporterId, reporterName, mapId, locationName, reason, details });
-    } catch (err) {
-      console.warn('Report submission skipped (offline/unauth):', err);
-      return false;
-    }
+    const saved = await insertReport({ reporterId, reporterName, mapId, locationName, reason, details });
+    if (!saved) return false;
+    const item = reportRowToItem(saved);
+    setReportedLocations((prev) => [item, ...prev.filter((r) => r.id !== item.id)]);
     return true;
   }, []);
 
@@ -2034,8 +2123,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       authorId: userProfile?.id || null,
       authorName: userProfile?.name || userProfile?.username || 'Traveler',
       avatar: userProfile?.avatar || null,
-      authorLevel: userProfile?.level || 1,
-      authorTitle: userProfile?.badges?.[0] || (userProfile?.role === 'admin' ? 'Ranger' : 'Trail Walker'),
+      authorRole: userProfile?.role || 'Cartographer',
       rating: Math.min(5, Math.max(1, Number(rating) || 5)),
       text: (text || '').trim(),
       images: Array.isArray(images) ? images.slice(0, 4) : [],
@@ -2047,40 +2135,105 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       createdAt: Date.now(),
     };
     setReviews((prev) => [review, ...prev]);
+    insertReview(review).catch((err) => {
+      console.warn('Review DB write skipped (offline/missing table):', err);
+    });
     return review;
   }, [userProfile, globalSettings]);
 
   const approveReview = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'approved' } : r)));
     showAdminToast('Review approved.', 'success');
+    updateReviewStatus(reviewId, 'approved').catch((err) => console.warn('Review status DB write skipped:', err));
   }, []);
 
   const hideReview = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'hidden' } : r)));
     showAdminToast('Review hidden.', 'warning');
+    updateReviewStatus(reviewId, 'hidden').catch((err) => console.warn('Review status DB write skipped:', err));
   }, []);
 
   const unhideReview = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'approved' } : r)));
     showAdminToast('Review restored.', 'success');
+    updateReviewStatus(reviewId, 'approved').catch((err) => console.warn('Review status DB write skipped:', err));
   }, []);
 
   const togglePinReview = useCallback((reviewId) => {
-    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, pinned: !r.pinned } : r)));
+    setReviews((prev) => {
+      const target = prev.find((r) => r.id === reviewId);
+      const nextPinned = !target?.pinned;
+      if (target) {
+        setReviewPinned(reviewId, nextPinned).catch((err) => console.warn('Review pin DB write skipped:', err));
+      }
+      return prev.map((r) => (r.id === reviewId ? { ...r, pinned: nextPinned } : r));
+    });
   }, []);
 
-  const deleteReview = useCallback((reviewId) => {
+  const deleteReview = useCallback((reviewId, reason = '') => {
     setReviews((prev) => prev.filter((r) => r.id !== reviewId));
     showAdminToast('Review deleted.', 'error');
+    if (reason) {
+      console.info(`[moderation] Review deleted: ${reviewId} — reason: ${reason}`);
+      try {
+        const raw = localStorage.getItem('project_travelcraft_review_deletions');
+        const list = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(list)) {
+          list.push({ id: reviewId, reason, date: Date.now() });
+          localStorage.setItem('project_travelcraft_review_deletions', JSON.stringify(list));
+        }
+      } catch {
+        // ข้ามเก็บ audit ได้ ไม่บล็อกการลบ
+      }
+    }
+    deleteReviewRow(reviewId).catch((err) => console.warn('Review delete DB write skipped:', err));
   }, []);
 
   const reportReview = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, reports: (r.reports || 0) + 1 } : r)));
+    bumpReviewCounter(reviewId, 'reports').catch((err) => console.warn('Review report DB write skipped:', err));
   }, []);
 
   const voteHelpful = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, helpful: (r.helpful || 0) + 1 } : r)));
+    bumpReviewCounter(reviewId, 'helpful').catch((err) => console.warn('Review helpful DB write skipped:', err));
   }, []);
+
+  // Hydrate shared reviews from Supabase (RLS returns approved + own + admin-all).
+  // Merges DB rows with local-only rows (offline/demo reviews whose insert
+  // never made it to the DB) so nothing vanishes. One-time backfill pushes the
+  // current user's local-authored reviews into the DB (idempotent via flag).
+  useEffect(() => {
+    if (isAuthLoading) return;
+    let cancelled = false;
+    fetchReviews()
+      .then((dbReviews) => {
+        if (cancelled || !Array.isArray(dbReviews)) return;
+        const dbIds = new Set(dbReviews.map((r) => r.id));
+        setReviews((prev) => [...dbReviews, ...prev.filter((r) => !dbIds.has(r.id))]);
+        if (userProfile?.id) {
+          try {
+            if (localStorage.getItem('reviews_backfilled') === 'true') return;
+            const localMine = loadStored('reviews', []).filter(
+              (r) => r.authorId === userProfile.id && !dbIds.has(r.id)
+            );
+            if (!localMine.length) {
+              localStorage.setItem('reviews_backfilled', 'true');
+              return;
+            }
+            Promise.all(localMine.map((r) => insertReview(r).catch(() => null))).then((res) => {
+              if (!cancelled && res.every((x) => x !== null)) {
+                try { localStorage.setItem('reviews_backfilled', 'true'); } catch { /* storage full */ }
+              }
+            });
+          } catch (err) {
+            console.warn('Review backfill skipped:', err);
+          }
+        }
+      })
+      .catch((err) => console.warn('Reviews DB hydration skipped:', err));
+    return () => { cancelled = true; };
+  }, [isAuthLoading, userProfile?.id]);
 
   const warnTrainer = (trainerIdentifier) => {
     setTrainers((prev) =>
@@ -2417,6 +2570,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         showAdminToast,
         resolveReport,
         deleteReportedLocation,
+        deleteReportedLocationBatch,
+        deleteReportedMap,
         submitReport,
         reviews,
         submitReview,
