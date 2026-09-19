@@ -113,6 +113,44 @@ export const toYouTubeEmbedUrl = (value) => {
   }
 };
 
+// Center of an element in canvas pixels (used by the navigation/route tool).
+export const getElementCenter = (elementPositions, elementId) => {
+  const position = (elementPositions || {})[elementId];
+  if (!position) return null;
+  return {
+    x: (position.left || 0) + (position.width || 0) / 2,
+    y: (position.top || 0) + (position.height || 0) / 2
+  };
+};
+
+// Build pixel-space polylines for saved routes. Each route is
+// { id, name, color, pointIds: [elementId...], visible }.
+// Routes auto-follow elements when they are moved — no stored coordinates.
+export const buildRoutePaths = (routes, elementPositions) => {
+  if (!Array.isArray(routes)) return [];
+  return routes.map((route) => {
+    const points = (Array.isArray(route.pointIds) ? route.pointIds : [])
+      .map((id) => getElementCenter(elementPositions, id))
+      .filter(Boolean);
+    return { ...route, points };
+  }).filter((route) => route.points.length >= 2);
+};
+
+// Convert saved routes into percent-space paths for published maps / viewers.
+export const deriveRoutePathsFromElements = (routes, elementPositions) => {
+  return buildRoutePaths(routes, scaleElementPositions(elementPositions) || {}).map((route) => ({
+    id: route.id,
+    name: route.name || '',
+    color: route.color || '#cc0000',
+    thickness: route.thickness || 4,
+    visible: route.visible !== false,
+    points: route.points.map((p) => ({
+      left: `${((p.x / CANVAS_WIDTH) * 100).toFixed(2)}%`,
+      top: `${((p.y / CANVAS_HEIGHT) * 100).toFixed(2)}%`
+    }))
+  }));
+};
+
 // Convert editor canvas elements + positions into world-map pins (percent coords).
 // Only elements marked `isLocation` become pins (that separates pins from plain
 // decorations). When nothing is marked yet, keep legacy behavior and turn every

@@ -1,14 +1,79 @@
-import { CANVAS_WIDTH } from '../../lib/editorCanvas';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../../lib/editorCanvas';
+const toViewBoxStroke = (thickness) => Math.max(0.2, (thickness || 4) / CANVAS_WIDTH * 600);
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../../lib/editorElements';
 
 const toPct = (value) => `${((value / CANVAS_WIDTH) * 100).toFixed(4)}%`;
 const toCqw = (value) => `${((value / CANVAS_WIDTH) * 100).toFixed(4)}cqw`;
 
-export default function MapElementsLayer({ items, onLocationClick }) {
-  if (!items || !items.length) return null;
+// Dash length used for the draw-in animation. A large value ensures
+// the whole line starts hidden and animates to fully visible.
+const DASH_LEN = 2000;
+
+// Normalize a route point (pixel {x,y} or percent {left,top}) into percent strings.
+const routePointToPct = (point) => {
+  if (!point) return null;
+  if (typeof point.x === 'number' && typeof point.y === 'number') {
+    return { left: toPct(point.x), top: `${((point.y / CANVAS_HEIGHT) * 100).toFixed(4)}%` };
+  }
+  if (point.left != null && point.top != null) {
+    const left = typeof point.left === 'number' ? toPct(point.left) : String(point.left);
+    const top = typeof point.top === 'number' ? `${((point.top / CANVAS_HEIGHT) * 100).toFixed(4)}%` : String(point.top);
+    return { left, top };
+  }
+  return null;
+};
+
+export function MapRoutesLayer({ routes }) {
+  const visible = (Array.isArray(routes) ? routes : []).filter((r) => r && r.visible !== false && Array.isArray(r.points) && r.points.length >= 2);
+  if (!visible.length) return null;
+  return (
+    <svg className="absolute inset-0 z-[4] pointer-events-none" width="100%" height="100%" viewBox={`0 0 100 100`} preserveAspectRatio="none">
+      {visible.map((route, idx) => {
+        const pts = route.points.map(routePointToPct).filter(Boolean);
+        if (pts.length < 2) return null;
+        const ptsAttr = pts.map((p) => `${parseFloat(p.left)},${parseFloat(p.top)}`).join(' ');
+        const isNavAB = route.id === 'nav-ab';
+        return (
+          <g key={route.id}>
+            {/* Shadow / outline so the line reads on any background */}
+            <polyline points={ptsAttr} fill="none" stroke="#000000" strokeWidth={2.2} opacity={0.3} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Main dashed route line (wider = easier to see) with draw-in animation */}
+            <polyline points={ptsAttr} fill="none" stroke={route.color || '#cc0000'} strokeWidth={toViewBoxStroke(route.thickness)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray={DASH_LEN}
+              strokeDashoffset={DASH_LEN}
+              className={`route-draw`}
+              style={{ animationDelay: `${idx * 0.08}s` }} />
+            {/* A → B endpoint labels */}
+            {isNavAB && pts.length >= 2 && (
+              <>
+                <circle cx={pts[0].left} cy={pts[0].top} r={1.3} fill="#16a34a" stroke="#000" strokeWidth={0.4} />
+                <text x={pts[0].left} y={(parseFloat(pts[0].top) - 1.8).toFixed(2)} textAnchor="middle" fontSize={2.6} fontWeight={900} fill="#16a34a" fontFamily="monospace">A</text>
+                <circle cx={pts[1].left} cy={pts[1].top} r={1.3} fill="#dc2626" stroke="#000" strokeWidth={0.4} />
+                <text x={pts[1].left} y={(parseFloat(pts[1].top) - 1.8).toFixed(2)} textAnchor="middle" fontSize={2.6} fontWeight={900} fill="#dc2626" fontFamily="monospace">B</text>
+              </>
+            )}
+            {/* Visit-order numbers for multi-stop routes */}
+            {!isNavAB && pts.map((p, i) => (
+              <g key={`n-${i}`}>
+                <circle cx={p.left} cy={p.top} r={0.9} fill={route.color || '#cc0000'} stroke="#000" strokeWidth={0.3} />
+                <text x={p.left} y={(parseFloat(p.top) - 1.2).toFixed(2)} textAnchor="middle" fontSize={1.4} fontWeight={900} fill="#fff" fontFamily="monospace">{i + 1}</text>
+              </g>
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+export default function MapElementsLayer({ items, onLocationClick, routes }) {
+  const hasItems = Array.isArray(items) && items.length > 0;
+  const hasRoutes = Array.isArray(routes) && routes.length > 0;
+  if (!hasItems && !hasRoutes) return null;
   return (
     <div className="absolute inset-0 z-[5] overflow-hidden pointer-events-none select-none">
-      {items.map(({ element, position }) => {
+      <MapRoutesLayer routes={routes} />
+      {(items || []).map(({ element, position }) => {
         const isEmoji = element.type === 'emoji';
         return (
           <div

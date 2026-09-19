@@ -8,15 +8,15 @@ import {
   Share2, MessageCircle, Smartphone, Copy, X, Lock, Unlock, RotateCw, Maximize, MapPin,
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
-  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Play, ChevronLeft, ChevronRight, Wand2,
-  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon, Eye
+  PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,   Play, ChevronLeft, ChevronRight, Wand2,
+  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon, Eye, Route as RouteIcon, Plus, ArrowUp, ArrowDown, ArrowLeftRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements } from '../lib/editorCanvas';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 import { mapTemplates } from '../data/templates';
 
@@ -141,6 +141,8 @@ const badgeMeta = {
 
 const drawingTools = [
   ['select', MousePointer2, 'editor.toolSelect'],
+  ['route', RouteIcon, 'editor.toolRoute'],
+  ['draw-route', PenTool, 'editor.toolDrawRoute'],
   ['pen', Pencil, 'editor.toolLine'],
   ['highlight', Minus, 'editor.toolHighlight'],
   ['rectangle', Square, 'editor.toolRect'],
@@ -204,6 +206,18 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
     ? scaleElementFontSizes(savedEditorState.elements, savedEditorState?.elementPositions).map((element) => normalizeElementFont(element))
     : []));
   const [elementPositions, setElementPositions] = useState(() => scaleElementPositions(savedEditorState?.elementPositions) || {});
+  // --- Navigation routes: ordered lists of location element ids ---
+  // Each route: { id, name, color, pointIds: [elementId], visible }
+  const [routes, setRoutes] = useState(() => (
+    Array.isArray(savedEditorState?.routes)
+      ? savedEditorState.routes.filter((r) => r && Array.isArray(r.pointIds)).map((r) => ({ visible: true, color: '#cc0000', name: '', ...r }))
+      : []
+  ));
+  const [activeRouteId, setActiveRouteId] = useState(null);
+  const nextRouteId = useRef(0);
+  // --- Quick A → B navigation: explicit start pin and destination pin ---
+  const [navStartId, setNavStartId] = useState(() => savedEditorState?.navStartId || null);
+  const [navEndId, setNavEndId] = useState(() => savedEditorState?.navEndId || null);
   const tourStops = useMemo(
     () => elements
       .map((element) => ({ element }))
@@ -214,8 +228,10 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [saveStatus, setSaveStatus] = useState('');
-  const [activeTool, setActiveTool] = useState('select');
-  const [drawingColor, setDrawingColor] = useState('#111111');
+const [activeTool, setActiveTool] = useState('select');
+const [drawingColor, setDrawingColor] = useState('#111111');
+const [routeThickness, setRouteThickness] = useState(4);
+const [liveRouteDrawing, setLiveRouteDrawing] = useState(null);
   const [zoomEditing, setZoomEditing] = useState(false);
   const [zoomInputValue, setZoomInputValue] = useState('');
 const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || editorSetup?.title || t('editor.untitledMap'));
@@ -255,13 +271,22 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
 
   const pushHistory = () => {
-    setHistory((previous) => [...previous, { elements, elementPositions }]);
+    setHistory((previous) => [...previous, { elements, elementPositions, routes, navStartId, navEndId }]);
     setFuture([]);
   };
+
+  // Drop A/B references to an element that no longer exists as a location.
+  const pruneNavForElement = useCallback((elementId) => {
+    if (navStartId === elementId) setNavStartId(null);
+    if (navEndId === elementId) setNavEndId(null);
+  }, [navStartId, navEndId]);
 
   const editorDraftState = {
     elements,
     elementPositions,
+    routes,
+    navStartId,
+    navEndId,
     selectedTemplate,
     backgroundImage,
     mapTitle,
@@ -518,12 +543,55 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }
   };
 
-  useEffect(() => {
-    liveDrawingRef.current = liveDrawing;
-  }, [liveDrawing]);
+   useEffect(() => {
+     liveDrawingRef.current = liveDrawing;
+   }, [liveDrawing]);
 
-  useEffect(() => {
-    if (!liveDrawing) return undefined;
+   const liveRouteRef = useRef(null);
+   useEffect(() => {
+     liveRouteRef.current = liveRouteDrawing;
+   }, [liveRouteDrawing]);
+
+   useEffect(() => {
+     if (!liveRouteDrawing) return undefined;
+     const handlePointerMove = (event) => {
+       const rect = viewportRef.current.getBoundingClientRect();
+       const x = (event.clientX - rect.left - camera.x) / camera.scale;
+       const y = (event.clientY - rect.top - camera.y) / camera.scale;
+       setLiveRouteDrawing((prev) => prev ? {
+         ...prev,
+         points: [...prev.points, { x, y }],
+         minX: Math.min(prev.minX, x), maxX: Math.max(prev.maxX, x),
+         minY: Math.min(prev.minY, y), maxY: Math.max(prev.maxY, y)
+       } : prev);
+     };
+     const handlePointerUp = () => {
+       const draw = liveRouteRef.current;
+       if (draw && draw.points.length >= 2) {
+         pushHistory();
+         nextRouteId.current += 1;
+         const id = `route-${Date.now()}-${nextRouteId.current}`;
+         setRoutes((prev) => [...prev, {
+           id,
+           name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
+           color: draw.color || drawingColor,
+           points: [...draw.points],
+           thickness: draw.thickness || routeThickness,
+           visible: true
+         }]);
+       }
+       setLiveRouteDrawing(null);
+     };
+     window.addEventListener('pointermove', handlePointerMove);
+     window.addEventListener('pointerup', handlePointerUp);
+     return () => {
+       window.removeEventListener('pointermove', handlePointerMove);
+       window.removeEventListener('pointerup', handlePointerUp);
+     };
+   }, [liveRouteDrawing, camera.scale, drawingColor, routeThickness]);
+
+   useEffect(() => {
+     if (!liveDrawing) return undefined;
     const handlePointerMove = (event) => {
       const rect = viewportRef.current.getBoundingClientRect();
       const x = (event.clientX - rect.left - camera.x) / camera.scale;
@@ -554,16 +622,21 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       if (!selectedElement || (event.target instanceof HTMLInputElement) || (event.target instanceof HTMLTextAreaElement)) return;
       if (event.key === 'p' || event.key === 'P') {
         event.preventDefault();
-        setHistory((previous) => [...previous, { elements, elementPositions }]);
+        setHistory((previous) => [...previous, { elements, elementPositions, routes }]);
         setFuture([]);
+        const turningOff = elements.find((element) => element.id === selectedElement)?.isLocation === true;
         setElements((previous) => previous.map((element) =>
           element.id === selectedElement ? { ...element, isLocation: !element.isLocation } : element
         ));
+        if (turningOff) {
+          setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) })));
+          pruneNavForElement(selectedElement);
+        }
         return;
       }
       if (event.key !== 'Delete' && event.key !== 'Backspace') return;
       event.preventDefault();
-      setHistory((previous) => [...previous, { elements, elementPositions }]);
+      setHistory((previous) => [...previous, { elements, elementPositions, routes, navStartId, navEndId }]);
       setFuture([]);
       setElements((previous) => previous.filter((element) => element.id !== selectedElement));
       setElementPositions((previous) => {
@@ -571,12 +644,25 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         delete next[selectedElement];
         return next;
       });
+      setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) })));
+      pruneNavForElement(selectedElement);
       setSelectedElement(null);
     };
 
-    window.addEventListener('keydown', handleDeleteKey);
-    return () => window.removeEventListener('keydown', handleDeleteKey);
-  }, [selectedElement, elements, elementPositions]);
+     window.addEventListener('keydown', handleDeleteKey);
+     return () => window.removeEventListener('keydown', handleDeleteKey);
+   }, [selectedElement, elements, elementPositions, routes, navStartId, navEndId, pruneNavForElement]);
+
+   // Cancel live free-route drawing on Escape
+   useEffect(() => {
+     const handleKeyDown = (event) => {
+       if (event.key === 'Escape' && liveRouteDrawing) {
+         setLiveRouteDrawing(null);
+       }
+     };
+     window.addEventListener('keydown', handleKeyDown);
+     return () => window.removeEventListener('keydown', handleKeyDown);
+   }, [liveRouteDrawing]);
 
   // Register a fresh map as an openable draft (runs once on open).
   useEffect(() => {
@@ -628,23 +714,28 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
   const clearBackground = () => setBackgroundImage('');
 
-  const handleWorldPointerDown = (event) => {
-    setTourActive(false);
-    setContextMenuElementId(null);
-    const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool);
-    if (isDrawTool && event.target === event.currentTarget) {
-      event.stopPropagation();
-      const rect = viewportRef.current.getBoundingClientRect();
-      const x = (event.clientX - rect.left - camera.x) / camera.scale;
-      const y = (event.clientY - rect.top - camera.y) / camera.scale;
-      setLiveDrawing({ tool: activeTool, points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y });
-      return;
-    }
-    // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
-    if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
-      startPan(event.clientX, event.clientY);
-    }
-  };
+   const handleWorldPointerDown = (event) => {
+     setTourActive(false);
+     setContextMenuElementId(null);
+     const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool);
+     const isRouteDraw = activeTool === 'draw-route';
+     if ((isDrawTool || isRouteDraw) && event.target === event.currentTarget) {
+       event.stopPropagation();
+       const rect = viewportRef.current.getBoundingClientRect();
+       const x = (event.clientX - rect.left - camera.x) / camera.scale;
+       const y = (event.clientY - rect.top - camera.y) / camera.scale;
+       if (isRouteDraw) {
+         setLiveRouteDrawing({ tool: 'route', points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y, color: drawingColor, thickness: routeThickness });
+         return;
+       }
+       setLiveDrawing({ tool: activeTool, points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y });
+       return;
+     }
+     // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
+     if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
+       startPan(event.clientX, event.clientY);
+     }
+   };
 
   // Auto-save on edit or open (debounced).
   useEffect(() => {
@@ -652,6 +743,9 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       persistEditorStateRef.current(mapId, {
         elements,
         elementPositions,
+        routes,
+        navStartId,
+        navEndId,
         selectedTemplate,
         backgroundImage,
         mapTitle,
@@ -666,7 +760,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
+  }, [elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
 
   useEffect(() => {
     tourCameraRef.current = camera;
@@ -742,9 +836,12 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const undo = () => {
     const previous = history[history.length - 1];
     if (!previous) return;
-    setFuture((current) => [...current, { elements, elementPositions }]);
+    setFuture((current) => [...current, { elements, elementPositions, routes, navStartId, navEndId }]);
     setElements(previous.elements);
     setElementPositions(previous.elementPositions);
+    if (Array.isArray(previous.routes)) setRoutes(previous.routes);
+    if ('navStartId' in previous) setNavStartId(previous.navStartId);
+    if ('navEndId' in previous) setNavEndId(previous.navEndId);
     setHistory((current) => current.slice(0, -1));
     setSelectedElement(null);
   };
@@ -752,9 +849,12 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const redo = () => {
     const next = future[future.length - 1];
     if (!next) return;
-    setHistory((current) => [...current, { elements, elementPositions }]);
+    setHistory((current) => [...current, { elements, elementPositions, routes, navStartId, navEndId }]);
     setElements(next.elements);
     setElementPositions(next.elementPositions);
+    if (Array.isArray(next.routes)) setRoutes(next.routes);
+    if ('navStartId' in next) setNavStartId(next.navStartId);
+    if ('navEndId' in next) setNavEndId(next.navEndId);
     setFuture((current) => current.slice(0, -1));
     setSelectedElement(null);
   };
@@ -840,6 +940,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       delete next[selectedElement];
       return next;
     });
+    setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) })));
+    pruneNavForElement(selectedElement);
     setSelectedElement(null);
   };
 
@@ -852,10 +954,15 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
 
   const togglePinSelectedElement = () => {
     if (!selectedElement) return;
+    const turningOff = selectedData?.isLocation === true;
     pushHistory();
     setElements((previous) => previous.map((element) =>
       element.id === selectedElement ? { ...element, isLocation: !element.isLocation } : element
     ));
+    if (turningOff) {
+      setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) })));
+      pruneNavForElement(selectedElement);
+    }
   };
 
   const handlePinToolbarClick = () => {
@@ -927,11 +1034,21 @@ id: mapId,
       tags: Array.isArray(updates.tags) ? updates.tags : [],
       privacy: updates.privacy,
       pins: publishedPins,
+      routes: deriveRoutePathsFromElements(routes, elementPositions),
+      navAB: navABPoints ? {
+        startId: navStartId,
+        endId: navEndId,
+        thickness: routeThickness,
+        points: navABPoints.map((p) => ({
+          left: `${((p.x / CANVAS_WIDTH) * 100).toFixed(2)}%`,
+          top: `${((p.y / CANVAS_HEIGHT) * 100).toFixed(2)}%`
+        }))
+      } : null,
       editorState: editorDraftState
     };
 
 if (updates.privacy === 'private') {
-      localStorage.setItem('project_travelcraft_editor_draft', JSON.stringify({ elements, elementPositions, selectedTemplate, ...mapData }));
+      localStorage.setItem('project_travelcraft_editor_draft', JSON.stringify({ elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, ...mapData }));
       setSaveStatus(t('editor.statusPrivateSaved'));
       setShowPublishModal(false);
       return;
@@ -1123,6 +1240,151 @@ if (updates.privacy === 'private') {
     return won;
   };
 
+  // ---------- Navigation routes (connect location pins in order) ----------
+  const locationElements = useMemo(() => elements.filter((el) => el.isLocation), [elements]);
+  const routePaths = useMemo(() => buildRoutePaths(routes, elementPositions), [routes, elementPositions]);
+  const activeRoute = routes.find((r) => r.id === activeRouteId) || null;
+
+  const createRoute = () => {
+    pushHistory();
+    nextRouteId.current += 1;
+    // eslint-disable-next-line react-hooks/purity -- unique id for event-handler created route (not render)
+    const id = `route-${Date.now()}-${nextRouteId.current}`;
+    const route = {
+      id,
+      name: `${t('editor.routeDefaultName')} ${routes.length + 1}`,
+      color: '#cc0000',
+      pointIds: [],
+      visible: true
+    };
+    setRoutes((prev) => [...prev, route]);
+    setActiveRouteId(id);
+    setActiveTool('route');
+  };
+
+  const connectAllLocationsInOrder = () => {
+    if (locationElements.length < 2) return;
+    pushHistory();
+    nextRouteId.current += 1;
+    const id = `route-${Date.now()}-${nextRouteId.current}`;
+    setRoutes((prev) => [...prev, {
+      id,
+      name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
+      color: '#cc0000',
+      pointIds: locationElements.map((el) => el.id),
+      visible: true
+    }]);
+    setActiveRouteId(id);
+  };
+
+  const handleRoutePointClick = (elementId) => {
+    const element = elements.find((el) => el.id === elementId);
+    if (!element?.isLocation) {
+      setSaveStatus(t('editor.routeNeedLocation'));
+      return;
+    }
+    let targetId = activeRouteId;
+    if (!targetId || !routes.some((r) => r.id === targetId)) {
+      // auto-create a route on first click so the tool works in one step
+      nextRouteId.current += 1;
+      // eslint-disable-next-line react-hooks/purity -- unique id for event-handler created route (not render)
+      targetId = `route-${Date.now()}-${nextRouteId.current}`;
+      pushHistory();
+      setRoutes((prev) => [...prev, {
+        id: targetId,
+        name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
+        color: '#cc0000',
+        pointIds: [elementId],
+        visible: true
+      }]);
+      setActiveRouteId(targetId);
+      setSelectedElement(elementId);
+      return;
+    }
+    pushHistory();
+    setRoutes((prev) => prev.map((route) => {
+      if (route.id !== targetId) return route;
+      // clicking the last point again removes it (easy undo of a misclick)
+      if (route.pointIds[route.pointIds.length - 1] === elementId) {
+        return { ...route, pointIds: route.pointIds.slice(0, -1) };
+      }
+      if (route.pointIds.includes(elementId)) return route;
+      return { ...route, pointIds: [...route.pointIds, elementId] };
+    }));
+    setSelectedElement(elementId);
+  };
+
+  const moveRoutePoint = (routeId, index, direction) => {
+    pushHistory();
+    setRoutes((prev) => prev.map((route) => {
+      if (route.id !== routeId) return route;
+      const next = [...route.pointIds];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return route;
+      [next[index], next[target]] = [next[target], next[index]];
+      return { ...route, pointIds: next };
+    }));
+  };
+
+  const removeRoutePoint = (routeId, index) => {
+    pushHistory();
+    setRoutes((prev) => prev.map((route) => (
+      route.id === routeId ? { ...route, pointIds: route.pointIds.filter((_, i) => i !== index) } : route
+    )));
+  };
+
+  const deleteRoute = (routeId) => {
+    pushHistory();
+    setRoutes((prev) => prev.filter((route) => route.id !== routeId));
+    if (activeRouteId === routeId) setActiveRouteId(null);
+  };
+
+  // ---------- Quick A → B navigation ----------
+  // Plain render-time lookup (two object reads) — no memo needed.
+  const navABStart = (navStartId && navStartId !== navEndId) ? elementPositions[navStartId] : null;
+  const navABEnd = (navEndId && navStartId !== navEndId) ? elementPositions[navEndId] : null;
+  const navABPoints = (navABStart && navABEnd) ? [
+    { x: (navABStart.left || 0) + (navABStart.width || 0) / 2, y: (navABStart.top || 0) + (navABStart.height || 0) / 2 },
+    { x: (navABEnd.left || 0) + (navABEnd.width || 0) / 2, y: (navABEnd.top || 0) + (navABEnd.height || 0) / 2 }
+  ] : null;
+
+  const setNavPoint = (role, elementId) => {
+    if (!elementId) {
+      pushHistory();
+      if (role === 'start') setNavStartId(null);
+      else setNavEndId(null);
+      return;
+    }
+    const element = elements.find((el) => el.id === elementId);
+    if (!element?.isLocation) {
+      setSaveStatus(t('editor.routeNeedLocation'));
+      return;
+    }
+    pushHistory();
+    if (role === 'start') {
+      // picking the current destination as start swaps the two ends
+      if (elementId === navEndId) setNavEndId(navStartId);
+      setNavStartId(elementId);
+    } else {
+      if (elementId === navStartId) setNavStartId(navEndId);
+      setNavEndId(elementId);
+    }
+  };
+
+  const swapNavAB = () => {
+    if (!navStartId && !navEndId) return;
+    pushHistory();
+    setNavStartId(navEndId);
+    setNavEndId(navStartId);
+  };
+
+  const clearNavAB = () => {
+    if (!navStartId && !navEndId) return;
+    pushHistory();
+    setNavStartId(null);
+    setNavEndId(null);
+  };
+
   const handleToolAction = (tool) => {
     if (tool === 'eraser') {
       setActiveTool('eraser');
@@ -1134,11 +1396,24 @@ if (updates.privacy === 'private') {
         delete next[selectedElement];
         return next;
       });
+      // keep routes valid when an element is erased
+      setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) })));
+      pruneNavForElement(selectedElement);
       setSelectedElement(null);
       return;
     }
     if (tool === 'select') {
       setActiveTool('select');
+      return;
+    }
+    if (tool === 'route') {
+      setActiveTool('route');
+      if (!routes.length) createRoute();
+      else if (!activeRouteId) setActiveRouteId(routes[0].id);
+      return;
+    }
+    if (tool === 'draw-route') {
+      setActiveTool('draw-route');
       return;
     }
     setActiveTool(tool);
@@ -1221,6 +1496,12 @@ if (updates.privacy === 'private') {
     pushHistory();
     setElements(Array.isArray(state.elements) ? scaleElementFontSizes(state.elements, state.elementPositions).map((element) => normalizeElementFont(element)) : []);
     setElementPositions(scaleElementPositions(state.elementPositions) || {});
+    if (Array.isArray(state.routes)) {
+      setRoutes(state.routes.filter((r) => r && Array.isArray(r.pointIds)).map((r) => ({ visible: true, color: '#cc0000', name: '', ...r })));
+      setActiveRouteId(null);
+    }
+    setNavStartId(typeof state.navStartId === 'string' ? state.navStartId : null);
+    setNavEndId(typeof state.navEndId === 'string' ? state.navEndId : null);
     if (typeof state.selectedTemplate === 'string') setSelectedTemplate(state.selectedTemplate);
     if (typeof state.backgroundImage === 'string') setBackgroundImage(state.backgroundImage);
     if (typeof state.mapTitle === 'string') setMapTitle(state.mapTitle);
@@ -1290,6 +1571,7 @@ if (updates.privacy === 'private') {
         @keyframes editorShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
         .editor-anim-float { animation: editorFloat 2.4s ease-in-out infinite; }
         @keyframes editorFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes drawRoute { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
       `}</style>
       
       {/* TOP NAVBAR */}
@@ -1837,13 +2119,108 @@ if (updates.privacy === 'private') {
                   ))}
                 </div>
 <div className="border-t-2 border-black pt-3 space-y-2">
-                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.color')}</label>
-                  <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
-                    <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.chooseColor')}</span>
-                    <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
-                  </label>
-                </div>
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.color')}</label>
+                   <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                     <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.chooseColor')}</span>
+                     <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
+                   </label>
+                 </div>
+                 {activeTool === 'draw-route' && (
+                   <div className="border-t-2 border-black pt-3 space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.routeThickness')}</label>
+                     <input type="range" min="1" max="20" value={routeThickness} onChange={(e) => setRouteThickness(Number(e.target.value))} className="w-full accent-[#cc0000]" />
+                     <div className="flex items-center justify-between">
+                       <span className="text-[9px] text-gray-400">1</span>
+                       <span className="text-[10px] font-black text-emerald-600">{routeThickness}px</span>
+                       <span className="text-[9px] text-gray-400">20</span>
+                     </div>
+                   </div>
+                 )}
+                                 {/* --- Navigation routes manager --- */}
                 <div className="border-t-2 border-black pt-3 space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.routesTitle')}</label>
+                  {/* --- Quick A → B navigation --- */}
+                  <div className="border-2 border-black rounded-lg p-2 space-y-2 bg-sky-50">
+                    <p className="font-black text-[11px]">🧭 {t('editor.navABTitle')}</p>
+                    {locationElements.length === 0 && (
+                      <p className="text-[10px] font-bold text-red-600 leading-tight border-2 border-dashed border-red-300 rounded p-1.5 bg-white">{t('editor.navNoLocations')}</p>
+                    )}
+                    <label className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-emerald-500 border-2 border-black text-white text-[10px] font-black flex items-center justify-center shrink-0">A</span>
+                      <select value={navStartId || ''} onChange={(e) => setNavPoint('start', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white">
+                        <option value="">{t('editor.navSelectStart')}</option>
+                        {locationElements.map((el) => (
+                          <option key={el.id} value={el.id}>{el.locationDetails?.name || getElementLabel(el)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-red-600 border-2 border-black text-white text-[10px] font-black flex items-center justify-center shrink-0">B</span>
+                      <select value={navEndId || ''} onChange={(e) => setNavPoint('end', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white">
+                        <option value="">{t('editor.navSelectEnd')}</option>
+                        {locationElements.map((el) => (
+                          <option key={el.id} value={el.id}>{el.locationDetails?.name || getElementLabel(el)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={swapNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <ArrowLeftRight className="w-3 h-3" /> {t('editor.navSwap')}
+                      </button>
+                      <button type="button" onClick={clearNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-red-50 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <X className="w-3 h-3" /> {t('editor.navClear')}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.routesHelper')}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={createRoute} className="flex items-center justify-center gap-1.5 border-2 border-black bg-emerald-400 rounded-lg px-2 py-2 font-black text-[10px] uppercase hover:bg-emerald-500">
+                      <Plus className="w-3.5 h-3.5" /> {t('editor.routeNew')}
+                    </button>
+                    <button type="button" onClick={connectAllLocationsInOrder} disabled={locationElements.length < 2} className="flex items-center justify-center gap-1.5 border-2 border-black bg-amber-300 rounded-lg px-2 py-2 font-black text-[10px] uppercase hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <RouteIcon className="w-3.5 h-3.5" /> {t('editor.routeConnectAll')}
+                    </button>
+                  </div>
+                  {routes.length === 0 ? (
+                    <p className="text-[10px] text-gray-400 font-bold text-center italic py-2 border-2 border-dashed border-gray-300 rounded">{t('editor.routesEmpty')}</p>
+                  ) : routes.map((route) => (
+                    <div key={route.id} className={`border-2 rounded-lg p-2 space-y-2 ${activeRouteId === route.id ? 'border-black bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-gray-300 bg-white'}`}>
+                      <button type="button" onClick={() => { setActiveRouteId(route.id); setActiveTool('route'); }} className="w-full flex items-center gap-2 text-left">
+                        <span className="w-4 h-4 rounded-full border-2 border-black shrink-0" style={{ backgroundColor: route.color }} />
+                        <span className="font-black text-[11px] truncate flex-1">{route.name}</span>
+                        <span className="text-[9px] font-black text-gray-500 shrink-0">{route.pointIds.length} {t('editor.routePoints')}</span>
+                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <input type="color" value={route.color || '#cc0000'} onChange={(e) => { pushHistory(); setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, color: e.target.value } : r)); }} className="h-6 w-8 cursor-pointer border border-black bg-transparent p-0 shrink-0" title={t('editor.color')} />
+                        <input type="text" value={route.name} onChange={(e) => setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, name: e.target.value } : r))} className="min-w-0 flex-1 border border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none" />
+                        <button type="button" onClick={() => { pushHistory(); setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, visible: r.visible === false ? true : false } : r)); }} title={t('editor.routeToggle')} className="w-6 h-6 flex items-center justify-center border border-black rounded hover:bg-gray-100 shrink-0">
+                          <Eye className={`w-3.5 h-3.5 ${route.visible === false ? 'text-gray-300' : ''}`} />
+                        </button>
+                        <button type="button" onClick={() => deleteRoute(route.id)} title={t('editor.delete')} className="w-6 h-6 flex items-center justify-center border border-black rounded hover:bg-red-50 text-red-600 shrink-0">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {activeRouteId === route.id && (
+                        <div className="space-y-1 max-h-36 overflow-y-auto">
+                          {route.pointIds.length === 0 && <p className="text-[9px] text-gray-400 font-bold italic">{t('editor.routeClickHint', { name: route.name })}</p>}
+                          {route.pointIds.map((pid, idx) => {
+                            const el = elements.find((e) => e.id === pid);
+                            return (
+                              <div key={`${pid}-${idx}`} className="flex items-center gap-1 bg-white border border-black rounded px-1.5 py-1">
+                                <span className="w-4 h-4 rounded-full text-white text-[8px] font-black flex items-center justify-center shrink-0" style={{ backgroundColor: route.color }}>{idx + 1}</span>
+                                <span className="text-[9px] font-bold truncate flex-1">{el ? (el.locationDetails?.name || getElementLabel(el)) : pid}</span>
+                                <button type="button" onClick={() => moveRoutePoint(route.id, idx, -1)} disabled={idx === 0} className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
+                                <button type="button" onClick={() => moveRoutePoint(route.id, idx, 1)} disabled={idx === route.pointIds.length - 1} className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
+                                <button type="button" onClick={() => removeRoutePoint(route.id, idx)} className="p-0.5 hover:bg-red-50 rounded text-red-600"><X className="w-3 h-3" /></button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+<div className="border-t-2 border-black pt-3 space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.actions')}</label>
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={undo} disabled={!history.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
@@ -1855,7 +2232,7 @@ if (updates.privacy === 'private') {
                     <button type="button" onClick={fitView} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100">
                       <Maximize className="w-4 h-4" /> {t('editor.fitView')}
                     </button>
-                    <button type="button" onClick={() => { pushHistory(); setElements([]); setElementPositions({}); setSelectedElement(null); setContextMenuElementId(null); }} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase text-red-600 hover:bg-red-50">
+                    <button type="button" onClick={() => { pushHistory(); setElements([]); setElementPositions({}); setRoutes([]); setActiveRouteId(null); setNavStartId(null); setNavEndId(null); setSelectedElement(null); setContextMenuElementId(null); }} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase text-red-600 hover:bg-red-50">
                       <Trash2 className="w-4 h-4" /> {t('editor.clearCanvas')}
                     </button>
                   </div>
@@ -2003,6 +2380,45 @@ if (updates.privacy === 'private') {
                 {t(activeTemplate.labelKey)}
               </div>
 
+              {/* Navigation routes overlay — dashed paths connecting location pins */}
+              <svg className="absolute inset-0 z-[5] pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}>
+                {routePaths.filter((route) => route.visible !== false).map((route) => {
+                  const pts = route.points.map((p) => `${p.x},${p.y}`).join(' ');
+                  return (
+                    <g key={route.id}>
+                      <polyline points={pts} fill="none" stroke="#000000" strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" opacity={0.25} />
+                      <polyline points={pts} fill="none" stroke={route.color || '#cc0000'} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="28 18" />
+                      {route.points.map((p, idx) => (
+                        <g key={`${route.id}-n-${idx}`}>
+                          <circle cx={p.x} cy={p.y} r={34} fill={route.color || '#cc0000'} stroke="#000" strokeWidth={6} />
+                          <text x={p.x} y={p.y + 16} textAnchor="middle" fontSize={40} fontWeight={900} fill="#fff" fontFamily="monospace">{idx + 1}</text>
+                        </g>
+                      ))}
+                    </g>
+                  );
+                })}
+                {navABPoints && (
+                  <g>
+                    <polyline points={navABPoints.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#000000" strokeWidth={16} strokeLinecap="round" opacity={0.25} />
+                    <polyline points={navABPoints.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#ffffff" strokeWidth={9} strokeLinecap="round" strokeDasharray="30 20" />
+                    <polyline points={navABPoints.map((p) => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#16a34a" strokeWidth={4} strokeLinecap="round" strokeDasharray="30 20" />
+                    <g>
+                      <circle cx={navABPoints[0].x} cy={navABPoints[0].y} r={44} fill="#16a34a" stroke="#000" strokeWidth={7} />
+                      <text x={navABPoints[0].x} y={navABPoints[0].y + 20} textAnchor="middle" fontSize={52} fontWeight={900} fill="#fff" fontFamily="monospace">A</text>
+                    </g>
+                    <g>
+                      <circle cx={navABPoints[1].x} cy={navABPoints[1].y} r={44} fill="#dc2626" stroke="#000" strokeWidth={7} />
+                      <text x={navABPoints[1].x} y={navABPoints[1].y + 20} textAnchor="middle" fontSize={52} fontWeight={900} fill="#fff" fontFamily="monospace">B</text>
+                    </g>
+                  </g>
+                )}
+              </svg>
+              {activeTool === 'route' && activeRoute && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-black text-white border-2 border-white px-3 py-1.5 text-[11px] font-black rounded-full shadow-lg pointer-events-none whitespace-nowrap">
+                  {t('editor.routeClickHint', { name: activeRoute.name })} · {activeRoute.pointIds.length} {t('editor.routePoints')}
+                </div>
+              )}
+
               {selectedElement && selectedData && selectedPosition && (
                 <div className="absolute z-40 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
                   <div className="flex items-center gap-1">
@@ -2118,6 +2534,13 @@ if (updates.privacy === 'private') {
                   }} onDragOver={element.type === 'shape' ? (event) => event.preventDefault() : undefined}
                   onDrop={element.type === 'shape' ? (event) => addElementIntoShape(event, element) : undefined}
                   onPointerDown={(event) => {
+                    // Route tool: click pins in order to connect them, no dragging
+                    if (activeTool === 'route') {
+                      event.stopPropagation();
+                      setTourActive(false);
+                      handleRoutePointClick(element.id);
+                      return;
+                    }
                     const now = Date.now();
                     const quickRepeat = now - lastClickRef.current < 350;
                     lastClickRef.current = now;
@@ -2249,30 +2672,45 @@ if (updates.privacy === 'private') {
                 );
               })}
 
-              {liveDrawing && (
-                <svg className="absolute z-20 pointer-events-none overflow-visible"
-                  style={{ left: Math.min(liveDrawing.minX, liveDrawing.maxX), top: Math.min(liveDrawing.minY, liveDrawing.maxY), width: Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX)), height: Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY)) }}>
-                  {liveDrawing.tool === 'rectangle' || liveDrawing.tool === 'circle' || liveDrawing.tool === 'grid' ? (
-                    <rect x={0} y={0} width={Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX))} height={Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY))}
-                      fill={liveDrawing.tool === 'grid' ? 'none' : 'none'}
-                      stroke={drawingColor}
-                      strokeWidth={4 / camera.scale}
-                      strokeDasharray={liveDrawing.tool === 'grid' ? '6 6' : undefined}
-                      rx={liveDrawing.tool === 'circle' ? '9999' : 0}
-                    />
-                  ) : (
-                    <polyline
-                      points={liveDrawing.points.map((p) => `${p.x - Math.min(liveDrawing.minX, liveDrawing.maxX)},${p.y - Math.min(liveDrawing.minY, liveDrawing.maxY)}`).join(' ')}
-                      fill="none"
-                      stroke={drawingColor}
-                      strokeWidth={(liveDrawing.tool === 'highlight' ? 60 : 8) / camera.scale}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      opacity={liveDrawing.tool === 'highlight' ? 0.4 : 1}
-                    />
-                  )}
-                </svg>
-              )}
+               {liveDrawing && (
+                 <svg className="absolute z-20 pointer-events-none overflow-visible"
+                   style={{ left: Math.min(liveDrawing.minX, liveDrawing.maxX), top: Math.min(liveDrawing.minY, liveDrawing.maxY), width: Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX)), height: Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY)) }}>
+                   {liveDrawing.tool === 'rectangle' || liveDrawing.tool === 'circle' || liveDrawing.tool === 'grid' ? (
+                     <rect x={0} y={0} width={Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX))} height={Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY))}
+                       fill={liveDrawing.tool === 'grid' ? 'none' : 'none'}
+                       stroke={drawingColor}
+                       strokeWidth={4 / camera.scale}
+                       strokeDasharray={liveDrawing.tool === 'grid' ? '6 6' : undefined}
+                       rx={liveDrawing.tool === 'circle' ? '9999' : 0}
+                     />
+                   ) : (
+                     <polyline
+                       points={liveDrawing.points.map((p) => `${p.x - Math.min(liveDrawing.minX, liveDrawing.maxX)},${p.y - Math.min(liveDrawing.minY, liveDrawing.maxY)}`).join(' ')}
+                       fill="none"
+                       stroke={drawingColor}
+                       strokeWidth={(liveDrawing.tool === 'highlight' ? 60 : 8) / camera.scale}
+                       strokeLinecap="round"
+                       strokeLinejoin="round"
+                       opacity={liveDrawing.tool === 'highlight' ? 0.4 : 1}
+                     />
+                   )}
+                 </svg>
+               )}
+
+               {/* Live free-route drawing preview */}
+               {liveRouteDrawing && (
+                 <svg className="absolute inset-0 z-20 pointer-events-none overflow-visible"
+                   width={CANVAS_WIDTH} height={CANVAS_HEIGHT} viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}>
+                   <polyline points={liveRouteDrawing.points.map((p) => `${p.x},${p.y}`).join(' ')}
+                     fill="none"
+                     stroke={liveRouteDrawing.color || drawingColor}
+                     strokeWidth={(liveRouteDrawing.thickness || routeThickness) / camera.scale}
+                     strokeLinecap="round"
+                     strokeLinejoin="round"
+                     strokeDasharray="12 8"
+                     opacity={0.85} />
+                 </svg>
+               )}
             </div>
           </div>
 
@@ -2292,7 +2730,7 @@ if (updates.privacy === 'private') {
 
           {/* Pan hint */}
           <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
-            {['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool) ? t('editor.drawHint') : t('editor.panHint')}
+            {activeTool === 'route' ? t('editor.routeHint') : ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool) ? t('editor.drawHint') : t('editor.panHint')}
           </div>
 
           {/* Zoom Control */}
@@ -2365,7 +2803,7 @@ if (updates.privacy === 'private') {
                     <button type="button" onClick={() => setLocationModalOpen(true)} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-amber-400 text-black py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-500 active:translate-y-0.5 active:shadow-none">
                       <Pencil className="w-3.5 h-3.5" /> {t('editor.editLocation')}
                     </button>
-                    <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); setLocationModalOpen(false); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
+                    <button type="button" onClick={() => { pushHistory(); setElements((prev) => prev.map((el) => el.id === selectedElement ? { ...el, isLocation: false } : el)); setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== selectedElement) }))); pruneNavForElement(selectedElement); setLocationModalOpen(false); }} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-red-50 text-red-700 py-2 rounded text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-100 active:translate-y-0.5 active:shadow-none">
                       <X className="w-3.5 h-3.5" /> {t('editor.unmarkLocation')}
                     </button>
                   </>
@@ -2679,8 +3117,10 @@ if (updates.privacy === 'private') {
                     <span className="font-black text-[10px] truncate">{loc.locationDetails?.name || getElementLabel(loc)}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('start', navStartId === loc.id ? null : loc.id); }} title={t('editor.navSetStart')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navStartId === loc.id ? 'bg-emerald-500 text-white' : 'bg-white hover:bg-emerald-100'}`}>A</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('end', navEndId === loc.id ? null : loc.id); }} title={t('editor.navSetEnd')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navEndId === loc.id ? 'bg-red-600 text-white' : 'bg-white hover:bg-red-100'}`}>B</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedElement(loc.id); setLocationModalOpen(true); }} title={t('editor.editLocation')} className="p-1 hover:bg-gray-100 rounded border border-transparent hover:border-black"><Pencil className="w-3 h-3 text-blue-600" /></button>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); pushHistory(); setElements(prev => prev.map(el => el.id === loc.id ? { ...el, isLocation: false, locationDetails: undefined } : el)); if (selectedElement === loc.id) setSelectedElement(null); }} className="p-1 hover:bg-red-50 rounded border border-transparent hover:border-black" title={t('editor.unmarkLocationTitle')}><X className="w-3 h-3 text-red-600" /></button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); pushHistory(); setElements(prev => prev.map(el => el.id === loc.id ? { ...el, isLocation: false, locationDetails: undefined } : el)); setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== loc.id) }))); pruneNavForElement(loc.id); if (selectedElement === loc.id) setSelectedElement(null); }} className="p-1 hover:bg-red-50 rounded border border-transparent hover:border-black" title={t('editor.unmarkLocationTitle')}><X className="w-3 h-3 text-red-600" /></button>
                   </div>
                 </div>
               ))}

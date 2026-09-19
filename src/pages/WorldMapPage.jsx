@@ -9,7 +9,7 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -117,6 +117,9 @@ export default function WorldMapPage() {
           {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
 <MapElementsLayer
             items={mapElements}
+            routes={mapRoutes}
+            navStartId={navStartId}
+            navEndId={navEndId}
             onLocationClick={(elementId) => {
               const pin = mapPins.find((item) => item.id === `editor-${elementId}`);
               if (pin) setSelectedPin(pin);

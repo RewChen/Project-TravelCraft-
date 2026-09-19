@@ -25,6 +25,19 @@ html.dark body {
   color: #f1f5f9;
 }
 
+@keyframes drawRoute {
+  from { stroke-dashoffset: 2000; }
+  to { stroke-dashoffset: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes drawRoute {
+    from { stroke-dashoffset: 0; }
+    to { stroke-dashoffset: 0; }
+  }
+}
+.route-draw {
+  animation: drawRoute 1.2s ease-out forwards;
+}
 @layer utilities {
   /* Scroll-reveal: เลื่อนลงมาแล้วค่อยเฟด + ลอยขึ้น (ใช้คู่กับ <Reveal/>) */
   .tc-reveal {

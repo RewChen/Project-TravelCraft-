@@ -24,7 +24,7 @@ import {
   uploadUserAssetFile,
   dataUrlToFile
 } from '../lib/supabaseUserAssets';
-import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps } from '../lib/editorCanvas';
+import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps, buildRoutePaths } from '../lib/editorCanvas';
 
 const AppContext = createContext();
 
@@ -905,6 +905,9 @@ export const AppProvider = ({ children }) => {
   const [mapBackgroundImage, setMapBackgroundImage] = useState(() => loadStored('mapBgImage', null));
   const [mapCanvasStyle, setMapCanvasStyle] = useState(null);
   const [mapElements, setMapElements] = useState([]);
+  const [mapRoutes, setMapRoutes] = useState([]);
+  const [navStartId, setNavStartId] = useState(null);
+  const [navEndId, setNavEndId] = useState(null);
   const [favorites, setFavorites] = useState(() => loadStored('favorites', ['Eiffel Tower']));
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
@@ -1593,6 +1596,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     setMapBackgroundImage(null);
     setMapCanvasStyle(null);
     setMapElements([]);
+    setMapRoutes([]);
+    setNavStartId(null);
+    setNavEndId(null);
     setMapPins(initialPins);
     setSelectedPin(initialPins[0]);
     setActiveCommunityMap(null);
@@ -1641,6 +1647,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     // stalling on the previous page during the network round-trip.
     setActiveCommunityMap(null);
     setMapElements([]);
+    setMapRoutes([]);
+    setNavStartId(null);
+    setNavEndId(null);
     setMapPins([]);
     setSelectedPin(null);
     setMapBackgroundImage(null);
@@ -1665,7 +1674,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       setActiveCommunityMap(item);
 
       if (cached && isFull) {
-        // Cache hit: reuse the derived element layer, pins and background.
+        // Cache hit: reuse the derived element layer, pins, routes and background.
         if (cached.bg) {
           setMapBackgroundImage(cached.bg);
         } else {
@@ -1673,6 +1682,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         }
         setMapCanvasStyle(cached.canvasStyle);
         setMapElements(cached.layerItems);
+        setMapRoutes(cached.routes || []);
+        setNavStartId(cached.navStartId || null);
+        setNavEndId(cached.navEndId || null);
         setMapPins(cached.pins);
         setSelectedPin(cached.pins.length ? cached.pins[0] : null);
         return;
@@ -1733,8 +1745,41 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       setMapPins(resolvedPins);
       setSelectedPin(pins.length ? pins[0] : null);
 
+      // Navigation routes: prefer the editor's ordered point lists (they
+      // auto-follow moved pins); fall back to published percent paths.
+      let computedRoutes = [];
+      try {
+        if (Array.isArray(editor.routes) && editor.routes.length) {
+          computedRoutes = buildRoutePaths(editor.routes, scaledPositions);
+        } else if (Array.isArray(item.routes) && item.routes.length) {
+          computedRoutes = item.routes;
+        }
+         // Quick A → B navigation: explicit start pin and destination pin.
+         const navStart = scaledPositions[editor.navStartId];
+         const navEnd = scaledPositions[editor.navEndId];
+         if (editor.navStartId && editor.navEndId && navStart && navEnd) {
+           computedRoutes = [...computedRoutes, {
+             id: 'nav-ab',
+             name: 'A → B',
+             color: '#16a34a',
+             thickness: 6,
+             points: [
+               { x: (navStart.left || 0) + (navStart.width || 0) / 2, y: (navStart.top || 0) + (navStart.height || 0) / 2 },
+               { x: (navEnd.left || 0) + (navEnd.width || 0) / 2, y: (navEnd.top || 0) + (navEnd.height || 0) / 2 }
+             ]
+           }];
+         } else if (Array.isArray(item.navAB?.points) && item.navAB.points.length >= 2) {
+           computedRoutes = [...computedRoutes, { id: 'nav-ab', name: 'A → B', color: '#16a34a', thickness: item.navAB.thickness || 6, points: item.navAB.points }];
+         }
+      } catch {
+        computedRoutes = [];
+      }
+      setMapRoutes(computedRoutes);
+      setNavStartId(editor.navStartId || null);
+      setNavEndId(editor.navEndId || null);
+
       // Remember the computed view so reopening this map is instant.
-      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, bg, canvasStyle });
+      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, routes: computedRoutes, navStartId: editor.navStartId, navEndId: editor.navEndId, bg, canvasStyle });
     } finally {
       if (mapLoadToken.current === mapId) setMapViewLoading(false);
     }
@@ -2365,9 +2410,12 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         resetMapBackgroundImage,
         mapCanvasStyle,
         setMapCanvasStyle,
-        mapElements,
-        mapPins,
-        setMapPins,
+         mapElements,
+         mapRoutes,
+         navStartId,
+         navEndId,
+         mapPins,
+         setMapPins,
         selectedPin,
         setSelectedPin,
         communityMaps,
