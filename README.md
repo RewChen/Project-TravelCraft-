@@ -33,7 +33,7 @@
 ## 🛠 Tech Stack (เทคโนโลยีที่ใช้)
 *   **Frontend:** React.js, Vue.js HTML5 Canvas API Web Game Library Phaser.js
 *   **Backend:** Node.js, Express.js
-*   **Database:** SQLite
+*   **Database:** SQLite Supabase
 *   **Language:** TypeScript
 *   ***DevOps & Infrastructure:** Docker, GitLab CI/CD, AWS EC2
 *   **Validation:** Zod
