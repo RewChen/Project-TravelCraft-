@@ -22,18 +22,13 @@ export default function LocationHero() {
   const coverImage = resolveRealCoverImage(selectedLocation);
   const [coverFailed, setCoverFailed] = useState(false);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
-<<<<<<< HEAD
-  const [mediaTab, setMediaTab] = useState('photo');
+  const [mediaTab, setMediaTab] = useState('photo'); // photo | video
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const displayCover = coverFailed ? fallbackImage : coverImage;
-=======
-  const [mediaTab, setMediaTab] = useState('photo'); // photo | video
   const hasCover = Boolean(coverImage);
   const displayCover = coverFailed ? null : coverImage;
->>>>>>> 72acfbf (feat(editor): overhaul route curving, eraser tool, and z-index layering)
   const videoSrc = useMemo(() => toEmbedUrl(selectedLocation?.videoUrl), [selectedLocation]);
   const hasVideo = Boolean(videoSrc);
   const isFileVideo = typeof selectedLocation?.videoUrl === 'string' && selectedLocation.videoUrl.startsWith('data:video/');
