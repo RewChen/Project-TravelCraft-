@@ -31,6 +31,7 @@ export const mapItemSummary = (item) => {
     authorBadgeColor: item.authorBadgeColor || null,
     authorRole: item.authorRole || null,
     previewBackground: item.previewBackground || null,
+    bgThemeUrl: item.bgThemeUrl || item.editorState?.backgroundImage || null,
     details: {
       title: details.title || item.title || null,
       region: details.region || null,
@@ -84,6 +85,7 @@ export const summaryToItem = (row) => {
     authorBadgeColor: s.authorBadgeColor || 'bg-[#cc0000]',
     authorRole: s.authorRole || 'Cartographer',
     previewBackground: s.previewBackground || null,
+    bgThemeUrl: s.bgThemeUrl || null,
     details: d,
     _summaryOnly: true
   };

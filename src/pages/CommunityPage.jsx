@@ -3,7 +3,7 @@ import { Search, Eye, Trash2, MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
 import Reveal from '../components/motion/Reveal';
-import { resolveCardBackground } from '../lib/imageUtils';
+import { resolveCardBackground, isDefaultCover } from '../lib/imageUtils';
 import { PRESET_TAG_META as presetTagMeta } from '../lib/tags';
 
 // Older maps may carry placeholder region values (never display those).
@@ -172,7 +172,7 @@ export default function CommunityPage() {
               className="h-56 bg-sky-200 border-b-4 border-black relative overflow-hidden flex items-center justify-center cursor-pointer group"
               title={t('community.trackTooltip')}
             >
-              {mapItem.imageUrl ? (
+              {mapItem.imageUrl && !isDefaultCover(mapItem.imageUrl) ? (
                 <img
                   src={mapItem.imageUrl}
                   alt={mapItem.title}

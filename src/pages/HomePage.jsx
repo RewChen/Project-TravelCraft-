@@ -3,7 +3,7 @@ import { Play, Search, Footprints, ArrowUp, Eye, MapPin, ArrowRight, Users, Plus
 import { useApp } from '../context/AppContext';
 import { fetchMapById } from '../lib/supabaseMaps';
 import Reveal from '../components/motion/Reveal';
-import { resolveCardBackground } from '../lib/imageUtils';
+import { resolveCardBackground, isDefaultCover } from '../lib/imageUtils';
 
 export default function HomePage() {
   const { navigateTo, communityMaps, trackMapOnWorldMap, userProfile, t } = useApp();
@@ -119,7 +119,7 @@ export default function HomePage() {
         <div className="relative min-h-[320px] bg-sky-200 bg-[radial-gradient(#4895ef_1px,transparent_1px)] [background-size:16px_16px] overflow-hidden flex flex-col">
           {heroMap ? (
             <>
-              {heroMap.imageUrl ? (
+              {heroMap.imageUrl && !isDefaultCover(heroMap.imageUrl) ? (
                 <img src={heroMap.imageUrl} alt={heroMap.title} className="absolute inset-0 w-full h-full object-cover" />
               ) : resolveCardBackground(heroMap) ? (
                 <div role="img" aria-label={heroMap.title} className="absolute inset-0 w-full h-full" style={resolveCardBackground(heroMap)} />
@@ -281,7 +281,7 @@ export default function HomePage() {
                   className="relative h-44 bg-sky-200 border-b-4 border-black overflow-hidden flex items-center justify-center cursor-pointer group"
                   title={t('community.trackTooltip')}
                 >
-                  {mapItem.imageUrl ? (
+                  {mapItem.imageUrl && !isDefaultCover(mapItem.imageUrl) ? (
                     <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : resolveCardBackground(mapItem) ? (
                     <div role="img" aria-label={mapItem.title} className="w-full h-full group-hover:scale-105 transition-transform duration-300" style={resolveCardBackground(mapItem)} />

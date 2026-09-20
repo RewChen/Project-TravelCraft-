@@ -55,6 +55,11 @@ export default function WorldMapPage() {
                 {t('worldMap.customMapActive')}
               </span>
             )}
+            {!mapBackgroundImage && mapCanvasStyle && (
+              <span className="inline-block text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full mt-1">
+                {t('worldMap.customMapActive')}
+              </span>
+            )}
             <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans">
               {t('worldMap.clickDetailsHint')}
             </p>
@@ -93,7 +98,7 @@ export default function WorldMapPage() {
             <img 
               src={mapBackgroundImage} 
               alt={t('worldMap.bgAlt')} 
-              className="absolute inset-0 w-full h-full object-cover z-0" 
+              className="absolute inset-0 w-full h-full object-fill z-0" 
             />
           ) : mapCanvasStyle ? (
             <div
@@ -181,7 +186,7 @@ export default function WorldMapPage() {
         {/* Badge in Bottom Right */}
         <div className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur border-2 border-black rounded-lg px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs font-bold">
           <ImageIcon className="w-4 h-4 text-red-600" />
-          <span>{mapBackgroundImage ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
+          <span>{mapBackgroundImage || mapCanvasStyle ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>
       </div>
 

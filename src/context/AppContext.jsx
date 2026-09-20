@@ -20,7 +20,7 @@ import {
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import { uploadAvatar } from '../lib/supabaseAvatar';
 import { fetchReviews, insertReview, updateReviewStatus, setReviewPinned, deleteReviewRow, bumpReviewCounter, rowToReview } from '../lib/supabaseReviews';
-import { fileToDataUrl, compressForUpload } from '../lib/imageUtils';
+import { fileToDataUrl, compressForUpload, isImageSrc, resolveCardBackground } from '../lib/imageUtils';
 import {
   fetchUserAssets,
   insertUserAsset,
@@ -1756,30 +1756,34 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       }
 
       const editor = item.editorState || {};
-      // The user's editor background (latest edit) wins over any legacy bgThemeUrl.
-      const editorBackground = typeof editor.backgroundImage === 'string' && editor.backgroundImage ? editor.backgroundImage : null;
-      const bg = editorBackground || item.bgThemeUrl || null;
-      if (bg) {
-        setMapBackgroundImage(bg);
-      } else {
-        setMapBackgroundImage(null);
-      }
-      // Template CSS background (used when the map has no uploaded background image).
       const preview = item.previewBackground || {};
+      // Derive the world-map background from the SAME source the Community/Home
+      // cards use (resolveCardBackground) so the map can never show a different
+      // background than the card for that location. Image backgrounds (uploaded
+      // photos / template art) are rendered as an <img> stretched to the square
+      // canvas exactly like the editor's 4000x4000, so pinned elements line up.
+      const cardStyle = resolveCardBackground(item) || null;
+      let bg = null;
       let canvasStyle = null;
-      if (preview.backgroundColor || (preview.backgroundImage && preview.backgroundImage !== 'none')) {
-        canvasStyle = {
-          backgroundColor: preview.backgroundColor || '#ffffff',
-          backgroundImage: preview.backgroundImage === 'none' ? undefined : preview.backgroundImage
-        };
-        // ส่ง longhand ของรูปต่อด้วย ไม่งั้นรูป template จะ tile จากมุมซ้ายบน
-        for (const key of ['backgroundSize', 'backgroundPosition', 'backgroundRepeat']) {
-          if (typeof preview[key] === 'string' && preview[key]) canvasStyle[key] = preview[key];
-        }
-        setMapCanvasStyle(canvasStyle);
-      } else {
-        setMapCanvasStyle(null);
+      const previewBgRaw = typeof preview.backgroundImage === 'string' ? preview.backgroundImage.trim() : '';
+      const isPreviewImage = Boolean(previewBgRaw && previewBgRaw !== 'none' && !previewBgRaw.includes('gradient'));
+      if (isPreviewImage) {
+        const inner = previewBgRaw.match(/^url\(\s*["']?([^"')]+)["']?\s*\)/i);
+        bg = inner ? inner[1] : previewBgRaw;
+      } else if (cardStyle) {
+        canvasStyle = cardStyle;
       }
+      // Legacy maps published before previewBackground embedded the real image:
+      // fall back to the editor's own background / bgThemeUrl.
+      if (!bg && !canvasStyle) {
+        const legacyImage = (typeof editor.backgroundImage === 'string' && editor.backgroundImage) ? editor.backgroundImage : (item.bgThemeUrl || null);
+        if (isImageSrc(legacyImage)) {
+          bg = legacyImage;
+          canvasStyle = null;
+        }
+      }
+      setMapBackgroundImage(bg);
+      setMapCanvasStyle(canvasStyle);
       // Rebuild pins straight from the editor elements so the world map
       // shows exactly what the user placed (works for drafts too).
       const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
@@ -2003,7 +2007,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       rarity,
       rarityColor: rarityColorForTier(rarity),
       category: newCommunityMap.category || 'landmarks',
-      imageUrl: newCommunityMap.imageUrl || 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80',
+      imageUrl: newCommunityMap.imageUrl || null,
       videoUrl: newCommunityMap.videoUrl || null,
       previewBackground: newCommunityMap.previewBackground || null,
       isEditorMap: Boolean(newCommunityMap.isEditorMap),
