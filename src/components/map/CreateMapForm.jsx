@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import {
   X, ImagePlus, MapPin, Clock3, CircleDollarSign, Sun, Train,
-  Tag, Check, ChevronDown
+  Tag, Check, ChevronDown, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { uploadMapCover } from '../../lib/supabaseUploads';
-import { compressForUpload } from '../../lib/imageUtils';
+import { compressForUpload, coverCropRect, rectCropToCanvas } from '../../lib/imageUtils';
 import { PRESET_TAGS as presetTags } from '../../lib/tags';
 
 const privacyOptions = [
@@ -45,8 +45,8 @@ const hoursOptions = [
 ];
 
 const travelOptions = [
-  '🚶 Walking', '🚲 Bicycle', '🛵 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
-  '🚇 Metro', '🚢 Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
+  '๐ถ Walking', '๐ฒ Bicycle', '๐ต Scooter', '๐— Car', '๐• Taxi', '๐ Bus', '๐ Train',
+  '๐ Metro', '๐ข Ferry', 'โ๏ธ Flight', '๐ Helicopter', '๐ Elephant', 'โต Boat', '๐ Community Gateway'
 ];
 
 export default function CreateMapForm({ onSubmit, onClose }) {
@@ -70,6 +70,17 @@ export default function CreateMapForm({ onSubmit, onClose }) {
     tags: [],
     privacy: 'public'
   });
+
+  const viewportRef = useRef(null);
+  const imgRef = useRef(null);
+  const dragRef = useRef(null);
+  const zoomRef = useRef(1);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const sizeRef = useRef({ w: 0, h: 0 });
+  const [coverZoom, setCoverZoom] = useState(1);
+  const [coverOffset, setCoverOffset] = useState({ x: 0, y: 0 });
+  const [coverImgEl, setCoverImgEl] = useState(null);
+  const [coverBox, setCoverBox] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -111,8 +122,136 @@ export default function CreateMapForm({ onSubmit, onClose }) {
       if (prev) URL.revokeObjectURL(prev);
       return previewUrl;
     });
+    zoomRef.current = 1;
+    offsetRef.current = { x: 0, y: 0 };
+    sizeRef.current = { w: 0, h: 0 };
+    setCoverImgEl(null);
+    setCoverBox({ w: 0, h: 0 });
+    setCoverZoom(1);
+    setCoverOffset({ x: 0, y: 0 });
     event.target.value = '';
   };
+
+  const clampOffsetFor = (zoom, x, y) => {
+    const img = imgRef.current;
+    const { w, h } = sizeRef.current;
+    if (!img || !w || !h) return { x: 0, y: 0 };
+    const iw = img.naturalWidth || 0;
+    const ih = img.naturalHeight || 0;
+    if (!iw || !ih) return { x: 0, y: 0 };
+    const scale = Math.max(w / iw, h / ih) * zoom;
+    const maxX = Math.max(0, iw * scale - w) / 2;
+    const maxY = Math.max(0, ih * scale - h) / 2;
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
+  };
+
+  const commitCrop = (zoom, offset) => {
+    zoomRef.current = zoom;
+    offsetRef.current = offset;
+    setCoverZoom(zoom);
+    setCoverOffset({ ...offset });
+  };
+
+  const setZoomed = useCallback((nextZoom) => {
+    const zoom = Math.max(1, Math.min(4, nextZoom));
+    commitCrop(zoom, clampOffsetFor(zoom, offsetRef.current.x, offsetRef.current.y));
+  }, []);
+
+  const resetCrop = () => commitCrop(1, { x: 0, y: 0 });
+
+  const startCoverDrag = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current = { startX: event.clientX, startY: event.clientY, baseX: offsetRef.current.x, baseY: offsetRef.current.y };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const moveCoverDrag = (event) => {
+    if (!dragRef.current) return;
+    const offset = clampOffsetFor(zoomRef.current, dragRef.current.baseX + (event.clientX - dragRef.current.startX), dragRef.current.baseY + (event.clientY - dragRef.current.startY));
+    offsetRef.current = offset;
+    setCoverOffset({ ...offset });
+  };
+
+  const endCoverDrag = () => { dragRef.current = null; };
+
+  const handleCoverLoaded = () => {
+    const el = imgRef.current;
+    if (el) setCoverImgEl(el);
+    const vp = viewportRef.current;
+    if (vp) {
+      const rect = vp.getBoundingClientRect();
+      sizeRef.current = { w: Math.round(rect.width) || 0, h: Math.round(rect.height) || 0 };
+      setCoverBox(sizeRef.current);
+    }
+    offsetRef.current = clampOffsetFor(zoomRef.current, offsetRef.current.x, offsetRef.current.y);
+    setCoverOffset({ ...offsetRef.current });
+  };
+
+  const handleRemoveCover = () => {
+    dragRef.current = null;
+    zoomRef.current = 1;
+    offsetRef.current = { x: 0, y: 0 };
+    sizeRef.current = { w: 0, h: 0 };
+    setCoverFile(null);
+    setCoverPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return ''; });
+    setCoverImgEl(null);
+    setCoverBox({ w: 0, h: 0 });
+    setCoverZoom(1);
+    setCoverOffset({ x: 0, y: 0 });
+  };
+
+  const loadImageFromBlob = (blob) => new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+
+  const bakeCoverFile = async () => {
+    const base = await compressForUpload(coverFile);
+    const img = await loadImageFromBlob(base);
+    const { w, h } = sizeRef.current;
+    if (!img || !img.naturalWidth || !w || !h) return base;
+    const ratio = Math.max(w, 1) / Math.max(h, 1);
+    const targetH = Math.max(1, Math.round(1280 / ratio));
+    const result = await rectCropToCanvas({
+      img,
+      viewportW: w,
+      viewportH: h,
+      offsetX: offsetRef.current.x,
+      offsetY: offsetRef.current.y,
+      zoom: zoomRef.current,
+      outputW: 1280,
+      outputH: targetH
+    });
+    if (!result.blob) return base;
+    const ext = (result.blob.type || 'image/webp').split('/')[1] || 'webp';
+    return new File([result.blob], `cover.${ext}`, { type: result.blob.type || 'image/webp' });
+  };
+
+  useLayoutEffect(() => {
+    if (!coverPreview || !viewportRef.current) return;
+    const el = viewportRef.current;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      sizeRef.current = { w: Math.round(rect.width) || 0, h: Math.round(rect.height) || 0 };
+      setCoverBox(sizeRef.current);
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(el);
+    const onWheel = (event) => {
+      event.preventDefault();
+      setZoomed(zoomRef.current + (event.deltaY < 0 ? 0.15 : -0.15));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => {
+      if (ro) ro.disconnect();
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, [coverPreview, setZoomed]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -122,7 +261,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
     if (coverFile) {
       setUploading(true);
       try {
-        const small = await compressForUpload(coverFile, { maxWidth: 1280, quality: 0.8 });
+        const small = await bakeCoverFile();
         imageUrl = await uploadMapCover(mapId, small || coverFile);
       } catch (err) {
         console.warn('Cover upload failed; continuing without image:', err);
@@ -143,6 +282,21 @@ export default function CreateMapForm({ onSubmit, onClose }) {
     ? countries.filter((country) => country.toLowerCase().includes(query))
     : countries;
 
+  const { displayW: dispWpx, displayH: dispHpx, displayLeft: dispLeftPx, displayTop: dispTopPx } = (() => {
+    const { w, h } = coverBox;
+    if (coverImgEl && coverImgEl.naturalWidth && w && h) {
+      return coverCropRect({
+        img: coverImgEl,
+        viewportW: w,
+        viewportH: h,
+        offsetX: coverOffset.x,
+        offsetY: coverOffset.y,
+        zoom: coverZoom
+      });
+    }
+    return { displayW: '100%', displayH: '100%', displayLeft: 0, displayTop: 0 };
+  })();
+
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
       <form onSubmit={handleSubmit} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
@@ -160,21 +314,65 @@ export default function CreateMapForm({ onSubmit, onClose }) {
             </div>
 
             <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverSelect} className="hidden" />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-black rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-amber-50 transition-colors relative overflow-hidden min-h-32"
-            >
-              {coverPreview ? (
-                <img src={coverPreview} alt={t('myMaps.coverPreviewAlt')} className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <>
-                  <ImagePlus className="w-8 h-8 text-red-600" />
-                  <span className="text-xs font-black uppercase">{t('myMaps.coverImage')}</span>
-                  <span className="text-[9px] text-gray-500 font-bold">{t('myMaps.coverImagePh')}</span>
-                </>
-              )}
-            </button>
+
+            {coverPreview ? (
+              <div className="relative">
+                <div
+                  ref={viewportRef}
+                  className="relative w-full overflow-hidden border-2 border-black bg-gray-100 touch-none select-none cursor-grab active:cursor-grabbing"
+                  onPointerDown={startCoverDrag}
+                  onPointerMove={moveCoverDrag}
+                  onPointerUp={endCoverDrag}
+                  onPointerCancel={endCoverDrag}
+                >
+                  <div className="aspect-video w-full" />
+                  <div
+                    className="absolute top-0 left-0"
+                    style={{
+                      width: dispWpx,
+                      height: dispHpx,
+                      transform: `translate(${dispLeftPx}px, ${dispTopPx}px)`
+                    }}
+                  >
+                    <img
+                      ref={(el) => { imgRef.current = el; }}
+                      src={coverPreview}
+                      onLoad={handleCoverLoaded}
+                      alt={t('myMaps.coverPreviewAlt')}
+                      draggable={false}
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  </div>
+                </div>
+                <div className="absolute top-1.5 left-1/2 -translate-x-1/2 pointer-events-none bg-black/60 text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full whitespace-nowrap">
+                  {t('myMaps.dragToReposition')}
+                </div>
+                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1">
+                  <button type="button" title={t('myMaps.changeCover')} onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 px-2 py-1 bg-[#cc0000] text-white border-2 border-black rounded text-[9px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <ImagePlus className="w-3 h-3" /> {t('myMaps.changeCover')}
+                  </button>
+                  <button type="button" title={t('myMaps.removeCover')} onClick={handleRemoveCover} className="flex items-center gap-1 px-2 py-1 bg-white text-red-600 border-2 border-black rounded text-[9px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
+                  <button type="button" title={t('myMaps.zoomOut')} onClick={() => setZoomed(zoomRef.current - 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomOut className="w-3.5 h-3.5" /></button>
+                  <span className="text-[9px] font-black bg-white/80 border border-black px-1.5 py-0.5 rounded">{Math.round(coverZoom * 100)}%</span>
+                  <button type="button" title={t('myMaps.zoomIn')} onClick={() => setZoomed(zoomRef.current + 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomIn className="w-3.5 h-3.5" /></button>
+                  <button type="button" title={t('myMaps.resetCover')} onClick={resetCrop} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><RotateCcw className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-black rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-amber-50 transition-colors relative overflow-hidden min-h-32"
+              >
+                <ImagePlus className="w-8 h-8 text-red-600" />
+                <span className="text-xs font-black uppercase">{t('myMaps.coverImage')}</span>
+                <span className="text-[9px] text-gray-500 font-bold">{t('myMaps.coverImagePh')}</span>
+              </button>
+            )}
             {uploadError && <p className="mt-1 text-[10px] text-red-600 font-bold">{uploadError}</p>}
 
             <div className="mt-4 relative" ref={countryRef}>
@@ -194,7 +392,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
               {showCountryList && (
                 <div className="absolute z-10 mt-1 w-full bg-white border-2 border-black max-h-52 overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   {filteredCountries.length === 0 ? (
-                    <div className="p-3 text-[11px] font-bold text-gray-500 text-center">— {t('myMaps.noCountries')} —</div>
+                    <div className="p-3 text-[11px] font-bold text-gray-500 text-center">โ€” {t('myMaps.noCountries')} โ€”</div>
                   ) : filteredCountries.map((country) => (
                     <button
                       type="button"
@@ -334,7 +532,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
         <div className="p-4 bg-gray-100 border-t-4 border-black flex justify-end gap-2 sticky bottom-0">
           <button type="button" onClick={onClose} disabled={uploading} className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase">{t('common.cancel')}</button>
           <button type="submit" disabled={uploading} className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 disabled:opacity-50">
-            {uploading ? t('myMaps.uploading') : `🚀 ${t('myMaps.createMap')}`}
+            {uploading ? t('myMaps.uploading') : `๐€ ${t('myMaps.createMap')}`}
           </button>
         </div>
       </form>
