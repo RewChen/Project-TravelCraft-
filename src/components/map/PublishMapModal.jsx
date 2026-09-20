@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { PRESET_TAGS as presetTags } from '../../lib/tags';
+import EditableCover from './EditableCover';
 
 const getYouTubeEmbedUrl = (value) => {
   try {
@@ -46,7 +47,6 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
   const [selfieUrls, setSelfieUrls] = useState(Array.isArray(initial.selfieUrls) ? [...initial.selfieUrls] : []);
   const [selfieError, setSelfieError] = useState('');
 
-  const coverInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
 
@@ -83,29 +83,6 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
     const next = tags.filter((existing) => existing.toLowerCase() !== tag.toLowerCase());
     setTags(next);
     notify({ tags: next });
-  };
-
-  const handleCoverUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setCoverError(t('editor.onlyImage'));
-      event.target.value = '';
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      setCoverError(t('editor.imageTooLarge'));
-      event.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCoverImage(reader.result);
-      setCoverError('');
-      notify({ imageUrl: reader.result });
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
   };
 
   const handleVideoUpload = (event) => {
@@ -210,34 +187,12 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
           {/* Cover Image — used as the map cover shown in the Community feed */}
           <div>
             <label className="block text-xs font-black uppercase mb-1.5">{t('editor.mapCover')}</label>
-            <input ref={coverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCoverUpload} className="hidden" />
-            <div className="flex gap-2 items-start">
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                className="shrink-0 border-2 border-black rounded bg-amber-400 hover:bg-amber-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
-              >
-                <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')}
-              </button>
-              <div className="flex-1 min-w-0">
-                {coverImage ? (
-                  <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
-                    <img src={coverImage} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => { setCoverImage(''); notify({ imageUrl: '' }); }}
-                      className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
-                      title={t('editor.removeCover')}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.coverHelper')}</p>
-                )}
-                {coverError && <p className="mt-1 text-[10px] text-red-600 font-bold">{coverError}</p>}
-              </div>
-            </div>
+            <EditableCover
+              value={coverImage}
+              onApply={(url) => { setCoverImage(url); setCoverError(''); notify({ imageUrl: url }); }}
+              onRemove={() => { setCoverImage(''); setCoverError(''); notify({ imageUrl: '' }); }}
+            />
+            {coverError && <p className="mt-1 text-[10px] text-red-600 font-bold">{coverError}</p>}
           </div>
           <div>
             <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1"><Tag className="w-3.5 h-3.5 text-[#cc0000]" /> {t('myMaps.tagsTitle')}</label>
