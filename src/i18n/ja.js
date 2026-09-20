@@ -567,6 +567,10 @@ export default {
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} ビデオツアー',
     reportLocation: '通報',
+    gallery: 'ギャラリー',
+    mainImage: 'メイン',
+    bgImage: '背景',
+    selfie: 'セルフィー',
   },
   profile: {
     lockedTitle: 'トレーナープロフィールはロック中',

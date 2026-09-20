@@ -52,7 +52,7 @@ export default function ReviewModal({ location, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => onClose(null)}>
+    <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => onClose(null)}>
       <div className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
         <div className="bg-amber-400 border-b-4 border-black px-4 py-3 flex items-center justify-between">
           <div className="min-w-0">

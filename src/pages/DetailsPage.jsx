@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import LocationHero from '../components/details/LocationHero';
+import LocationImageSlider from '../components/details/LocationImageSlider';
 import LocationLore from '../components/details/LocationLore';
 import TravelerLogs from '../components/details/TravelerLogs';
 import LocationReviews from '../components/reviews/LocationReviews';
@@ -31,6 +32,9 @@ export default function DetailsPage() {
       {/* Top Hero Banner (รูป+วิดีโอสลับในปกเดียว) */}
       <Reveal>
         <LocationHero />
+      </Reveal>
+      <Reveal delay={60}>
+        <LocationImageSlider />
       </Reveal>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

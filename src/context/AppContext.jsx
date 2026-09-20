@@ -854,28 +854,33 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
+   useEffect(() => {
     // Initial session check
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setIsLoggedIn(true);
-        setUserProfile(createFallbackProfile(session.user));
-        await fetchUserProfile(session.user.id);
-      } else {
-        const saved = loadStored('session', null);
-        if (saved && saved.profile) {
-          const storedAvatar = getStoredAvatar();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
           setIsLoggedIn(true);
-          setIsAdminLoggedIn(saved.type === 'admin');
-          setUserProfile(storedAvatar ? { ...saved.profile, avatar: storedAvatar } : saved.profile);
-          if (saved.adminUser) {
-            setAdminUser(saved.adminUser);
-          }
+          setUserProfile(createFallbackProfile(session.user));
+          await fetchUserProfile(session.user.id);
         } else {
-          setIsLoggedIn(false);
-          setUserProfile(null);
+          const saved = loadStored('session', null);
+          if (saved && saved.profile) {
+            const storedAvatar = getStoredAvatar();
+            setIsLoggedIn(true);
+            setIsAdminLoggedIn(saved.type === 'admin');
+            setUserProfile(storedAvatar ? { ...saved.profile, avatar: storedAvatar } : saved.profile);
+            if (saved.adminUser) {
+              setAdminUser(saved.adminUser);
+            }
+          } else {
+            setIsLoggedIn(false);
+            setUserProfile(null);
+          }
         }
+      } catch {
+        setIsLoggedIn(false);
+        setUserProfile(null);
       }
       setIsAuthLoading(false); // Done loading
     };

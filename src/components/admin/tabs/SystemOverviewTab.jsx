@@ -273,7 +273,7 @@ export default function SystemOverviewTab() {
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
             <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
               <Trash2 className="w-5 h-5" />

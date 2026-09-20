@@ -566,6 +566,10 @@ export default {
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} 视频导览',
     reportLocation: '举报',
+    gallery: '图库',
+    mainImage: '主图',
+    bgImage: '背景',
+    selfie: '自拍',
   },
   profile: {
     lockedTitle: '旅行者资料已锁定',

@@ -13,7 +13,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
       <div className="bg-white border-4 border-black rounded-2xl w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
         {/* Modal Header */}
         <div className="bg-amber-400 text-black p-4 border-b-4 border-black flex items-center justify-between">

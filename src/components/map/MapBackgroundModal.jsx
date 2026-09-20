@@ -53,7 +53,7 @@ export default function MapBackgroundModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-mono">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 font-mono">
       <div className="bg-white border-4 border-black rounded-2xl w-full max-w-xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Header */}

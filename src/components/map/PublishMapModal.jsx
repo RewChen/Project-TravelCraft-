@@ -169,7 +169,7 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <form onSubmit={(event) => { event.preventDefault(); handleSubmit(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
         <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
           <h2 className="font-black uppercase tracking-wide">{t('editor.publishTitle')}</h2>

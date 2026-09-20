@@ -566,6 +566,10 @@ export default {
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} 비디오 투어',
     reportLocation: '신고',
+    gallery: '갤러리',
+    mainImage: '메인',
+    bgImage: '배경',
+    selfie: '셀피',
   },
   profile: {
     lockedTitle: '트레이너 프로필 잠김',

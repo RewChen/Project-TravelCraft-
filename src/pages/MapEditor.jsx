@@ -1824,7 +1824,7 @@ if (updates.privacy === 'private') {
         const previewTemplate = mapTemplates.find((item) => item.id === previewTemplateId);
         if (!previewTemplate) return null;
         return (
-          <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setPreviewTemplateId(null)}>
+          <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPreviewTemplateId(null)}>
             <div className="w-full max-w-2xl bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black">
                 <h3 className="font-black text-sm uppercase">{t(previewTemplate.labelKey)}</h3>
@@ -1878,7 +1878,7 @@ if (updates.privacy === 'private') {
       )}
 
       {showBadgeCelebration && (
-        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setShowBadgeCelebration(false)}>
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowBadgeCelebration(false)}>
           <div className="w-full max-w-sm bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 text-center" onClick={(event) => event.stopPropagation()}>
             <div className="text-4xl mb-1">🎉</div>
             <h3 className="font-black uppercase text-sm">{t('editor.badgeUnlocked')}</h3>

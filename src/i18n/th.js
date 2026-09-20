@@ -588,6 +588,10 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: 'วิดีโอทัวร์ {title}',
     reportLocation: 'รายงาน',
+    gallery: 'แกลเลอรี่',
+    mainImage: 'รูปหลัก',
+    bgImage: 'รูปพื้นหลัง',
+    selfie: 'เซลฟี่',
   },
   profile: {
     lockedTitle: 'โปรไฟล์นักเดินทางถูกล็อก',

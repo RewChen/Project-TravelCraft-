@@ -588,6 +588,10 @@ export default {
     mediaFeatured: 'FEATURED LANDMARK',
     mediaVideoTitle: '{title} video tour',
     reportLocation: 'Report',
+    gallery: 'Gallery',
+    mainImage: 'Main',
+    bgImage: 'Background',
+    selfie: 'Selfie',
   },
   profile: {
     lockedTitle: 'Trainer Profile Locked',
