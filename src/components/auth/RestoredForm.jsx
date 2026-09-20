@@ -9,9 +9,9 @@ export default function RestoredForm() {
       <div className="w-12 h-12 bg-red-600 border-2 border-black rounded-lg mx-auto flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
         <Check className="w-6 h-6 text-white stroke-[3]" />
       </div>
-      <h3 className="font-black text-sm uppercase tracking-wider">{t('auth.restoredTitle')}</h3>
+      <h3 className="font-black text-sm uppercase tracking-wider">{t('auth.resetSentTitle')}</h3>
       <p className="text-[10px] text-gray-600 font-sans leading-tight">
-        {t('auth.restoredDesc')}
+        {t('auth.resetSentDesc')}
       </p>
       <button 
         onClick={() => setAuthMode('login')} 

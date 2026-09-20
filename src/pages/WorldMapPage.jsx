@@ -9,7 +9,7 @@ import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapCanvasWidth, mapCanvasHeight, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -48,7 +48,7 @@ export default function WorldMapPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-black uppercase break-words line-clamp-2">
-              {activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle')}
+              {mapViewLoading ? t('worldMap.loadingMap') : (activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle'))}
             </h2>
             {mapBackgroundImage && (
               <span className="inline-block text-[10px] bg-amber-400 text-black border border-black px-2 py-0.5 rounded-full mt-1">
@@ -75,11 +75,12 @@ export default function WorldMapPage() {
         )}
       </div>
 
-      {/* Map Container Viewport (square to match the editor's square canvas) */}
+      {/* Map Container Viewport (matches the editor's aspect ratio) */}
       <div 
         ref={mapContainerRef}
         onClick={handleMapClick}
-        className="w-full aspect-square mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none [container-type:inline-size]"
+        className="w-full mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none [container-type:inline-size]"
+        style={{ aspectRatio: `${mapCanvasWidth || 4000} / ${mapCanvasHeight || 4000}` }}
       >
         {/* Zoomable Canvas Wrapper */}
         <div 
@@ -120,11 +121,13 @@ export default function WorldMapPage() {
           )}
 
           {/* User's Editor Elements (rendered at the same relative size/position as in the editor) */}
-<MapElementsLayer
+          <MapElementsLayer
             items={mapElements}
             routes={mapRoutes}
             navStartId={navStartId}
             navEndId={navEndId}
+            canvasWidth={mapCanvasWidth || 4000}
+            canvasHeight={mapCanvasHeight || 4000}
             onLocationClick={(elementId) => {
               const pin = mapPins.find((item) => item.id === `editor-${elementId}`);
               if (pin) setSelectedPin(pin);

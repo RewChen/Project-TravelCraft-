@@ -17,7 +17,7 @@ import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
 import EditableCover from '../components/map/EditableCover';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 import { mapTemplates } from '../data/templates';
 
@@ -142,7 +142,6 @@ const badgeMeta = {
 
 const drawingTools = [
   ['select', MousePointer2, 'editor.toolSelect'],
-  ['route', RouteIcon, 'editor.toolRoute'],
   ['draw-route', PenTool, 'editor.toolDrawRoute'],
   ['pen', Pencil, 'editor.toolLine'],
   ['highlight', Minus, 'editor.toolHighlight'],
@@ -171,6 +170,10 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
       return editorSetup?.editorState || null;
     }
   });
+  
+  const [canvasWidth, setCanvasWidth] = useState(() => savedEditorState?.canvasWidth || DEFAULT_CANVAS_WIDTH);
+  const [canvasHeight, setCanvasHeight] = useState(() => savedEditorState?.canvasHeight || DEFAULT_CANVAS_HEIGHT);
+
   const [activeTab, setActiveTab] = useState('TEMPLATES');
   const [panelOpen, setPanelOpen] = useState(true);
   const [propertiesPanelOpen, setPropertiesPanelOpen] = useState(true);
@@ -186,6 +189,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
   const [showTextAnimMenu, setShowTextAnimMenu] = useState(false);
   const [showTextPositionMenu, setShowTextPositionMenu] = useState(false);
   const [liveDrawing, setLiveDrawing] = useState(null);
+  const [pendingDeleteSelection, setPendingDeleteSelection] = useState(null);
   const liveDrawingRef = useRef(null);
   const lastClickRef = useRef(0);
   const {
@@ -199,7 +203,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
     startPan,
     endPan,
     isPanning
-  } = useCanvasControls();
+  } = useCanvasControls({ canvasWidth, canvasHeight });
   const tourCameraRef = useRef(camera);
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
   const [ready, setReady] = useState(false);
@@ -289,6 +293,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     navEndId,
     selectedTemplate,
     backgroundImage,
+    canvasWidth,
+    canvasHeight,
     mapTitle,
     publishDescription,
     publishTags,
@@ -496,6 +502,94 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const commitLiveDrawing = (draw) => {
     if (!draw || (draw.tool === 'pen' || draw.tool === 'highlight') && draw.points.length < 2) return;
     pushHistory();
+    
+    if (draw.tool === 'eraser') {
+      // Add a small 5px padding so single clicks have a hitbox
+      const minX = Math.min(draw.minX, draw.maxX) - 5;
+      const maxX = Math.max(draw.minX, draw.maxX) + 5;
+      const minY = Math.min(draw.minY, draw.maxY) - 5;
+      const maxY = Math.max(draw.minY, draw.maxY) + 5;
+      
+      // Helper to check if a line segment intersects a box
+      const lineIntersectsBox = (p1, p2, boxMinX, boxMaxX, boxMinY, boxMaxY) => {
+        // If either point is inside, it intersects
+        if ((p1.x >= boxMinX && p1.x <= boxMaxX && p1.y >= boxMinY && p1.y <= boxMaxY) ||
+            (p2.x >= boxMinX && p2.x <= boxMaxX && p2.y >= boxMinY && p2.y <= boxMaxY)) {
+          return true;
+        }
+        // Check intersection with the 4 box edges (using simple AABB vs line segment check)
+        const minX = Math.min(p1.x, p2.x);
+        const maxX = Math.max(p1.x, p2.x);
+        const minY = Math.min(p1.y, p2.y);
+        const maxY = Math.max(p1.y, p2.y);
+        // Quick rejection
+        if (maxX < boxMinX || minX > boxMaxX || maxY < boxMinY || minY > boxMaxY) return false;
+        
+        // Detailed check using line equation A*x + B*y + C = 0
+        const crossProduct = (a, b, c) => (c.y - a.y) * (b.x - a.x) - (c.x - a.x) * (b.y - a.y);
+        const segmentsIntersect = (a, b, c, d) => {
+          return ((crossProduct(a, b, c) * crossProduct(a, b, d) < 0) &&
+                  (crossProduct(c, d, a) * crossProduct(c, d, b) < 0));
+        };
+        const tl = {x: boxMinX, y: boxMinY}, tr = {x: boxMaxX, y: boxMinY};
+        const bl = {x: boxMinX, y: boxMaxY}, br = {x: boxMaxX, y: boxMaxY};
+        
+        return segmentsIntersect(p1, p2, tl, tr) || segmentsIntersect(p1, p2, tr, br) ||
+               segmentsIntersect(p1, p2, br, bl) || segmentsIntersect(p1, p2, bl, tl);
+      };
+
+      // Find all elements that intersect with the eraser box
+      const toDeleteElements = elements.filter(element => {
+        const pos = elementPositions[element.id];
+        if (!pos) return false;
+        // Quick AABB check first
+        if (!(pos.left < maxX && pos.left + pos.width > minX && pos.top < maxY && pos.top + pos.height > minY)) {
+          return false;
+        }
+        
+        // For drawn lines, do precise intersection so we don't accidentally erase empty space in its bounding box
+        if (element.type === 'drawing' && Array.isArray(element.points)) {
+          // The line points are local to pos.left, pos.top
+          for (let i = 0; i < element.points.length; i++) {
+            const worldX = element.points[i].x + pos.left;
+            const worldY = element.points[i].y + pos.top;
+            if (worldX >= minX && worldX <= maxX && worldY >= minY && worldY <= maxY) return true;
+          }
+          for (let i = 0; i < element.points.length - 1; i++) {
+            const p1 = { x: element.points[i].x + pos.left, y: element.points[i].y + pos.top };
+            const p2 = { x: element.points[i+1].x + pos.left, y: element.points[i+1].y + pos.top };
+            if (lineIntersectsBox(p1, p2, minX, maxX, minY, maxY)) return true;
+          }
+          return false;
+        }
+        
+        return true;
+      });
+      
+      // Find freehand routes that intersect with the eraser box
+      const toDeleteRoutes = routes.filter(route => {
+        if (!route.points || route.points.length === 0) return false;
+        
+        // Check points first
+        if (route.points.some(p => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY)) return true;
+        
+        // Check line segments
+        for (let i = 0; i < route.points.length - 1; i++) {
+          if (lineIntersectsBox(route.points[i], route.points[i+1], minX, maxX, minY, maxY)) return true;
+        }
+        return false;
+      });
+
+      if (toDeleteElements.length > 0 || toDeleteRoutes.length > 0) {
+        setPendingDeleteSelection({
+          elementIds: toDeleteElements.map(e => e.id),
+          routeIds: toDeleteRoutes.map(r => r.id),
+          box: { minX, maxX, minY, maxY }
+        });
+      }
+      return;
+    }
+
     nextElementId.current += 1;
     const isShapeTool = ['rectangle', 'circle', 'grid'].includes(draw.tool);
     if (isShapeTool) {
@@ -525,12 +619,43 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       setElements((prev) => [...prev, {
         id, type: 'drawing', shape: draw.tool === 'highlight' ? 'highlight' : 'line',
         labelKey: draw.tool === 'highlight' ? 'editor.highlight' : 'editor.drawLine',
-        points, color: drawingColor, thickness: draw.tool === 'highlight' ? 60 : 8, rotation: 0
+        points: points.map(p => ({ x: p.x - box.left, y: p.y - box.top })),
+        color: drawingColor, thickness: draw.tool === 'highlight' ? 60 : 8, rotation: 0
       }]);
       setElementPositions((prev) => ({ ...prev, [id]: box }));
       setSelectedElement(id);
     }
   };
+
+  const confirmPendingDelete = useCallback(() => {
+    if (!pendingDeleteSelection) return;
+    pushHistory();
+    const { elementIds, routeIds } = pendingDeleteSelection;
+    
+    if (elementIds.length > 0) {
+      const deleteIds = new Set(elementIds);
+      setElements(prev => prev.filter(e => !deleteIds.has(e.id)));
+      setElementPositions(prev => {
+        const next = { ...prev };
+        deleteIds.forEach(id => delete next[id]);
+        return next;
+      });
+      setRoutes(prev => prev.map(route => ({
+        ...route,
+        pointIds: route.pointIds ? route.pointIds.filter(id => !deleteIds.has(id)) : []
+      })));
+      deleteIds.forEach(id => pruneNavForElement(id));
+      if (selectedElement && deleteIds.has(selectedElement)) setSelectedElement(null);
+    }
+    
+    if (routeIds.length > 0) {
+      const deleteRouteIds = new Set(routeIds);
+      setRoutes(prev => prev.filter(r => !deleteRouteIds.has(r.id)));
+      if (activeRouteId && deleteRouteIds.has(activeRouteId)) setActiveRouteId(null);
+    }
+    
+    setPendingDeleteSelection(null);
+  }, [pendingDeleteSelection, elements, elementPositions, routes, selectedElement, activeRouteId, pruneNavForElement, pushHistory]);
 
    useEffect(() => {
      liveDrawingRef.current = liveDrawing;
@@ -547,37 +672,14 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
        const rect = viewportRef.current.getBoundingClientRect();
        const x = (event.clientX - rect.left - camera.x) / camera.scale;
        const y = (event.clientY - rect.top - camera.y) / camera.scale;
-       setLiveRouteDrawing((prev) => prev ? {
-         ...prev,
-         points: [...prev.points, { x, y }],
-         minX: Math.min(prev.minX, x), maxX: Math.max(prev.maxX, x),
-         minY: Math.min(prev.minY, y), maxY: Math.max(prev.maxY, y)
-       } : prev);
+       setLiveRouteDrawing((prev) => prev ? { ...prev, mousePos: { x, y } } : prev);
      };
-     const handlePointerUp = () => {
-       const draw = liveRouteRef.current;
-       if (draw && draw.points.length >= 2) {
-         pushHistory();
-         nextRouteId.current += 1;
-         const id = `route-${Date.now()}-${nextRouteId.current}`;
-         setRoutes((prev) => [...prev, {
-           id,
-           name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
-           color: draw.color || drawingColor,
-           points: [...draw.points],
-           thickness: draw.thickness || routeThickness,
-           visible: true
-         }]);
-       }
-       setLiveRouteDrawing(null);
-     };
+     // Committing is now handled by double click or Escape key, not pointerUp
      window.addEventListener('pointermove', handlePointerMove);
-     window.addEventListener('pointerup', handlePointerUp);
      return () => {
        window.removeEventListener('pointermove', handlePointerMove);
-       window.removeEventListener('pointerup', handlePointerUp);
      };
-   }, [liveRouteDrawing, camera.scale, drawingColor, routeThickness]);
+   }, [liveRouteDrawing, camera.scale]);
 
    useEffect(() => {
      if (!liveDrawing) return undefined;
@@ -642,16 +744,37 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
      return () => window.removeEventListener('keydown', handleDeleteKey);
    }, [selectedElement, elements, elementPositions, routes, navStartId, navEndId, pruneNavForElement]);
 
-   // Cancel live free-route drawing on Escape
+   const commitLiveRouteDrawing = useCallback(() => {
+     const draw = liveRouteRef.current;
+     if (draw && draw.points.length >= 2) {
+       pushHistory();
+       nextRouteId.current += 1;
+       const id = `route-${Date.now()}-${nextRouteId.current}`;
+       setRoutes((prev) => [...prev, {
+         id,
+         name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
+         color: draw.color || drawingColor,
+         points: [...draw.points],
+         pointIds: [],
+         thickness: draw.thickness || routeThickness,
+         visible: true
+       }]);
+     }
+     setLiveRouteDrawing(null);
+   }, [drawingColor, routeThickness, t]);
+
+   // Finish polyline drawing on Enter, cancel on Escape
    useEffect(() => {
      const handleKeyDown = (event) => {
-       if (event.key === 'Escape' && liveRouteDrawing) {
+       if (event.key === 'Enter' && liveRouteRef.current) {
+         commitLiveRouteDrawing();
+       } else if (event.key === 'Escape' && liveRouteRef.current) {
          setLiveRouteDrawing(null);
        }
      };
      window.addEventListener('keydown', handleKeyDown);
      return () => window.removeEventListener('keydown', handleKeyDown);
-   }, [liveRouteDrawing]);
+   }, [commitLiveRouteDrawing]);
 
   // Register a fresh map as an openable draft (runs once on open).
   useEffect(() => {
@@ -695,31 +818,73 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       return;
     }
     event.target.value = '';
-    const small = await compressForUpload(file, { maxWidth: 1280, quality: 0.8 });
-    addUserAsset({ type: 'background', label: file.name, file: small || file }).then((asset) => {
-      if (asset?.url) setBackgroundImage(asset.url);
-    });
+    
+    // Create an image element to read the original dimensions
+    const img = new Image();
+    img.onload = async () => {
+      // Scale dimensions so the max dimension is DEFAULT_CANVAS_WIDTH (e.g. 4000)
+      const maxDim = Math.max(img.width, img.height);
+      const scale = DEFAULT_CANVAS_WIDTH / maxDim;
+      const newWidth = Math.round(img.width * scale);
+      const newHeight = Math.round(img.height * scale);
+      
+      const small = await compressForUpload(file, { maxWidth: 1280, quality: 0.8 });
+      addUserAsset({ type: 'background', label: file.name, file: small || file }).then((asset) => {
+        if (asset?.url) {
+          setBackgroundImage(asset.url);
+          setCanvasWidth(newWidth);
+          setCanvasHeight(newHeight);
+        }
+      });
+    };
+    img.src = URL.createObjectURL(file);
   };
 
-  const clearBackground = () => setBackgroundImage('');
+  const clearBackground = () => {
+    setBackgroundImage('');
+    setCanvasWidth(DEFAULT_CANVAS_WIDTH);
+    setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+  };
 
-   const handleWorldPointerDown = (event) => {
-     setTourActive(false);
-     setContextMenuElementId(null);
-     const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool);
-     const isRouteDraw = activeTool === 'draw-route';
-     if ((isDrawTool || isRouteDraw) && event.target === event.currentTarget) {
-       event.stopPropagation();
-       const rect = viewportRef.current.getBoundingClientRect();
-       const x = (event.clientX - rect.left - camera.x) / camera.scale;
-       const y = (event.clientY - rect.top - camera.y) / camera.scale;
-       if (isRouteDraw) {
-         setLiveRouteDrawing({ tool: 'route', points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y, color: drawingColor, thickness: routeThickness });
-         return;
-       }
-       setLiveDrawing({ tool: activeTool, points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y });
-       return;
-     }
+    const handleWorldPointerDown = (event) => {
+      setTourActive(false);
+      setContextMenuElementId(null);
+      setPendingDeleteSelection(null);
+      const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid', 'eraser'].includes(activeTool);
+      const isRouteDraw = activeTool === 'draw-route';
+      
+      if (isDrawTool || isRouteDraw) {
+        if (event.button === 2) {
+          // Right click commits live drawing
+          if (isRouteDraw) {
+            commitLiveRouteDrawing();
+          } else {
+            if (liveDrawingRef.current) commitLiveDrawing(liveDrawingRef.current);
+            setLiveDrawing(null);
+          }
+          return;
+        }
+        
+        // Only trigger if clicking on canvas OR if we let it bubble from an element (because we want to draw over it)
+        // Note: we can just check event.button === 0 (left click)
+        if (event.button === 0) {
+          event.stopPropagation();
+          const rect = viewportRef.current.getBoundingClientRect();
+          const x = (event.clientX - rect.left - camera.x) / camera.scale;
+          const y = (event.clientY - rect.top - camera.y) / camera.scale;
+          if (isRouteDraw) {
+            setLiveRouteDrawing((prev) => {
+              if (prev) {
+                return { ...prev, points: [...prev.points, { x, y }], mousePos: { x, y } };
+              }
+              return { tool: 'route', points: [{ x, y }], mousePos: { x, y }, color: drawingColor, thickness: routeThickness };
+            });
+            return;
+          }
+          setLiveDrawing({ tool: activeTool, points: [{ x, y }], minX: x, maxX: x, minY: y, maxY: y });
+          return;
+        }
+      }
      // Only pan on middle-mouse OR clicking directly on the canvas background (not on an element)
      if (event.button === 1 || (event.target === event.currentTarget && !dragging)) {
        startPan(event.clientX, event.clientY);
@@ -737,6 +902,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         navEndId,
         selectedTemplate,
         backgroundImage,
+        canvasWidth,
+        canvasHeight,
         mapTitle,
         publishDescription,
         publishTags,
@@ -749,7 +916,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, backgroundImage, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
+  }, [elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, backgroundImage, canvasWidth, canvasHeight, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
 
   useEffect(() => {
     tourCameraRef.current = camera;
@@ -822,6 +989,33 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     });
   };
 
+  const startDraggingControlPoint = (e, routeId, cpIndex) => {
+    e.stopPropagation();
+    e.preventDefault();
+    pushHistory();
+    
+    const onMove = (moveEvent) => {
+      const rect = viewportRef.current.getBoundingClientRect();
+      const worldX = (moveEvent.clientX - rect.left - camera.x) / camera.scale;
+      const worldY = (moveEvent.clientY - rect.top - camera.y) / camera.scale;
+
+      setRoutes((prev) => prev.map((route) => {
+        if (route.id !== routeId) return route;
+        const newCp = [...(route.controlPoints || [])];
+        newCp[cpIndex] = { x: worldX, y: worldY };
+        return { ...route, controlPoints: newCp };
+      }));
+    };
+    
+    const onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
+
   const undo = () => {
     const previous = history[history.length - 1];
     if (!previous) return;
@@ -855,10 +1049,10 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     pushHistory();
     setElementPositions((previous) => {
       const current = previous[selectedElement];
-      const maxValue = property === 'width' ? CANVAS_WIDTH - current.left
-        : property === 'height' ? CANVAS_HEIGHT - current.top
-          : property === 'left' ? CANVAS_WIDTH - current.width
-            : CANVAS_HEIGHT - current.height;
+      const maxValue = property === 'width' ? canvasWidth - current.left
+        : property === 'height' ? canvasHeight - current.top
+          : property === 'left' ? canvasWidth - current.width
+            : canvasHeight - current.height;
       return {
         ...previous,
         [selectedElement]: {
@@ -911,8 +1105,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setElementPositions((previous) => ({
       ...previous,
       [duplicateId]: {
-        left: Math.min(position.left + 24, CANVAS_WIDTH - position.width),
-        top: Math.min(position.top + 24, CANVAS_HEIGHT - position.height),
+        left: Math.min(position.left + 24, canvasWidth - position.width),
+        top: Math.min(position.top + 24, canvasHeight - position.height),
         width: position.width,
         height: position.height
       }
@@ -1029,8 +1223,8 @@ id: mapId,
         endId: navEndId,
         thickness: routeThickness,
         points: navABPoints.map((p) => ({
-          left: `${((p.x / CANVAS_WIDTH) * 100).toFixed(2)}%`,
-          top: `${((p.y / CANVAS_HEIGHT) * 100).toFixed(2)}%`
+          left: `${((p.x / canvasWidth) * 100).toFixed(2)}%`,
+          top: `${((p.y / canvasHeight) * 100).toFixed(2)}%`
         }))
       } : null,
       editorState: editorDraftState
@@ -1111,6 +1305,7 @@ if (updates.privacy === 'private') {
   };
 
   const addElement = (element) => {
+    setActiveTool('select');
     const limit = globalSettings?.maxPinsPerMap;
     if (limit && elements.length >= limit) {
       showAdminToast?.(`Map reached the max limit of ${limit} elements.`, 'error');
@@ -1130,15 +1325,15 @@ if (updates.privacy === 'private') {
     setElements((previous) => [...previous, { ...element, ...textStyles, id, color: colorValue }]);
     const width = element.type === 'text' ? 400 : 500;
     const height = element.type === 'text' ? Math.max(140, (element.fontSize ?? 160) * 1.5) : 500;
-    const fallbackLeft = CANVAS_WIDTH / 2 - width / 2;
-    const fallbackTop = CANVAS_HEIGHT / 2 - height / 2;
+    const fallbackLeft = canvasWidth / 2 - width / 2;
+    const fallbackTop = canvasHeight / 2 - height / 2;
     const viewportX = viewportSize.width / 2;
     const viewportY = viewportSize.height / 2;
     const placeLeft = viewportSize.width
-      ? Math.max(0, Math.min(CANVAS_WIDTH - width, Math.round((viewportX - camera.x) / camera.scale - width / 2)))
+      ? Math.max(0, Math.min(canvasWidth - width, Math.round((viewportX - camera.x) / camera.scale - width / 2)))
       : fallbackLeft;
     const placeTop = viewportSize.height
-      ? Math.max(0, Math.min(CANVAS_HEIGHT - height, Math.round((viewportY - camera.y) / camera.scale - height / 2)))
+      ? Math.max(0, Math.min(canvasHeight - height, Math.round((viewportY - camera.y) / camera.scale - height / 2)))
       : fallbackTop;
     setElementPositions((previous) => ({
       ...previous,
@@ -1178,6 +1373,7 @@ if (updates.privacy === 'private') {
   };
 
   const addPaletteElement = (source) => {
+    setActiveTool('select');
     const selectedShape = selectedData?.type === 'shape' ? selectedData : null;
     if (selectedShape) placeElementIntoShape(source, selectedShape);
     else addElement(source);
@@ -1328,6 +1524,110 @@ if (updates.privacy === 'private') {
     if (activeRouteId === routeId) setActiveRouteId(null);
   };
 
+  const addWaypointToRoute = (routeId) => {
+    pushHistory();
+    nextElementId.current += 1;
+    const waypointId = `waypoint-${nextElementId.current}`;
+    
+    // Center of screen
+    const x = -camera.x / camera.scale + (viewportSize.width / camera.scale) / 2;
+    const y = -camera.y / camera.scale + (viewportSize.height / camera.scale) / 2;
+    
+    // Add a simple pin element
+    setElements((prev) => [...prev, {
+      id: waypointId,
+      type: 'emoji',
+      content: '📍',
+      labelKey: 'editor.markAsLocation',
+      color: '#111111',
+      isLocation: true,
+      isHiddenWaypoint: true,
+      locationDetails: { name: `${t('editor.routePoints')} ${Math.floor(Math.random() * 1000)}` }
+    }]);
+    
+    setElementPositions((prev) => ({
+      ...prev,
+      [waypointId]: { left: x - 40, top: y - 40, width: 80, height: 80 }
+    }));
+    
+    // Add to route
+    setRoutes((prev) => prev.map((route) => {
+      if (route.id !== routeId) return route;
+      return { ...route, pointIds: [...(route.pointIds || []), waypointId] };
+    }));
+    
+    setActiveTool('select');
+    setSelectedElement(waypointId);
+  };
+
+  const insertWaypointAtClick = (e, routeId, routePoints) => {
+    e.stopPropagation();
+    const rect = viewportRef.current.getBoundingClientRect();
+    const worldX = (e.clientX - rect.left - camera.x) / camera.scale;
+    const worldY = (e.clientY - rect.top - camera.y) / camera.scale;
+
+    // Find the closest segment
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < routePoints.length - 1; i++) {
+      const p1 = routePoints[i];
+      const p2 = routePoints[i + 1];
+      // distance from point to line segment
+      const l2 = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
+      let t_param = 0;
+      if (l2 !== 0) {
+        t_param = Math.max(0, Math.min(1, ((worldX - p1.x) * (p2.x - p1.x) + (worldY - p1.y) * (p2.y - p1.y)) / l2));
+      }
+      const projX = p1.x + t_param * (p2.x - p1.x);
+      const projY = p1.y + t_param * (p2.y - p1.y);
+      const dist = Math.sqrt((worldX - projX) ** 2 + (worldY - projY) ** 2);
+      
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = i + 1; // Insert AT this index
+      }
+    }
+
+    pushHistory();
+    nextElementId.current += 1;
+    const waypointId = `waypoint-${nextElementId.current}`;
+    
+    setElements((prev) => [...prev, {
+      id: waypointId,
+      type: 'emoji',
+      content: '📍',
+      labelKey: 'editor.markAsLocation',
+      color: '#111111',
+      isLocation: true,
+      isHiddenWaypoint: true,
+      locationDetails: { name: `${t('editor.routePoints')} ${Math.floor(Math.random() * 1000)}` }
+    }]);
+    
+    setElementPositions((prev) => ({
+      ...prev,
+      [waypointId]: { left: worldX - 40, top: worldY - 40, width: 80, height: 80 }
+    }));
+    
+    setRoutes((prev) => prev.map((route) => {
+      if (route.id !== routeId) return route;
+      const nextPointIds = [...(route.pointIds || [])];
+      nextPointIds.splice(closestIndex, 0, waypointId);
+      // also adjust controlPoints array
+      const nextCp = [...(route.controlPoints || [])];
+      nextCp.splice(closestIndex - 1, 0, null); 
+      return { ...route, pointIds: nextPointIds, controlPoints: nextCp };
+    }));
+    
+    setActiveRouteId(routeId);
+    setActiveTool('select');
+    setSelectedElement(waypointId);
+    
+    // Allow immediate dragging in the same pointer down event
+    startDragging(waypointId, e);
+  };
+
+
   // ---------- Quick A → B navigation ----------
   // Plain render-time lookup (two object reads) — no memo needed.
   const navABStart = (navStartId && navStartId !== navEndId) ? elementPositions[navStartId] : null;
@@ -1467,6 +1767,8 @@ if (updates.privacy === 'private') {
     context.fillStyle = color;
     context.fillRect(0, 0, canvas.width, canvas.height);
     setBackgroundImage(canvas.toDataURL('image/png'));
+    setCanvasWidth(DEFAULT_CANVAS_WIDTH);
+    setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
   };
 
   const getSavedProjects = () => {
@@ -1509,14 +1811,14 @@ if (updates.privacy === 'private') {
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
   const selectionToolbarStyle = selectedPosition ? {
     top: Math.max(12, selectedPosition.top - 12),
-    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2, CANVAS_WIDTH - 20)),
+    left: Math.max(10, Math.min(selectedPosition.left + selectedPosition.width / 2, canvasWidth - 20)),
     transform: `translate(-50%, -100%) scale(${1 / camera.scale})`,
     transformOrigin: 'bottom center'
   } : {};
   const contextMenuPosition = contextMenuElementId ? elementPositions[contextMenuElementId] : null;
   const quickActionMenuStyle = contextMenuElement && contextMenuPosition ? {
     top: Math.max(20, contextMenuPosition.top + contextMenuPosition.height + 10),
-    left: Math.max(20, Math.min(contextMenuPosition.left, CANVAS_WIDTH - 240)),
+    left: Math.max(20, Math.min(contextMenuPosition.left, canvasWidth - 240)),
     transform: `scale(${1 / camera.scale})`,
     transformOrigin: 'top left'
   } : {};
@@ -1525,11 +1827,15 @@ if (updates.privacy === 'private') {
     const template = mapTemplates.find((item) => item.id === templateId);
     setSelectedTemplate(templateId);
     setBackgroundImage(template?.image || '');
+    setCanvasWidth(DEFAULT_CANVAS_WIDTH);
+    setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
   };
 
   const selectBaseMapBackground = (baseMap) => {
     setSelectedTemplate('blank');
     setBackgroundImage(baseMap.image || baseMap.imageUrl || '');
+    setCanvasWidth(DEFAULT_CANVAS_WIDTH);
+    setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
   };
 
   const baseMapImageSelected = (baseMap) =>
@@ -1550,6 +1856,22 @@ if (updates.privacy === 'private') {
     }
     setZoomEditing(false);
   };
+
+  const generateRoutePathData = useCallback((points, controlPoints = []) => {
+    if (!points || points.length < 2) return '';
+    let d = `M ${points[0].x},${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const cp = controlPoints[i];
+      if (cp) {
+        d += ` Q ${cp.x},${cp.y} ${p2.x},${p2.y}`;
+      } else {
+        d += ` L ${p2.x},${p2.y}`;
+      }
+    }
+    return d;
+  }, []);
 
   return (
     <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
@@ -1922,6 +2244,9 @@ if (updates.privacy === 'private') {
                     setPanelOpen(true);
                     setActiveTab(tab.id);
                   }
+                  if (tab.id !== 'TOOLS') {
+                    setActiveTool('select');
+                  }
                 }}
                 title={t(tab.labelKey) || tab.defaultLabel}
                 className={`flex flex-col items-center justify-center w-16 py-2 rounded-lg border-2 transition-all gap-1 shrink-0 ${activeTab === tab.id ? 'border-black bg-gray-100 text-[#cc0000] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-black'}`}
@@ -2204,6 +2529,9 @@ if (updates.privacy === 'private') {
                               </div>
                             );
                           })}
+                          <button type="button" onClick={() => addWaypointToRoute(route.id)} className="w-full mt-1.5 py-1.5 border-2 border-black border-dashed rounded text-[10px] font-black text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-1">
+                            <Plus className="w-3 h-3" /> เพิ่มจุดแวะ (โค้งเส้น)
+                          </button>
                         </div>
                       )}
                     </div>
@@ -2344,7 +2672,7 @@ if (updates.privacy === 'private') {
               scaleY={camera.scale}
               listening={false}
             >
-              <BackgroundLayer key={selectedTemplate} templateId={selectedTemplate} backgroundImage={backgroundImage} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
+              <BackgroundLayer key={selectedTemplate} templateId={selectedTemplate} backgroundImage={backgroundImage} width={canvasWidth} height={canvasHeight} />
             </Stage>
           </div>
 
@@ -2356,33 +2684,97 @@ if (updates.privacy === 'private') {
                 position: 'absolute',
                 left: 0,
                 top: 0,
-                width: CANVAS_WIDTH,
-                height: CANVAS_HEIGHT,
+                width: canvasWidth,
+                height: canvasHeight,
                 transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
                 transformOrigin: '0 0',
                 pointerEvents: 'auto'
               }}
               onPointerDown={handleWorldPointerDown}
+              onDoubleClick={(e) => {
+                if (activeTool === 'draw-route' && liveRouteDrawing) {
+                  e.stopPropagation();
+                  commitLiveRouteDrawing();
+                }
+              }}
               onClick={(e) => e.stopPropagation()}
+              onContextMenu={(e) => {
+                const isDrawTool = ['pen', 'highlight', 'rectangle', 'circle', 'grid', 'eraser', 'draw-route'].includes(activeTool);
+                if (isDrawTool) e.preventDefault();
+              }}
             >
               <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
                 {t(activeTemplate.labelKey)}
               </div>
 
               {/* Navigation routes overlay — dashed paths connecting location pins */}
-              <svg className="absolute inset-0 z-[5] pointer-events-none" width={CANVAS_WIDTH} height={CANVAS_HEIGHT} viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}>
+              <svg className="absolute inset-0 z-[2] pointer-events-none" width={canvasWidth} height={canvasHeight} viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
                 {routePaths.filter((route) => route.visible !== false).map((route) => {
-                  const pts = route.points.map((p) => `${p.x},${p.y}`).join(' ');
+                  const pathD = generateRoutePathData(route.points, route.controlPoints);
                   return (
                     <g key={route.id}>
-                      <polyline points={pts} fill="none" stroke="#000000" strokeWidth={14} strokeLinecap="round" strokeLinejoin="round" opacity={0.25} />
-                      <polyline points={pts} fill="none" stroke={route.color || '#cc0000'} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="28 18" />
-                      {route.points.map((p, idx) => (
-                        <g key={`${route.id}-n-${idx}`}>
-                          <circle cx={p.x} cy={p.y} r={34} fill={route.color || '#cc0000'} stroke="#000" strokeWidth={6} />
-                          <text x={p.x} y={p.y + 16} textAnchor="middle" fontSize={40} fontWeight={900} fill="#fff" fontFamily="monospace">{idx + 1}</text>
-                        </g>
-                      ))}
+                      <path 
+                        d={pathD} 
+                        fill="none" 
+                        stroke="#000000" 
+                        strokeWidth={20} 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        opacity={0.1}
+                        style={{ pointerEvents: 'auto', cursor: 'pointer' }}
+                        onPointerDown={(e) => insertWaypointAtClick(e, route.id, route.points)}
+                      />
+                      <path d={pathD} fill="none" stroke={route.color || '#cc0000'} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="28 18" pointerEvents="none" />
+                      
+                      {route.pointIds && route.pointIds.length > 0 && route.points.map((p, idx) => {
+                        const el = elements.find(e => e.id === route.pointIds[idx]);
+                        const isHidden = el?.isHiddenWaypoint;
+                        
+                        return (
+                          <g 
+                            key={`${route.id}-n-${idx}`} 
+                            style={{ pointerEvents: 'auto', cursor: 'move' }} 
+                            onPointerDown={(e) => startDragging(route.pointIds[idx], e)}
+                          >
+                            {isHidden ? (
+                              <circle cx={p.x} cy={p.y} r={20} fill="#fff" stroke="#3b82f6" strokeWidth={6} />
+                            ) : (
+                              <>
+                                <circle cx={p.x} cy={p.y} r={34} fill={route.color || '#cc0000'} stroke="#000" strokeWidth={6} />
+                                <text x={p.x} y={p.y + 16} textAnchor="middle" fontSize={40} fontWeight={900} fill="#fff" fontFamily="monospace" style={{ pointerEvents: 'none' }}>{idx + 1}</text>
+                              </>
+                            )}
+                          </g>
+                        );
+                      })}
+                      
+                      {/* Control Points Handles for Active Route (only for pin-to-pin routes) */}
+                      {activeTool === 'route' && activeRouteId === route.id && route.pointIds?.length > 0 && route.points.map((p, idx) => {
+                        if (idx === route.points.length - 1) return null;
+                        const nextP = route.points[idx + 1];
+                        const cp = (route.controlPoints && route.controlPoints[idx]) || { x: (p.x + nextP.x) / 2, y: (p.y + nextP.y) / 2 };
+                        return (
+                          <g key={`cp-${idx}`} style={{ pointerEvents: 'auto' }}>
+                            <line x1={p.x} y1={p.y} x2={cp.x} y2={cp.y} stroke="#000" strokeWidth={4} strokeDasharray="8 8" opacity={0.4} />
+                            <line x1={nextP.x} y1={nextP.y} x2={cp.x} y2={cp.y} stroke="#000" strokeWidth={4} strokeDasharray="8 8" opacity={0.4} />
+                            <circle 
+                              cx={cp.x} cy={cp.y} r={24} fill="#fff" stroke="#16a34a" strokeWidth={6} 
+                              className="cursor-move"
+                              onPointerDown={(e) => startDraggingControlPoint(e, route.id, idx)}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                pushHistory();
+                                setRoutes((prev) => prev.map((r) => {
+                                  if (r.id !== route.id) return r;
+                                  const newCp = [...(r.controlPoints || [])];
+                                  newCp[idx] = null;
+                                  return { ...r, controlPoints: newCp };
+                                }));
+                              }}
+                            />
+                          </g>
+                        );
+                      })}
                     </g>
                   );
                 })}
@@ -2499,13 +2891,15 @@ if (updates.privacy === 'private') {
               )}
 
               {elements.map((element) => {
+                if (element.isHiddenWaypoint) return null;
+                
                 const position = elementPositions[element.id];
                 const isSelected = selectedElement === element.id;
                 const isEditingText = editingTextId === element.id && element.type === 'text';
 
                 return (
                   <div key={element.id}
-                    className={`absolute flex items-center justify-center cursor-move select-none ${isSelected ? 'outline outline-2 outline-dashed outline-violet-500 bg-transparent' : 'hover:outline hover:outline-2 hover:outline-blue-400 bg-transparent'}`}
+                    className={`absolute flex items-center justify-center cursor-move select-none z-[3] ${isSelected ? 'outline outline-2 outline-dashed outline-violet-500 bg-transparent' : 'hover:outline hover:outline-2 hover:outline-blue-400 bg-transparent'}`}
                     style={{
                       top: `${position.top}px`,
                       left: `${position.left}px`,
@@ -2517,6 +2911,9 @@ if (updates.privacy === 'private') {
                     }}
                     onContextMenu={(event) => {
                     event.preventDefault();
+                    if (['pen', 'highlight', 'rectangle', 'circle', 'grid', 'draw-route', 'eraser'].includes(activeTool)) {
+                      return; // Let it bubble to handleWorldPointerDown for cancellation
+                    }
                     event.stopPropagation();
                     setSelectedElement(element.id);
                     setContextMenuElementId(element.id);
@@ -2528,6 +2925,10 @@ if (updates.privacy === 'private') {
                       event.stopPropagation();
                       setTourActive(false);
                       handleRoutePointClick(element.id);
+                      return;
+                    }
+                    if (['pen', 'highlight', 'rectangle', 'circle', 'grid', 'draw-route', 'eraser'].includes(activeTool)) {
+                      // Let event bubble to handleWorldPointerDown to start drawing
                       return;
                     }
                     const now = Date.now();
@@ -2572,7 +2973,12 @@ if (updates.privacy === 'private') {
                     ) : element.type === 'drawing' ? (
                       <svg className="w-full h-full pointer-events-none" viewBox={`0 0 ${position.width} ${position.height}`} preserveAspectRatio="none">
                         <polyline
-                          points={element.points.map((p) => `${p.x - position.left},${p.y - position.top}`).join(' ')}
+                          points={element.points.map((p) => {
+                            const isOldAbsolute = p.x > position.width * 2 || p.y > position.height * 2;
+                            return isOldAbsolute 
+                              ? `${p.x - position.left},${p.y - position.top}`
+                              : `${p.x},${p.y}`;
+                          }).join(' ')}
                           fill="none"
                           stroke={element.color}
                           strokeWidth={element.thickness}
@@ -2664,12 +3070,12 @@ if (updates.privacy === 'private') {
                {liveDrawing && (
                  <svg className="absolute z-20 pointer-events-none overflow-visible"
                    style={{ left: Math.min(liveDrawing.minX, liveDrawing.maxX), top: Math.min(liveDrawing.minY, liveDrawing.maxY), width: Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX)), height: Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY)) }}>
-                   {liveDrawing.tool === 'rectangle' || liveDrawing.tool === 'circle' || liveDrawing.tool === 'grid' ? (
+                   {liveDrawing.tool === 'rectangle' || liveDrawing.tool === 'circle' || liveDrawing.tool === 'grid' || liveDrawing.tool === 'eraser' ? (
                      <rect x={0} y={0} width={Math.max(1, Math.abs(liveDrawing.maxX - liveDrawing.minX))} height={Math.max(1, Math.abs(liveDrawing.maxY - liveDrawing.minY))}
-                       fill={liveDrawing.tool === 'grid' ? 'none' : 'none'}
-                       stroke={drawingColor}
+                       fill={liveDrawing.tool === 'eraser' ? 'rgba(239, 68, 68, 0.2)' : 'none'}
+                       stroke={liveDrawing.tool === 'eraser' ? '#ef4444' : drawingColor}
                        strokeWidth={4 / camera.scale}
-                       strokeDasharray={liveDrawing.tool === 'grid' ? '6 6' : undefined}
+                       strokeDasharray={liveDrawing.tool === 'grid' || liveDrawing.tool === 'eraser' ? '6 6' : undefined}
                        rx={liveDrawing.tool === 'circle' ? '9999' : 0}
                      />
                    ) : (
@@ -2677,7 +3083,7 @@ if (updates.privacy === 'private') {
                        points={liveDrawing.points.map((p) => `${p.x - Math.min(liveDrawing.minX, liveDrawing.maxX)},${p.y - Math.min(liveDrawing.minY, liveDrawing.maxY)}`).join(' ')}
                        fill="none"
                        stroke={drawingColor}
-                       strokeWidth={(liveDrawing.tool === 'highlight' ? 60 : 8) / camera.scale}
+                       strokeWidth={liveDrawing.tool === 'highlight' ? 60 : 8}
                        strokeLinecap="round"
                        strokeLinejoin="round"
                        opacity={liveDrawing.tool === 'highlight' ? 0.4 : 1}
@@ -2686,18 +3092,58 @@ if (updates.privacy === 'private') {
                  </svg>
                )}
 
-               {/* Live free-route drawing preview */}
+               {pendingDeleteSelection && (
+                 <div className="absolute z-20 pointer-events-auto"
+                   style={{
+                     left: Math.min(pendingDeleteSelection.box.minX, pendingDeleteSelection.box.maxX),
+                     top: Math.min(pendingDeleteSelection.box.minY, pendingDeleteSelection.box.maxY),
+                     width: Math.max(1, Math.abs(pendingDeleteSelection.box.maxX - pendingDeleteSelection.box.minX)),
+                     height: Math.max(1, Math.abs(pendingDeleteSelection.box.maxY - pendingDeleteSelection.box.minY))
+                   }}
+                 >
+                   <svg className="w-full h-full pointer-events-none overflow-visible">
+                     <rect x={0} y={0} width="100%" height="100%"
+                       fill="rgba(239, 68, 68, 0.2)"
+                       stroke="#ef4444"
+                       strokeWidth={4 / camera.scale}
+                       strokeDasharray="6 6"
+                     />
+                   </svg>
+                   <button
+                     type="button"
+                     onPointerDown={(e) => {
+                       e.stopPropagation();
+                       confirmPendingDelete();
+                     }}
+                     onClick={(e) => e.stopPropagation()}
+                     className="absolute -top-10 -right-2 flex items-center justify-center gap-1 bg-red-600 text-white rounded px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-red-700 cursor-pointer pointer-events-auto"
+                     style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}
+                   >
+                     <Trash2 className="w-4 h-4" />
+                     <span className="text-[10px] font-black uppercase">{t('editor.delete')}</span>
+                   </button>
+                 </div>
+               )}
+
+               {/* Live polyline free-route drawing preview */}
                {liveRouteDrawing && (
                  <svg className="absolute inset-0 z-20 pointer-events-none overflow-visible"
-                   width={CANVAS_WIDTH} height={CANVAS_HEIGHT} viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}>
-                   <polyline points={liveRouteDrawing.points.map((p) => `${p.x},${p.y}`).join(' ')}
+                   width={canvasWidth} height={canvasHeight} viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
+                   <polyline points={liveRouteDrawing.points.map((p) => `${p.x},${p.y}`).join(' ') + (liveRouteDrawing.mousePos ? ` ${liveRouteDrawing.mousePos.x},${liveRouteDrawing.mousePos.y}` : '')}
                      fill="none"
                      stroke={liveRouteDrawing.color || drawingColor}
-                     strokeWidth={(liveRouteDrawing.thickness || routeThickness) / camera.scale}
+                     strokeWidth={liveRouteDrawing.thickness || routeThickness}
                      strokeLinecap="round"
                      strokeLinejoin="round"
-                     strokeDasharray="12 8"
                      opacity={0.85} />
+                   
+                   {/* Draw preview points for polyline corners */}
+                   {liveRouteDrawing.points.map((p, idx) => (
+                     <circle key={`prv-${idx}`} cx={p.x} cy={p.y} r={16} fill={liveRouteDrawing.color || drawingColor} />
+                   ))}
+                   {liveRouteDrawing.mousePos && (
+                     <circle cx={liveRouteDrawing.mousePos.x} cy={liveRouteDrawing.mousePos.y} r={16} fill="#fff" stroke={liveRouteDrawing.color || drawingColor} strokeWidth={4} />
+                   )}
                  </svg>
                )}
             </div>
@@ -2720,6 +3166,57 @@ if (updates.privacy === 'private') {
           {/* Pan hint */}
           <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
             {activeTool === 'route' ? t('editor.routeHint') : ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool) ? t('editor.drawHint') : t('editor.panHint')}
+          </div>
+
+          {/* Minimap */}
+          <div 
+            className="absolute bottom-16 right-6 z-20 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden cursor-crosshair group bg-gray-200 hidden sm:block"
+            style={{ 
+              width: 140, 
+              height: 140 * (canvasHeight / canvasWidth),
+              backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
+              backgroundSize: '100% 100%',
+              backgroundPosition: 'center',
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const node = e.currentTarget;
+              const updateCamera = (clientX, clientY) => {
+                const rect = node.getBoundingClientRect();
+                const mapX = clampValue(clientX - rect.left, 0, rect.width);
+                const mapY = clampValue(clientY - rect.top, 0, rect.height);
+                const worldX = (mapX / rect.width) * canvasWidth;
+                const worldY = (mapY / rect.height) * canvasHeight;
+                setCamera({
+                  x: viewportSize.width / 2 - worldX * camera.scale,
+                  y: viewportSize.height / 2 - worldY * camera.scale
+                });
+              };
+              updateCamera(e.clientX, e.clientY);
+              
+              node.setPointerCapture(e.pointerId);
+              const onPointerMove = (evt) => updateCamera(evt.clientX, evt.clientY);
+              const onPointerUp = (evt) => {
+                node.releasePointerCapture(evt.pointerId);
+                node.removeEventListener('pointermove', onPointerMove);
+                node.removeEventListener('pointerup', onPointerUp);
+              };
+              node.addEventListener('pointermove', onPointerMove);
+              node.addEventListener('pointerup', onPointerUp);
+            }}
+            title={t('editor.panHint')}
+          >
+            {/* Viewport Box */}
+            <div 
+              className="absolute border-2 border-[#cc0000] bg-white/30 pointer-events-none shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] transition-transform duration-75"
+              style={{
+                left: `${(-camera.x / (camera.scale * canvasWidth)) * 100}%`,
+                top: `${(-camera.y / (camera.scale * canvasHeight)) * 100}%`,
+                width: `${(viewportSize.width / (camera.scale * canvasWidth)) * 100}%`,
+                height: `${(viewportSize.height / (camera.scale * canvasHeight)) * 100}%`,
+              }}
+            />
           </div>
 
           {/* Zoom Control */}

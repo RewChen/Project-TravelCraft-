@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM_FACTOR, clampValue } from '../lib/editorCanvas';
+import { MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM_FACTOR, clampValue, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../lib/editorCanvas';
 
-const clampCamera = (x, y, scale, viewportWidth, viewportHeight) => {
+const clampCamera = (x, y, scale, viewportWidth, viewportHeight, canvasWidth, canvasHeight) => {
   if (!viewportWidth || !viewportHeight) return { x, y, scale };
 
-  const worldScreenW = CANVAS_WIDTH * scale;
-  const worldScreenH = CANVAS_HEIGHT * scale;
+  const worldScreenW = canvasWidth * scale;
+  const worldScreenH = canvasHeight * scale;
 
   const minX = Math.min(0, viewportWidth - worldScreenW);
   const maxX = Math.max(0, viewportWidth - worldScreenW);
@@ -15,7 +15,7 @@ const clampCamera = (x, y, scale, viewportWidth, viewportHeight) => {
   return { x: clampValue(x, minX, maxX), y: clampValue(y, minY, maxY), scale };
 };
 
-export default function useCanvasControls() {
+export default function useCanvasControls({ canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT } = {}) {
   const viewportRef = useRef(null);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
@@ -30,9 +30,9 @@ useEffect(() => {
   const setCameraClamped = useCallback((next) => {
     setCamera((current) => {
       const merged = { ...current, ...next };
-      return clampCamera(merged.x, merged.y, merged.scale, viewportSize.width, viewportSize.height);
+      return clampCamera(merged.x, merged.y, merged.scale, viewportSize.width, viewportSize.height, canvasWidth, canvasHeight);
     });
-  }, [viewportSize]);
+  }, [viewportSize, canvasWidth, canvasHeight]);
 
   const zoomAt = useCallback((pointerX, pointerY, factor) => {
     const { x, y, scale } = cameraRef.current;
@@ -60,13 +60,13 @@ useEffect(() => {
   const fitView = useCallback(() => {
     const { width, height } = viewportSize;
     if (!width || !height) return;
-    const scale = clampValue(Math.min(width / CANVAS_WIDTH, height / CANVAS_HEIGHT), MIN_ZOOM, MAX_ZOOM);
+    const scale = clampValue(Math.min(width / canvasWidth, height / canvasHeight), MIN_ZOOM, MAX_ZOOM);
     setCameraClamped({
       scale,
-      x: (width - CANVAS_WIDTH * scale) / 2,
-      y: (height - CANVAS_HEIGHT * scale) / 2
+      x: (width - canvasWidth * scale) / 2,
+      y: (height - canvasHeight * scale) / 2
     });
-  }, [viewportSize, setCameraClamped]);
+  }, [viewportSize, setCameraClamped, canvasWidth, canvasHeight]);
 
   const endPan = useCallback(() => {
     panStartRef.current = null;

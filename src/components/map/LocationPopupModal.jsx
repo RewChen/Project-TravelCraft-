@@ -1,8 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { X, Heart, Trash2, Camera, Clock3, Ticket, Sun, MapPin, AlertTriangle, Clapperboard, Images } from 'lucide-react';
+import { X, Heart, Trash2, Clock3, Ticket, Sun, MapPin, AlertTriangle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import ReportLocationModal from '../report/ReportLocationModal';
-import { toEmbedUrl } from '../../lib/imageUtils';
 
 const POPUP_WIDTH = 320;
 const VIEWPORT_MARGIN = 16;
@@ -11,7 +10,6 @@ const ANCHOR_OFFSET = 14;
 export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel = 1 }) {
   const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin, isLoggedIn, setAuthMode } = useApp();
   const [showReport, setShowReport] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
   const [pos, setPos] = useState(() => ({ left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, placeBelow: true }));
   const popupRef = useRef(null);
 
@@ -61,22 +59,6 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     };
   }, [anchorRef, zoomLevel, pin, pinLeft, pinTop]);
 
-  // Show the element's REAL data — the media/description the creator actually
-  // saved in locationDetails (element pins carry imageUrl/previewUrl/selfies),
-  // not the local preset fallbacks.
-  const mainPhoto = [pin?.previewUrl, pin?.imageUrl, pin?.selfieUrl]
-    .find((src) => typeof src === 'string' && src) || null;
-
-  const rawSelfies = (Array.isArray(pin?.selfieUrls) && pin.selfieUrls.length)
-    ? pin.selfieUrls
-    : (pin?.selfieUrl ? [pin.selfieUrl] : []);
-  const selfies = rawSelfies.filter((src) => typeof src === 'string' && src);
-
-  const rawVideo = pin?.videoUrl || pin?.youtubeUrl || '';
-  const videoSrc = toEmbedUrl(rawVideo);
-  const hasVideo = Boolean(videoSrc);
-  const isFileVideo = typeof rawVideo === 'string' && rawVideo.startsWith('data:video/');
-
   if (!pin) return null;
 
   const isFav = favorites.includes(pin.title);
@@ -95,7 +77,6 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     onClose();
   };
 
-  const showMedia = Boolean(mainPhoto || selfies.length);
   const caretColor = 'border-white';
 
   return (
@@ -132,73 +113,6 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        {showMedia && (
-          <div className="p-3 pb-0">
-            {showVideo && hasVideo ? (
-              <div className="relative rounded-lg border-2 border-black overflow-hidden bg-black">
-                {isFileVideo ? (
-                  <video src={videoSrc} controls className="w-full aspect-video object-contain bg-black" />
-                ) : (
-                  <iframe
-                    src={videoSrc}
-                    title={pin.title}
-                    className="w-full aspect-video bg-black"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                )}
-              </div>
-            ) : mainPhoto ? (
-              <div className="relative rounded-lg border-2 border-black overflow-hidden shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-slate-900">
-                <img
-                  src={mainPhoto}
-                  alt={pin.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-36 object-cover"
-                />
-                {hasVideo && (
-                  <button
-                    type="button"
-                    onClick={() => setShowVideo(true)}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-white text-black text-[10px] font-black px-2.5 py-1 rounded border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-gray-100"
-                  >
-                    <Clapperboard className="w-3 h-3" /> {t('details.mediaVideo')}
-                  </button>
-                )}
-                {pin.isUserUploaded && (
-                  <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] px-2 py-0.5 rounded border border-white/40 flex items-center gap-1 font-sans">
-                    <Camera className="w-3 h-3" /> {t('map.travelerUpload')}
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {showVideo && hasVideo && (
-              <button
-                type="button"
-                onClick={() => setShowVideo(false)}
-                className="mt-1.5 flex items-center gap-1.5 text-[10px] font-black uppercase text-blue-700 underline underline-offset-2 cursor-pointer"
-              >
-                <Images className="w-3 h-3" /> {t('details.mediaPhotos')}
-              </button>
-            )}
-            {selfies.length > 0 && !showVideo && (
-              <div className="flex gap-1.5 mt-1.5 overflow-x-auto pb-1">
-                {selfies.map((src, idx) => (
-                  <img
-                    key={idx}
-                    src={src}
-                    alt={`${pin.title} ${idx + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-12 h-12 border-2 border-black rounded object-cover shrink-0"
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
 
         <div className="p-3">
           {pin.lore ? (

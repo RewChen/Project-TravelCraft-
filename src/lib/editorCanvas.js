@@ -1,5 +1,5 @@
-export const CANVAS_WIDTH = 4000;
-export const CANVAS_HEIGHT = 4000;
+export const DEFAULT_CANVAS_WIDTH = 4000;
+export const DEFAULT_CANVAS_HEIGHT = 4000;
 
 export const GRID_STEP = 50;
 export const MIN_ELEMENT_SIZE = 200;
@@ -129,15 +129,20 @@ export const getElementCenter = (elementPositions, elementId) => {
 export const buildRoutePaths = (routes, elementPositions) => {
   if (!Array.isArray(routes)) return [];
   return routes.map((route) => {
-    const points = (Array.isArray(route.pointIds) ? route.pointIds : [])
-      .map((id) => getElementCenter(elementPositions, id))
-      .filter(Boolean);
-    return { ...route, points };
+    let points = [];
+    if (Array.isArray(route.pointIds) && route.pointIds.length > 0) {
+      points = route.pointIds
+        .map((id) => getElementCenter(elementPositions, id))
+        .filter(Boolean);
+    } else {
+      points = route.points || [];
+    }
+    return { ...route, points, controlPoints: route.controlPoints || [] };
   }).filter((route) => route.points.length >= 2);
 };
 
 // Convert saved routes into percent-space paths for published maps / viewers.
-export const deriveRoutePathsFromElements = (routes, elementPositions) => {
+export const deriveRoutePathsFromElements = (routes, elementPositions, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT) => {
   return buildRoutePaths(routes, scaleElementPositions(elementPositions) || {}).map((route) => ({
     id: route.id,
     name: route.name || '',
@@ -145,8 +150,8 @@ export const deriveRoutePathsFromElements = (routes, elementPositions) => {
     thickness: route.thickness || 4,
     visible: route.visible !== false,
     points: route.points.map((p) => ({
-      left: `${((p.x / CANVAS_WIDTH) * 100).toFixed(2)}%`,
-      top: `${((p.y / CANVAS_HEIGHT) * 100).toFixed(2)}%`
+      left: `${((p.x / canvasWidth) * 100).toFixed(2)}%`,
+      top: `${((p.y / canvasHeight) * 100).toFixed(2)}%`
     }))
   }));
 };
@@ -156,7 +161,7 @@ export const deriveRoutePathsFromElements = (routes, elementPositions) => {
 // decorations). When nothing is marked yet, keep legacy behavior and turn every
 // element into a pin so older maps still render.
 // getLabel(element) resolves the display title (translation-aware at call site).
-export const derivePinsFromElements = (elements, elementPositions, getLabel = null) => {
+export const derivePinsFromElements = (elements, elementPositions, getLabel = null, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT) => {
   const elementsArr = Array.isArray(elements) ? elements : [];
   const positions = scaleElementPositions(elementPositions) || {};
   const scaledElements = scaleElementFontSizes(elementsArr, elementPositions);
@@ -181,8 +186,8 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
       return {
         id: `editor-${element.id}`,
         title: details.name || fallbackLabel,
-        top: `${Math.round(((position.top + position.height / 2) / CANVAS_HEIGHT) * 100)}%`,
-        left: `${Math.round(((position.left + position.width / 2) / CANVAS_WIDTH) * 100)}%`,
+        top: `${Math.round(((position.top + position.height / 2) / canvasHeight) * 100)}%`,
+        left: `${Math.round(((position.left + position.width / 2) / canvasWidth) * 100)}%`,
         icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : (element.content || '📍'),
         category: 'landmarks',
         tag: 'Landmark',

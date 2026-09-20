@@ -89,9 +89,9 @@ export default function HomePage() {
     <div className="max-w-6xl mx-auto px-4 pb-12">
       {/* Hero Banner */}
       <Reveal>
-      <section className="bg-white border-4 border-black rounded-2xl overflow-hidden mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-2">
+      <section className="bg-white dark:bg-slate-800 border-4 border-black rounded-2xl overflow-hidden mb-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-2">
         <div className="p-6 md:p-10 flex flex-col justify-center border-b-4 md:border-b-0 md:border-r-4 border-black">
-          <h1 className="text-4xl lg:text-5xl font-black text-black leading-[1.08] mb-5 tracking-tight">
+          <h1 className="text-4xl lg:text-5xl font-black text-black dark:text-white leading-[1.08] mb-5 tracking-tight">
             Gotta <span className="text-[#cc0000]">{t('home.titlePart')}</span> 'Em All.
           </h1>
           <p className="text-slate-600 dark:text-slate-300 text-sm md:text-base font-sans leading-relaxed mb-8 font-medium max-w-md">
@@ -214,7 +214,7 @@ export default function HomePage() {
           { icon: Users, label: t('home.statTrainers'), value: stats.trainers, tint: 'bg-amber-400 text-black' }
         ].map((stat, idx) => (
           <Reveal key={stat.label} delay={idx * 100} className="h-full">
-          <div className="bg-white border-4 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4 h-full">
+          <div className="bg-white dark:bg-slate-800 border-4 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-4 h-full">
             <div className={`w-12 h-12 shrink-0 border-2 border-black rounded-lg flex items-center justify-center ${stat.tint}`}>
               <stat.icon className="w-5 h-5" />
             </div>
@@ -234,14 +234,14 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-5 items-center gap-4">
           {steps.map((item, idx) => (
             <div key={item.titleKey} className="contents">
-              <div className="bg-white border-4 border-black rounded-xl p-6 pt-7 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center min-w-0">
+              <div className="bg-white dark:bg-slate-700 border-4 border-black rounded-xl p-6 pt-7 relative shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-center min-w-0">
                 <div className={`absolute -top-4 left-1/2 -translate-x-1/2 z-10 ${item.color} ${item.badgeText} w-9 h-9 rounded-full border-2 border-black flex items-center justify-center font-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]`}>
                   {idx + 1}
                 </div>
-                <div className="w-12 h-12 border-2 border-black rounded-full bg-gray-50 mx-auto mb-3 flex items-center justify-center">
+                <div className="w-12 h-12 border-2 border-black rounded-full bg-gray-50 dark:bg-slate-600 mx-auto mb-3 flex items-center justify-center">
                   <item.icon className={`w-5 h-5 ${item.iconColor}`} />
                 </div>
-                <h4 className="font-extrabold text-base mb-1 text-slate-900">{t(item.titleKey)}</h4>
+                <h4 className="font-extrabold text-base mb-1 text-slate-900 dark:text-slate-100">{t(item.titleKey)}</h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-300 font-sans font-medium leading-relaxed">{t(item.descKey)}</p>
               </div>
               {idx < steps.length - 1 && (
@@ -275,7 +275,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {featuredMaps.map((mapItem, idx) => (
               <Reveal key={mapItem.id} delay={Math.min(idx, 5) * 90} className="h-full">
-              <div className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:-translate-y-0.5 transition-transform h-full">
+              <div className="bg-white dark:bg-slate-800 dark:text-slate-100 border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:-translate-y-0.5 transition-transform h-full">
                 <div
                   onClick={() => trackMapOnWorldMap(mapItem)}
                   className="relative h-44 bg-sky-200 border-b-4 border-black overflow-hidden flex items-center justify-center cursor-pointer group"
@@ -325,9 +325,9 @@ export default function HomePage() {
                     </button>
                     <button
                       onClick={() => trackMapOnWorldMap(mapItem)}
-                      className="w-full bg-white hover:bg-amber-100 text-black font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full bg-white dark:bg-slate-700 dark:hover:bg-slate-600 hover:bg-amber-100 text-black dark:text-white font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Eye className="w-4 h-4 text-black" /> {t('community.trackOnMap')}
+                      <Eye className="w-4 h-4" /> {t('community.trackOnMap')}
                     </button>
                   </div>
                 </div>
@@ -336,9 +336,9 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="text-center bg-white border-4 border-dashed border-black rounded-2xl py-16 px-6 space-y-3">
+          <div className="text-center bg-white dark:bg-slate-800 border-4 border-dashed border-black rounded-2xl py-16 px-6 space-y-3">
             <div className="text-5xl">🗺️</div>
-            <div className="text-lg font-black uppercase tracking-tight text-slate-900">{t('home.featuredEmpty')}</div>
+            <div className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">{t('home.featuredEmpty')}</div>
             <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{t('home.featuredEmptyHint')}</p>
           </div>
         )}

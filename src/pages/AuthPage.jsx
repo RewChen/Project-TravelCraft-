@@ -3,11 +3,15 @@ import LoginForm from '../components/auth/LoginForm';
 import RegisterForm from '../components/auth/RegisterForm';
 import ForgotPassForm from '../components/auth/ForgotPassForm';
 import RestoredForm from '../components/auth/RestoredForm';
+import ResetPasswordForm from '../components/auth/ResetPasswordForm';
+import FooterInfoModal from '../components/common/FooterInfoModal';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export default function AuthPage() {
   const { authMode, navigateTo, t, themeMode } = useApp();
   const isDark = themeMode === 'dark';
+  const [infoSection, setInfoSection] = useState(null);
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-[#e8ecef]'} flex flex-col items-center justify-center p-4 font-mono transition-colors duration-200`}>
@@ -22,14 +26,15 @@ export default function AuthPage() {
 
       <div className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-[36px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] relative">
         <div className="bg-[#111111] p-3 rounded-t-2xl rounded-b-xl border-4 border-black mb-5 shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]">
-          <div className="bg-white border-4 border-black rounded-lg overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <div className="bg-white dark:bg-slate-800 dark:text-slate-100 border-4 border-black rounded-lg overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
 
             {/* Red Header Banner */}
             <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
               <span>{authMode === 'login' && t('auth.loginHeader')}</span>
               <span>{authMode === 'register' && t('auth.registerHeader')}</span>
               <span>{authMode === 'forgot' && t('auth.recoveryHeader')}</span>
-              <span>{authMode === 'restored' && t('auth.restoredHeader')}</span>
+              <span>{authMode === 'restored' && t('auth.resetSentHeader')}</span>
+              <span>{authMode === 'reset' && t('auth.resetHeader')}</span>
             </div>
 
             <div className="p-4 sm:p-5">
@@ -37,6 +42,7 @@ export default function AuthPage() {
               {authMode === 'register' && <RegisterForm />}
               {authMode === 'forgot' && <ForgotPassForm />}
               {authMode === 'restored' && <RestoredForm />}
+              {authMode === 'reset' && <ResetPasswordForm />}
             </div>
 
           </div>
@@ -59,12 +65,13 @@ export default function AuthPage() {
 
       <footer className={`text-center text-xs mt-6 space-y-1 font-sans ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
         <div className="flex justify-center gap-4 font-bold underline">
-          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.legal')}</button>
-          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.support')}</button>
-          <button className={isDark ? 'hover:text-white' : 'hover:text-slate-900'}>{t('footer.trainerClub')}</button>
+          <button type="button" onClick={() => setInfoSection('legal')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.legal')}</button>
+          <button type="button" onClick={() => setInfoSection('support')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.support')}</button>
+          <button type="button" onClick={() => setInfoSection('trainerClub')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.trainerClub')}</button>
         </div>
         <p className="text-[10px]">{t('footer.copyright')}</p>
       </footer>
+      <FooterInfoModal section={infoSection} onClose={() => setInfoSection(null)} />
     </div>
   );
 }

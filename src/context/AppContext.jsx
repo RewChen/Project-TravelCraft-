@@ -371,7 +371,7 @@ const initialGlobalSettings = {
   maxPinsPerMap: 50,
 autoApproveCommunity: false,
   // รีวิวขึ้นทันทีโดยไม่ต้องรออนุมัติ (admin ซ่อน/ลบทีหลังได้) — ตั้ง false เพื่อกลับไปใช้คิวตรวจสอบ
-  autoApproveReviews: true,
+  autoApproveReviews: false,
       maintenanceMode: false,
       allowFastTravel: true,
       autoBanStrikeThreshold: 5,
@@ -854,7 +854,11 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-   useEffect(() => {
+  // Safe reference for the early auth listener (registered before `navigateTo`
+  // is declared below) without triggering the immutability guard.
+  const navigateToRef = useRef(null);
+
+  useEffect(() => {
     // Initial session check
     const checkSession = async () => {
       try {
@@ -889,6 +893,11 @@ export const AppProvider = ({ children }) => {
 
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setAuthMode('reset');
+        navigateToRef.current?.('auth');
+        return;
+      }
       if (session) {
         setIsLoggedIn(true);
         setUserProfile(createFallbackProfile(session.user));
@@ -913,6 +922,8 @@ export const AppProvider = ({ children }) => {
   const [selectedPin, setSelectedPin] = useState(initialPins[0]);
   const [mapBackgroundImage, setMapBackgroundImage] = useState(() => loadStored('mapBgImage', null));
   const [mapCanvasStyle, setMapCanvasStyle] = useState(null);
+  const [mapCanvasWidth, setMapCanvasWidth] = useState(null);
+  const [mapCanvasHeight, setMapCanvasHeight] = useState(null);
   const [mapElements, setMapElements] = useState([]);
   const [mapRoutes, setMapRoutes] = useState([]);
   const [navStartId, setNavStartId] = useState(null);
@@ -1665,6 +1676,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   const resetMapBackgroundImage = () => {
     setMapBackgroundImage(null);
     setMapCanvasStyle(null);
+    setMapCanvasWidth(null);
+    setMapCanvasHeight(null);
     setMapElements([]);
     setMapRoutes([]);
     setNavStartId(null);
@@ -1724,6 +1737,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     setSelectedPin(null);
     setMapBackgroundImage(null);
     setMapCanvasStyle(null);
+    setMapCanvasWidth(null);
+    setMapCanvasHeight(null);
     setMapViewLoading(true);
     setCurrentPage('map');
     try {
@@ -1751,6 +1766,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
           setMapBackgroundImage(null);
         }
         setMapCanvasStyle(cached.canvasStyle);
+        setMapCanvasWidth(cached.canvasWidth || null);
+        setMapCanvasHeight(cached.canvasHeight || null);
         setMapElements(cached.layerItems);
         setMapRoutes(cached.routes || []);
         setNavStartId(cached.navStartId || null);
@@ -1789,6 +1806,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       }
       setMapBackgroundImage(bg);
       setMapCanvasStyle(canvasStyle);
+      const canvasWidth = editor.canvasWidth || 4000;
+      const canvasHeight = editor.canvasHeight || 4000;
+      setMapCanvasWidth(canvasWidth);
+      setMapCanvasHeight(canvasHeight);
       // Rebuild pins straight from the editor elements so the world map
       // shows exactly what the user placed (works for drafts too).
       const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
@@ -1853,7 +1874,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       setNavEndId(editor.navEndId || null);
 
       // Remember the computed view so reopening this map is instant.
-      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, routes: computedRoutes, navStartId: editor.navStartId, navEndId: editor.navEndId, bg, canvasStyle });
+      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, routes: computedRoutes, navStartId: editor.navStartId, navEndId: editor.navEndId, bg, canvasStyle, canvasWidth, canvasHeight });
     } finally {
       if (mapLoadToken.current === mapId) setMapViewLoading(false);
     }
@@ -2180,10 +2201,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   }, []);
 
   // --- Location reviews & ratings ---
-  // ค่าเริ่มต้นโพสต์แล้วขึ้นทันที (autoApproveReviews) เหลือคิว pending ไว้เฉพาะตอนปิดสวิตช์
+  // บังคับให้รีวิวใหม่ทุกอันเข้าคิว Pending เสมอ เพื่อให้ Admin ตรวจสอบก่อน
   const submitReview = useCallback(({ locationId, locationName, region, rating, text, images, gpsVerified }) => {
     const id = `REV-${Math.floor(10000 + Math.random() * 90000)}`;
-    const autoApprove = globalSettings?.autoApproveReviews !== false;
+    const autoApprove = globalSettings?.autoApproveReviews === true; // ต้องเปิดตั้งค่าชัดเจนถึงจะผ่าน (ค่าเริ่มต้นคือ false)
     const review = {
       id,
       locationId: locationId || locationName || 'unknown',
@@ -2551,6 +2572,12 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Keep navigateToRef in sync so the early auth listener can navigate once the
+  // latest navigateTo is available without re-registering the listener.
+  useEffect(() => {
+    navigateToRef.current = navigateTo;
+  });
+
   return (
     <AppContext.Provider
       value={{
@@ -2587,6 +2614,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         resetMapBackgroundImage,
         mapCanvasStyle,
         setMapCanvasStyle,
+        mapCanvasWidth,
+        mapCanvasHeight,
          mapElements,
          mapRoutes,
          navStartId,

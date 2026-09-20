@@ -45,8 +45,8 @@ const hoursOptions = [
 ];
 
 const travelOptions = [
-  '๐ถ Walking', '๐ฒ Bicycle', '๐ต Scooter', '๐— Car', '๐• Taxi', '๐ Bus', '๐ Train',
-  '๐ Metro', '๐ข Ferry', 'โ๏ธ Flight', '๐ Helicopter', '๐ Elephant', 'โต Boat', '๐ Community Gateway'
+  '🚶 Walking', '🚲 Bicycle', '🛴 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
+  '🚇 Metro', '⛴ Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
 ];
 
 export default function CreateMapForm({ onSubmit, onClose }) {
@@ -392,7 +392,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
               {showCountryList && (
                 <div className="absolute z-10 mt-1 w-full bg-white border-2 border-black max-h-52 overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   {filteredCountries.length === 0 ? (
-                    <div className="p-3 text-[11px] font-bold text-gray-500 text-center">โ€” {t('myMaps.noCountries')} โ€”</div>
+                    <div className="p-3 text-[11px] font-bold text-gray-500 text-center">— {t('myMaps.noCountries')} —</div>
                   ) : filteredCountries.map((country) => (
                     <button
                       type="button"
@@ -532,7 +532,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
         <div className="p-4 bg-gray-100 border-t-4 border-black flex justify-end gap-2 sticky bottom-0">
           <button type="button" onClick={onClose} disabled={uploading} className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase">{t('common.cancel')}</button>
           <button type="submit" disabled={uploading} className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 disabled:opacity-50">
-            {uploading ? t('myMaps.uploading') : `๐€ ${t('myMaps.createMap')}`}
+            {uploading ? t('myMaps.uploading') : `🚀 ${t('myMaps.createMap')}`}
           </button>
         </div>
       </form>

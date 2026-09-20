@@ -2,7 +2,7 @@ import { MapPin, ImageIcon, Images, Clapperboard, X, Plus, Minus, Maximize } fro
 import { useMemo, useState, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
-import { resolveCoverImage, coverFallbackFor, toEmbedUrl } from '../../lib/imageUtils';
+import { resolveRealCoverImage, toEmbedUrl } from '../../lib/imageUtils';
 
 export default function LocationHero() {
   const { selectedLocation, t, effectiveRarityFor } = useApp();
@@ -19,20 +19,27 @@ export default function LocationHero() {
     && !placeholderRegions.has(rawRegion)
     ? rawRegion
     : '';
-  const fallbackImage = coverFallbackFor(selectedLocation.title);
-  const coverImage = resolveCoverImage(selectedLocation);
+  const coverImage = resolveRealCoverImage(selectedLocation);
   const [coverFailed, setCoverFailed] = useState(false);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
+<<<<<<< HEAD
   const [mediaTab, setMediaTab] = useState('photo');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const displayCover = coverFailed ? fallbackImage : coverImage;
+=======
+  const [mediaTab, setMediaTab] = useState('photo'); // photo | video
+  const hasCover = Boolean(coverImage);
+  const displayCover = coverFailed ? null : coverImage;
+>>>>>>> 72acfbf (feat(editor): overhaul route curving, eraser tool, and z-index layering)
   const videoSrc = useMemo(() => toEmbedUrl(selectedLocation?.videoUrl), [selectedLocation]);
   const hasVideo = Boolean(videoSrc);
   const isFileVideo = typeof selectedLocation?.videoUrl === 'string' && selectedLocation.videoUrl.startsWith('data:video/');
   const showVideo = hasVideo && mediaTab === 'video';
+  // ซ่อน hero image ทั้งหมดถ้า creator ไม่ได้ใส่รูป cover จริง
+  const showHeroMedia = hasCover || hasVideo;
 
   const resetZoom = useCallback(() => {
     setZoom(1);
@@ -96,6 +103,7 @@ export default function LocationHero() {
 
   return (
     <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+      {showHeroMedia && (
       <div className="h-64 bg-slate-900 relative overflow-hidden">
         {showVideo ? (
           isFileVideo ? (
@@ -109,12 +117,12 @@ export default function LocationHero() {
               allowFullScreen
             />
           )
-        ) : (
+        ) : !showVideo && hasCover && displayCover ? (
           <button type="button" onClick={openPreview} title="ดูรูปปกขนาดใหญ่" className="absolute inset-0 w-full h-full cursor-zoom-in">
             <img src={displayCover} alt={selectedLocation.title} onError={() => setCoverFailed(true)} className="absolute inset-0 w-full h-full object-cover" />
           </button>
-        )}
-        {!showVideo && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
+        ) : null}
+        {!showVideo && hasCover && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
         {displayRegion && (
           <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit">
             <MapPin className="w-3 h-3" /> {displayRegion}
@@ -139,8 +147,9 @@ export default function LocationHero() {
             </button>
           </div>
         )}
-        {!showVideo && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
+        {!showVideo && hasCover && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
       </div>
+      )}
       
       <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
@@ -159,7 +168,7 @@ export default function LocationHero() {
         </div>
       </div>
       {/* วิดีโออยู่ในปกนี้แล้ว (แท็บวิดีโอทัวร์) ไม่ต้องแยก section */}
-      {coverPreviewOpen && (
+      {coverPreviewOpen && displayCover && (
         <div
           className="fixed inset-0 z-[80] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={closePreview}

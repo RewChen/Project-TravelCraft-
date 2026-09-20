@@ -120,14 +120,19 @@ export const resolveCardBackground = (mapItem) => {
 
 // รูปปกที่ hero แสดงจริง: imageUrl ก่อน แล้วรูป template (bgThemeUrl / editor background)
 // imageUrl ที่เป็น placeholder ฟิกซ์ถือว่าไม่มี cover ให้ข้ามไปหาพื้นหลังจริงแทน
-export const resolveCoverImage = (location) => {
+// คืนรูปจริงเท่านั้น — ถ้าหรือไม่ได้ใส่รูป cover จริงเลย จะไม่ fallback เป็นรูปสต็อก
+export const resolveRealCoverImage = (location) => {
   const candidates = [
     location?.imageUrl && !isDefaultCover(location.imageUrl) ? location.imageUrl : null,
     location?.bgThemeUrl,
     location?.editorState?.backgroundImage,
   ];
-  return candidates.find(isImageSrc) || coverFallbackFor(location?.title);
+  return candidates.find(isImageSrc) || null;
 };
+
+// Backward-compatible wrapper: ยังให้ fallback ตามชื่อสำหรับที่เรียกใช้เดิม
+export const resolveCoverImage = (location) =>
+  resolveRealCoverImage(location) || coverFallbackFor(location?.title);
 
 // แปลงลิงก์วิดีโอทั่วไปให้เป็น embed URL (YouTube watch/shorts/live/youtu.be → embed)
 // ไฟล์อัปโหลด (data:video/) และ mp4 ตรง ๆ คืนค่าเดิม
