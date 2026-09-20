@@ -134,17 +134,18 @@ export default function WorldMapPage() {
           {/* Render Map Markers */}
           <MapPins hideElementPins />
 
-          {/* Selected Location Popup */}
-          {selectedPin && (
-            <div 
-              onClick={(e) => e.stopPropagation()} 
-              style={{ top: selectedPin.top || '50%', left: selectedPin.left || '50%' }}
-              className="absolute z-40 -translate-x-1/2 translate-y-3"
-            >
-              <LocationPopupModal pin={selectedPin} onClose={() => setSelectedPin(null)} />
-            </div>
-          )}
         </div>
+
+        {/* Selected Location Popup — rendered outside the overflow-hidden map
+            box so the detail card is never clipped, and pinned to the viewport */}
+        {selectedPin && (
+          <LocationPopupModal
+            pin={selectedPin}
+            onClose={() => setSelectedPin(null)}
+            anchorRef={mapContainerRef}
+            zoomLevel={zoomLevel}
+          />
+        )}
 
         {/* Sidebar Filters & Action Buttons (Fixed on top of zoom) */}
         <div onClick={(e) => e.stopPropagation()} className="relative z-20">

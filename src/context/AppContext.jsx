@@ -1751,7 +1751,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         setNavStartId(cached.navStartId || null);
         setNavEndId(cached.navEndId || null);
         setMapPins(cached.pins);
-        setSelectedPin(cached.pins.length ? cached.pins[0] : null);
+        setSelectedPin(null);
         return;
       }
 
@@ -1812,7 +1812,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       }
       const resolvedPins = resolvePinOverlaps(pins);
       setMapPins(resolvedPins);
-      setSelectedPin(pins.length ? pins[0] : null);
+      setSelectedPin(null);
 
       // Navigation routes: prefer the editor's ordered point lists (they
       // auto-follow moved pins); fall back to published percent paths.
