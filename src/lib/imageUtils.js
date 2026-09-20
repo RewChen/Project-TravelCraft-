@@ -75,6 +75,14 @@ export const isImageSrc = (value) =>
   value !== 'none' &&
   !value.includes('gradient');
 
+// Cover placeholder a publisher "gets" when no real cover was uploaded. Treat
+// it like "no cover" so cards fall back to the actual map background (the
+// background chosen in the editor) instead of an unrelated default photo.
+export const DEFAULT_MAP_COVER = 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=800&q=80';
+
+export const isDefaultCover = (value) =>
+  typeof value === 'string' && value.replace(/[?&]w=\d+&q=\d+$/, '') === DEFAULT_MAP_COVER.replace(/[?&]w=\d+&q=\d+$/, '');
+
 // รูปสำรองตามชื่อสถานที่ (ใช้ตรงกับปก hero)
 export const coverFallbackFor = (title) => {
   const name = String(title || '').toLowerCase();
@@ -88,13 +96,21 @@ export const coverFallbackFor = (title) => {
 // ให้ใช้รูปแทน — ช่วยแมพที่ publish ก่อน canvas จะฝัง url รูป template
 export const resolveCardBackground = (mapItem) => {
   const preview = mapItem?.previewBackground;
-  if (preview?.backgroundImage && preview.backgroundImage !== 'none') return preview;
+  if (preview?.backgroundImage && preview.backgroundImage !== 'none') {
+    // Force real image backgrounds to fill the square canvas exactly like the
+    // editor (objects stretch to 4000x4000), so the card and the world map
+    // always agree even for maps published before the fill change.
+    if (!preview.backgroundImage.includes('gradient')) {
+      return { ...preview, backgroundSize: '100% 100%' };
+    }
+    return preview;
+  }
   const bgSrc = mapItem?.bgThemeUrl || mapItem?.editorState?.backgroundImage;
   if (isImageSrc(bgSrc)) {
     return {
       backgroundColor: preview?.backgroundColor || '#e2f0d9',
       backgroundImage: `url("${bgSrc}")`,
-      backgroundSize: 'cover',
+      backgroundSize: '100% 100%',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     };
@@ -103,9 +119,10 @@ export const resolveCardBackground = (mapItem) => {
 };
 
 // รูปปกที่ hero แสดงจริง: imageUrl ก่อน แล้วรูป template (bgThemeUrl / editor background)
+// imageUrl ที่เป็น placeholder ฟิกซ์ถือว่าไม่มี cover ให้ข้ามไปหาพื้นหลังจริงแทน
 export const resolveCoverImage = (location) => {
   const candidates = [
-    location?.imageUrl,
+    location?.imageUrl && !isDefaultCover(location.imageUrl) ? location.imageUrl : null,
     location?.bgThemeUrl,
     location?.editorState?.backgroundImage,
   ];
@@ -148,6 +165,55 @@ export const toEmbedUrl = (url) => {
 //   rotation     - rotation in degrees (clockwise, screen coordinates)
 //   displaySize  - side length (px) of the square preview container
 //   outputSize   - side length (px) of the returned square canvas
+// Compute the visible cover window (cover-fit + drag offset + zoom) in source
+// image coordinates. Returns the source rect to bake into a canvas plus the
+// ready-to-use absolute positioning for the preview <img> (which is oversized
+// and shifted so only the chosen region is visible).
+//   img          - decoded HTMLImageElement
+//   viewportW/H  - measured box size of the preview/crop viewport (css px)
+//   offsetX/Y    - user drag offset around center (css px, 0 = centered)
+//   zoom         - extra zoom factor (1 = image exactly covers the viewport)
+export const coverCropRect = ({ img, viewportW, viewportH, offsetX = 0, offsetY = 0, zoom = 1 }) => {
+  const iw = img?.naturalWidth || 0;
+  const ih = img?.naturalHeight || 0;
+  const safe = Math.max(viewportW, 1) / Math.max(viewportH, 1) || 1;
+  const place = (v, lo) => Math.max(0, Math.min(lo, v));
+  if (!iw || !ih) {
+    return { sx: 0, sy: 0, sw: safe, sh: 1, displayLeft: 0, displayTop: 0, displayW: viewportW, displayH: viewportH };
+  }
+  const scale = Math.max(viewportW / iw, viewportH / ih) * zoom;
+  const dispW = iw * scale;
+  const dispH = ih * scale;
+  const overflowX = Math.max(0, dispW - viewportW);
+  const overflowY = Math.max(0, dispH - viewportH);
+  const left = place(overflowX / 2 + offsetX, overflowX);
+  const top = place(overflowY / 2 + offsetY, overflowY);
+  return {
+    sx: left / scale,
+    sy: top / scale,
+    sw: viewportW / scale,
+    sh: viewportH / scale,
+    displayLeft: -left,
+    displayTop: -top,
+    displayW: dispW,
+    displayH: dispH,
+  };
+};
+
+// Render the visible cover crop (cover-fit + drag + zoom) into a rectangular
+// canvas. Perfect mirror of the preview transform, so the baked output is
+// exactly what the user sees in the crop viewport. Returns a canvas.
+export const rectCropToCanvas = ({ img, viewportW, viewportH, offsetX = 0, offsetY = 0, zoom = 1, outputW = 1280, outputH = 720, mime = 'image/webp', quality = 0.85 }) => {
+  const { sx, sy, sw, sh } = coverCropRect({ img, viewportW, viewportH, offsetX, offsetY, zoom });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(outputW));
+  canvas.height = Math.max(1, Math.round(outputH));
+  canvas.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob ? { blob, canvas } : { canvas }), mime, quality);
+  });
+};
+
 export const circularCropToCanvas = ({ img, dx, dy, scale, rotation, displaySize, outputSize = 512 }) => {
   const canvas = document.createElement('canvas');
   canvas.width = outputSize;

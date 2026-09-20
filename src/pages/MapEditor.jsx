@@ -16,6 +16,7 @@ import useCanvasControls from '../hooks/useCanvasControls';
 import { compressForUpload } from '../lib/imageUtils';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
+import EditableCover from '../components/map/EditableCover';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 import { mapTemplates } from '../data/templates';
@@ -263,7 +264,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const fileInputRef = useRef(null);
   const elementImageInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
-  const locationCoverInputRef = useRef(null);
   const locationVideoInputRef = useRef(null);
   const locationSelfieInputRef = useRef(null);
   const nextElementId = useRef(0);
@@ -436,17 +436,6 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       delete details[key];
       return { ...element, locationDetails: details };
     }));
-  };
-
-  const handleLocationCoverUpload = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    event.target.value = '';
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 8 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => patchLocationDetails({ image: reader.result });
-    reader.readAsDataURL(file);
   };
 
   const handleLocationVideoUpload = (event) => {
@@ -1004,7 +993,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       ? {
           ...canvasBase,
           backgroundImage: `url("${backgroundImage}")`,
-          backgroundSize: 'cover',
+          backgroundSize: '100% 100%',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
         }
@@ -2860,33 +2849,11 @@ if (updates.privacy === 'private') {
                       <div className="border-t-4 border-black" />
                       <div>
                         <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-[#cc0000]" /> {t('editor.mapCover')}</label>
-                        <input ref={locationCoverInputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLocationCoverUpload} className="hidden" />
-                        <div className="flex gap-2 items-start">
-                          <button
-                            type="button"
-                            onClick={() => locationCoverInputRef.current?.click()}
-                            className="shrink-0 border-2 border-black rounded bg-amber-400 hover:bg-amber-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
-                          >
-                            <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')}
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            {selectedData.locationDetails?.image ? (
-                              <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
-                                <img src={selectedData.locationDetails.image} alt={t('editor.coverPreviewAlt')} className="w-full h-28 object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={() => removeLocationMedia('image')}
-                                  className="absolute top-1 right-1 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"
-                                  title={t('editor.removeCover')}
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            ) : (
-                              <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.coverHelper')}</p>
-                            )}
-                          </div>
-                        </div>
+                        <EditableCover
+                          value={selectedData.locationDetails?.image || ''}
+                          onApply={(url) => patchLocationDetails({ image: url })}
+                          onRemove={() => removeLocationMedia('image')}
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
