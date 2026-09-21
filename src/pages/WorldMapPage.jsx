@@ -6,6 +6,7 @@ import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
 import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { cleanAssetName } from '../lib/imageUtils';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
@@ -51,13 +52,14 @@ export default function WorldMapPage() {
       if (Array.isArray(mapElements)) {
         mapElements.forEach(({ element, position }) => {
           if (element.isLocation === true && !element.isHiddenWaypoint && position) {
+            const labelSource = element.type === 'image' ? element.label : (element.label || element.content);
             stops.push({
               id: `spot-${element.id}`,
               type: 'spot',
               pin: null,
               left: ((position.left + (position.width || 0) / 2) / canvasW) * 100,
               top: ((position.top + (position.height || 0) / 2) / canvasH) * 100,
-              title: element.locName || element.label || element.content || t('worldMap.tourStop'),
+              title: element.locationDetails?.name || cleanAssetName(labelSource) || t('worldMap.tourStop'),
             });
           }
         });

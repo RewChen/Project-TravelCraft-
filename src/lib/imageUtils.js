@@ -1,3 +1,26 @@
+const IMAGE_EXT_RE = /\.(png|jpe?g|webp|gif|svg|bmp|avif|heic)$/i;
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const REMOVEBG_RE = /-?remove-?bg(-preview)?/i;
+
+// Turn an uploaded file name into a clean display label. Tools like remove.bg
+// prepend a UUID and append "-removebg-preview" (e.g.
+// "b3035bc9-...-removebg-preview.png"), which is never a good user-facing name.
+// Strings that don't look like file names (plain text / emoji labels) are
+// returned unchanged so element text is never mangled.
+export const cleanAssetName = (name) => {
+  const raw = String(name ?? '').trim();
+  if (!raw) return '';
+  const looksLikeFile = IMAGE_EXT_RE.test(raw) || UUID_RE.test(raw) || REMOVEBG_RE.test(raw);
+  if (!looksLikeFile) return raw;
+  return raw
+    .replace(IMAGE_EXT_RE, '')
+    .replace(UUID_RE, '')
+    .replace(REMOVEBG_RE, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 // Client-side image compression used before any storage/DB upload so map rows
 // and storage objects stay small. Returns a Blob; falls back to the original
 // file when the browser can't downscale (SVG, decode errors...).

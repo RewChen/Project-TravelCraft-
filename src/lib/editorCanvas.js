@@ -1,3 +1,5 @@
+import { cleanAssetName } from './imageUtils';
+
 export const DEFAULT_CANVAS_WIDTH = 4000;
 export const DEFAULT_CANVAS_HEIGHT = 4000;
 
@@ -174,9 +176,10 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
       const position = positions[element.id];
       if (!position) return null;
       const details = element.locationDetails || {};
-      const fallbackLabel = getLabel
+      const rawLabel = getLabel
         ? getLabel(element)
         : (element.content || element.label || element.type || 'Spot');
+      const fallbackLabel = cleanAssetName(rawLabel) || 'Location';
       const isImageSrc = element.type === 'image'
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));
