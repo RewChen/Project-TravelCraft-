@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, X, ChevronLeft, ChevronRight, Plus, Minus, Maximize, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -18,6 +19,8 @@ export default function TravelerLogs() {
   const [collapsed, setCollapsed] = useState(false);
   const activeLog = activeIdx !== null ? displaySelfies[activeIdx] : null;
 
+  console.log("TravelerLogs render! activeIdx:", activeIdx, "showAll:", showAll, "hasSelfies:", hasSelfies);
+
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -26,7 +29,7 @@ export default function TravelerLogs() {
   const resetZoom = useCallback(() => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
-  }, []);
+  }, [setZoom, setPan]);
 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
@@ -34,44 +37,44 @@ export default function TravelerLogs() {
       const delta = e.deltaY > 0 ? -0.15 : 0.15;
       return Math.max(0.5, Math.min(5, prev + delta));
     });
-  }, []);
+  }, [setZoom]);
 
   const handleDoubleClick = useCallback(() => {
     setZoom((prev) => (prev > 2 ? 1 : Math.min(3, prev + 1)));
     setPan({ x: 0, y: 0 });
-  }, []);
+  }, [setZoom, setPan]);
 
   const handleMouseDown = useCallback((e) => {
     if (zoom <= 1) return;
     setDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     e.preventDefault();
-  }, [zoom, pan]);
+  }, [zoom, pan, setDragging, setDragStart]);
 
   const handleMouseMove = useCallback((e) => {
     if (!dragging) return;
     setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-  }, [dragging, dragStart]);
+  }, [dragging, dragStart, setPan]);
 
   const handleMouseUp = useCallback(() => {
     setDragging(false);
-  }, []);
+  }, [setDragging]);
 
   const handleTouchStart = useCallback((e) => {
     if (e.touches.length === 1 && zoom > 1) {
       setDragging(true);
       setDragStart({ x: e.touches[0].clientX - pan.x, y: e.touches[0].clientY - pan.y });
     }
-  }, [zoom, pan]);
+  }, [zoom, pan, setDragging, setDragStart]);
 
   const handleTouchMove = useCallback((e) => {
     if (!dragging || e.touches.length !== 1) return;
     setPan({ x: e.touches[0].clientX - dragStart.x, y: e.touches[0].clientY - dragStart.y });
-  }, [dragging, dragStart]);
+  }, [dragging, dragStart, setPan]);
 
   const handleTouchEnd = useCallback(() => {
     setDragging(false);
-  }, []);
+  }, [setDragging]);
 
   useEffect(() => {
     if (activeIdx === null) return;
@@ -82,7 +85,7 @@ export default function TravelerLogs() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [activeIdx, displaySelfies.length]);
+  }, [activeIdx, displaySelfies.length, resetZoom]);
 
   if (!hasSelfies) return null;
 
@@ -132,7 +135,7 @@ export default function TravelerLogs() {
           ))}
         </div>
       )}
-      {showAll && (
+      {showAll && createPortal(
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowAll(false)}>
           <div className="relative w-full max-w-3xl bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="bg-[#cc0000] text-white px-4 py-3 border-b-4 border-black flex items-center justify-between shrink-0">
@@ -153,9 +156,10 @@ export default function TravelerLogs() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      {activeLog && (
+      {activeLog && createPortal(
         <div
           className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => { setActiveIdx(null); resetZoom(); }}
@@ -186,8 +190,8 @@ export default function TravelerLogs() {
             </div>
             
             <div
-              className="relative w-full overflow-hidden bg-gray-100 flex-1"
-              style={{ height: '75vh', cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default' }}
+              className="relative w-full overflow-hidden bg-gray-100"
+              style={{ height: '75vh', minHeight: '75vh', cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default' }}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -203,7 +207,7 @@ export default function TravelerLogs() {
                 <img
                   src={activeLog.image}
                   alt={activeLog.caption || 'selfie enlarged'}
-                  className="max-w-full max-h-full object-contain select-none"
+                  className="w-full h-full object-contain select-none"
                   style={{ pointerEvents: 'none', userSelect: 'none' }}
                   draggable={false}
                 />
@@ -237,7 +241,8 @@ export default function TravelerLogs() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

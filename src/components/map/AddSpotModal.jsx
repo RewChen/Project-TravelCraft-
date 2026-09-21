@@ -12,7 +12,7 @@ const regionPresets = [
 ];
 
 export default function AddSpotModal({ onClose, defaultCoords }) {
-  const { t, addCustomPin } = useApp();
+  const { t, addCustomPin, userProfile } = useApp();
 
   const [title, setTitle] = useState('');
   const [lore, setLore] = useState('');
@@ -35,9 +35,30 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
+    let finalImageUrl = imagePreview;
+
+    try {
+      // If there is an image and a logged in user, upload it so it doesn't get stripped by localStorage
+      if (finalImageUrl && finalImageUrl.startsWith('data:image/') && userProfile?.id) {
+        const { dataUrlToFile, uploadUserAssetFile } = await import('../../lib/supabaseUserAssets');
+        const file = dataUrlToFile(finalImageUrl, 'pin-photo');
+        if (file) {
+          const uploadedUrl = await uploadUserAssetFile(userProfile.id, 'element', file);
+          if (uploadedUrl) {
+            finalImageUrl = uploadedUrl;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Custom pin image upload failed, using data url fallback:', err);
+    }
 
     addCustomPin({
       title: title.trim(),
@@ -45,12 +66,13 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
       category,
       tag: tag || 'Traveler Photo',
       lore: lore.trim() || 'A custom traveler photo pinned on the world map.',
-      imageUrl: imagePreview,
+      imageUrl: finalImageUrl,
       top: topPos,
       left: leftPos,
       icon: '📷'
     });
 
+    setIsSubmitting(false);
     onClose();
   };
 

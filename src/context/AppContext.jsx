@@ -1880,7 +1880,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       // marker is the element itself). Unmarked elements stay as decorations in
       // the element layer. Legacy maps (no element layer / no marked locations)
       // fall back to the stored pins so nothing regresses.
-      const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : (el.label || el.content || 'Spot'));
+      const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : null);
       const hasMarkedLocations = layerItems.some((item) => item.element.isLocation === true);
       let pins = [];
       if (hasMarkedLocations) {
@@ -1891,7 +1891,28 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
           pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
         }
       }
-      const resolvedPins = resolvePinOverlaps(pins);
+      const cleanFilenameText = (text) => {
+        if (!text || typeof text !== 'string') return text;
+        if (text.match(/\.(png|jpe?g|webp|gif|svg)$/i) || text.match(/-removebg-preview/i)) {
+          return text
+            .replace(/\.[a-zA-Z0-9]+$/, '')
+            .replace(/-removebg-preview/gi, '')
+            .replace(/_/g, ' ')
+            .trim();
+        }
+        return text;
+      };
+
+      const cleanPins = pins.map(p => ({
+        ...p,
+        title: cleanFilenameText(p.title),
+        // If lore is exactly the same as title and it was a filename, maybe just hide it
+        lore: p.lore === p.title && p.title !== cleanFilenameText(p.title) 
+          ? null 
+          : cleanFilenameText(p.lore)
+      }));
+
+      const resolvedPins = resolvePinOverlaps(cleanPins);
       setMapPins(resolvedPins);
       setSelectedPin(null);
 
@@ -2069,6 +2090,60 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   // Publish a custom user map to Community Discoveries!
   const publishMapToCommunity = async (newCommunityMap) => {
+    let finalImageUrl = newCommunityMap.imageUrl || null;
+    let finalBgThemeUrl = newCommunityMap.bgThemeUrl || newCommunityMap.editorState?.backgroundImage || null;
+    let finalPreviewBg = newCommunityMap.previewBackground ? { ...newCommunityMap.previewBackground } : null;
+
+    try {
+      const { dataUrlToFile } = await import('../lib/supabaseUserAssets');
+      const { uploadMapMedia } = await import('../lib/supabaseUploads');
+      const uploadIfDataUrl = async (urlStr, folder) => {
+        if (typeof urlStr === 'string' && urlStr.startsWith('data:image/')) {
+          const file = dataUrlToFile(urlStr, folder);
+          if (file) {
+            const uploadedUrl = await uploadMapMedia(newCommunityMap.id || 'new-map', folder, file);
+            return uploadedUrl || urlStr;
+          }
+        }
+        return urlStr;
+      };
+
+      if (finalImageUrl) finalImageUrl = await uploadIfDataUrl(finalImageUrl, 'cover');
+      if (finalBgThemeUrl) finalBgThemeUrl = await uploadIfDataUrl(finalBgThemeUrl, 'background');
+      if (finalPreviewBg?.backgroundImage && typeof finalPreviewBg.backgroundImage === 'string') {
+        const bgMatch = finalPreviewBg.backgroundImage.match(/^url\(\s*["']?(data:image\/[^"']+)["']?\s*\)/i);
+        if (bgMatch && bgMatch[1]) {
+          const uploadedBg = await uploadIfDataUrl(bgMatch[1], 'background');
+          if (uploadedBg && uploadedBg !== bgMatch[1]) {
+            finalPreviewBg.backgroundImage = `url("${uploadedBg}")`;
+          }
+        }
+      }
+
+      // Scan and upload any data URLs inside map elements to prevent missing photos on elements
+      if (newCommunityMap.editorState?.elements && Array.isArray(newCommunityMap.editorState.elements)) {
+        for (const element of newCommunityMap.editorState.elements) {
+          if (element.type === 'image' && typeof element.content === 'string' && element.content.startsWith('data:image/')) {
+            element.content = await uploadIfDataUrl(element.content, 'element') || element.content;
+          }
+          if (element.locationDetails) {
+            if (typeof element.locationDetails.image === 'string' && element.locationDetails.image.startsWith('data:image/')) {
+              element.locationDetails.image = await uploadIfDataUrl(element.locationDetails.image, 'element') || element.locationDetails.image;
+            }
+            if (Array.isArray(element.locationDetails.selfies)) {
+              for (let i = 0; i < element.locationDetails.selfies.length; i++) {
+                if (typeof element.locationDetails.selfies[i] === 'string' && element.locationDetails.selfies[i].startsWith('data:image/')) {
+                  element.locationDetails.selfies[i] = await uploadIfDataUrl(element.locationDetails.selfies[i], 'element') || element.locationDetails.selfies[i];
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to upload data URLs to storage during publish:', err);
+    }
+
     const title = newCommunityMap.title?.trim() || 'Untitled Map';
     const author = userProfile || { name: 'Traveler', role: 'Cartographer' };
     const mapSlug = title.replace(/\s+/g, '-').toLowerCase();
@@ -2088,11 +2163,11 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       rarity,
       rarityColor: rarityColorForTier(rarity),
       category: newCommunityMap.category || 'landmarks',
-      imageUrl: newCommunityMap.imageUrl || null,
+      imageUrl: finalImageUrl,
       videoUrl: newCommunityMap.videoUrl || null,
-      previewBackground: newCommunityMap.previewBackground || null,
+      previewBackground: finalPreviewBg,
       isEditorMap: Boolean(newCommunityMap.isEditorMap),
-      bgThemeUrl: newCommunityMap.bgThemeUrl || newCommunityMap.editorState?.backgroundImage || null,
+      bgThemeUrl: finalBgThemeUrl,
       selfieUrl: newCommunityMap.selfieUrl || null,
       selfieUrls: newCommunityMap.selfieUrls || (newCommunityMap.selfieUrl ? [newCommunityMap.selfieUrl] : null),
       details: {

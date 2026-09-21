@@ -25,7 +25,7 @@ function CardCover({ imageUrl, title }) {
 function PreviewCover({ imageUrl, title }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="mb-3 h-44 border-2 border-black rounded bg-[#a2d2ff] overflow-hidden flex items-center justify-center">
+    <div className="mb-3 h-44 border-2 border-black rounded bg-[#a2d2ff] dark:bg-slate-700 overflow-hidden flex items-center justify-center">
       {imageUrl && !failed ? (
         <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-full object-cover" />
       ) : (
@@ -116,7 +116,7 @@ const openMapInEditor = async (mapItem) => {
     .map(mapItem => ({
       ...mapItem,
       badge: mapItem.privacy === 'private' ? 'Draft' : 'Published',
-      color: mapItem.privacy === 'private' ? 'bg-emerald-100' : 'bg-sky-100',
+      color: mapItem.privacy === 'private' ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-800/70 dark:text-emerald-200' : 'bg-sky-100 text-sky-900 dark:bg-sky-800/70 dark:text-sky-200',
       description: mapItem.details?.lore || 'A custom map.',
       region: mapItem.details?.region || mapItem.region || ''
     }));

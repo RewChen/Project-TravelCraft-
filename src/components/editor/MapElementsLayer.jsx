@@ -1,7 +1,8 @@
 import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT } from '../../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../../lib/editorElements';
 
-const toViewBoxStroke = (thickness, canvasWidth) => Math.max(0.2, (thickness || 4) / canvasWidth * 600);
+// Calculate relative stroke width for a 100x100 viewBox based on actual canvas dimensions.
+const toViewBoxStroke = (thickness, canvasWidth) => Math.max(0.1, ((thickness || 4) * 2 / canvasWidth) * 100);
 const toPct = (value, canvasWidth) => `${((value / canvasWidth) * 100).toFixed(4)}%`;
 const toCqw = (value, canvasWidth) => `${((value / canvasWidth) * 100).toFixed(4)}cqw`;
 
@@ -23,7 +24,7 @@ const routePointToPct = (point, canvasWidth, canvasHeight) => {
   return null;
 };
 
-export function MapRoutesLayer({ routes, items, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT }) {
+export function MapRoutesLayer({ routes, items, onRouteClick, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT }) {
   const visible = (Array.isArray(routes) ? routes : []).filter((r) => r && r.visible !== false && Array.isArray(r.points) && r.points.length >= 2);
   if (!visible.length) return null;
   return (
@@ -47,16 +48,22 @@ export function MapRoutesLayer({ routes, items, canvasWidth = DEFAULT_CANVAS_WID
           }
           return d;
         })();
+        const strokeW = toViewBoxStroke(route.thickness, canvasWidth);
+        const dashArr = route.isDashed === false ? DASH_LEN : `${strokeW * 3.5} ${strokeW * 2.5}`;
         
         return (
           <g key={route.id}>
+            {/* Invisible thick path for clicking */}
+            {onRouteClick && !isNavAB && (
+              <path d={pathD} fill="none" stroke="transparent" strokeWidth={Math.max(1, strokeW * 4)} strokeLinecap="round" strokeLinejoin="round" style={{ pointerEvents: 'auto', cursor: 'pointer' }} onPointerDown={(e) => { e.stopPropagation(); onRouteClick(route.id); }} />
+            )}
             {/* Shadow / outline so the line reads on any background */}
-            <path d={pathD} fill="none" stroke="#000000" strokeWidth={2.2} opacity={0.3} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={pathD} fill="none" stroke="#000000" strokeWidth={strokeW + (4 / canvasWidth * 100)} opacity={0.3} strokeLinecap="round" strokeLinejoin="round" />
             {/* Main dashed route line (wider = easier to see) with draw-in animation */}
-            <path d={pathD} fill="none" stroke={route.color || '#cc0000'} strokeWidth={toViewBoxStroke(route.thickness, canvasWidth)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
-              strokeDasharray={DASH_LEN}
-              strokeDashoffset={DASH_LEN}
-              className={`route-draw`}
+            <path d={pathD} fill="none" stroke={route.color || '#cc0000'} strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray={dashArr}
+              strokeDashoffset={route.isDashed === false ? DASH_LEN : 0}
+              className={route.isDashed === false ? 'route-draw' : ''}
               style={{ animationDelay: `${idx * 0.08}s` }} />
             {/* A → B endpoint labels */}
             {isNavAB && pts.length >= 2 && (
@@ -87,13 +94,13 @@ export function MapRoutesLayer({ routes, items, canvasWidth = DEFAULT_CANVAS_WID
   );
 }
 
-export default function MapElementsLayer({ items, onLocationClick, routes, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT }) {
+export default function MapElementsLayer({ items, onLocationClick, onRouteClick, routes, canvasWidth = DEFAULT_CANVAS_WIDTH, canvasHeight = DEFAULT_CANVAS_HEIGHT }) {
   const hasItems = Array.isArray(items) && items.length > 0;
   const hasRoutes = Array.isArray(routes) && routes.length > 0;
   if (!hasItems && !hasRoutes) return null;
   return (
     <div className="absolute inset-0 z-[5] overflow-hidden pointer-events-none select-none">
-      <MapRoutesLayer routes={routes} items={items} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+      <MapRoutesLayer routes={routes} items={items} onRouteClick={onRouteClick} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
       {(items || []).map(({ element, position }) => {
         if (element.isHiddenWaypoint) return null;
         

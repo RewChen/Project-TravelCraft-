@@ -166,26 +166,42 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
     notify({ selfieUrls: next });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (uploading) return;
+    setUploading(true);
+    let finalImageUrl = coverImage || null;
+    try {
+      if (finalImageUrl && finalImageUrl.startsWith('data:image/')) {
+        const { dataUrlToFile } = await import('../../lib/supabaseUserAssets');
+        const file = dataUrlToFile(finalImageUrl, 'cover');
+        if (file) {
+          const uploadedUrl = await uploadMapMedia(mapId, 'cover', file);
+          if (uploadedUrl) finalImageUrl = uploadedUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('Cover image upload failed:', err);
+    }
     const finalVideoUrl = videoUrl.trim();
     if (finalVideoUrl && !isUploadedVideo(finalVideoUrl)) {
       const embedUrl = getYouTubeEmbedUrl(finalVideoUrl);
       if (!embedUrl) {
         setVideoError(t('editor.ytInvalid'));
+        setUploading(false);
         return;
       }
     }
     onPublish({
       title: title.trim(),
       description: description.trim(),
-      imageUrl: coverImage || null,
+      imageUrl: finalImageUrl,
       tags: tags.map((tag) => tag.trim().toLowerCase().replace(/\s+/g, '-')).filter(Boolean),
       privacy,
       videoUrl: isUploadedVideo(finalVideoUrl) ? finalVideoUrl : (finalVideoUrl ? getYouTubeEmbedUrl(finalVideoUrl) : null),
       selfieUrl: selfieUrls[0] || null,
       selfieUrls: selfieUrls.length ? [...selfieUrls] : null
     });
+    setUploading(false);
   };
 
   return (

@@ -237,6 +237,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
 const [activeTool, setActiveTool] = useState('select');
 const [drawingColor, setDrawingColor] = useState('#111111');
 const [routeThickness, setRouteThickness] = useState(4);
+const [routeIsDashed, setRouteIsDashed] = useState(true);
 const [liveRouteDrawing, setLiveRouteDrawing] = useState(null);
   const [zoomEditing, setZoomEditing] = useState(false);
   const [zoomInputValue, setZoomInputValue] = useState('');
@@ -1209,8 +1210,8 @@ id: mapId,
         user: userProfile?.name || 'a TravelCraft traveler',
         name: t(activeTemplate.labelKey)
       }),
-      imageUrl: updates.imageUrl || editorSetup?.imageUrl || null,
-      videoUrl: updates.videoUrl,
+      imageUrl: updates.imageUrl !== undefined ? (updates.imageUrl || null) : (editorSetup?.imageUrl || null),
+      videoUrl: updates.videoUrl !== undefined ? (updates.videoUrl || null) : (editorSetup?.videoUrl || null),
       previewBackground,
       bgThemeUrl: typeof backgroundImage === 'string' && backgroundImage ? backgroundImage : null,
       isEditorMap: true,
@@ -1315,7 +1316,7 @@ if (updates.privacy === 'private') {
   const addElement = (element) => {
     setActiveTool('select');
     const limit = globalSettings?.maxPinsPerMap;
-    if (limit && elements.length >= limit) {
+    if (limit && elements.filter(e => !e.isHiddenWaypoint).length >= limit) {
       showAdminToast?.(`Map reached the max limit of ${limit} elements.`, 'error');
       return;
     }
@@ -1425,7 +1426,7 @@ if (updates.privacy === 'private') {
     const add = (name) => { if (!current.includes(name)) won.push(name); };
     const myPublishedCount = (communityMaps || []).filter((m) => (userProfile?.id ? m.ownerId === userProfile.id : m.discoveredBy === userProfile?.name)).length;
     if (myPublishedCount === 0) add('Cartographer');
-    if (elements.length >= 10) add('Master Builder');
+    if (elements.filter(e => !e.isHiddenWaypoint).length >= 10) add('Master Builder');
     if (publishSelfieUrls.length > 0) add('Storyteller');
     if (won.length) {
       updateUserBadges([...current, ...won]);
@@ -1434,7 +1435,7 @@ if (updates.privacy === 'private') {
   };
 
   // ---------- Navigation routes (connect location pins in order) ----------
-  const locationElements = useMemo(() => elements.filter((el) => el.isLocation), [elements]);
+  const locationElements = useMemo(() => elements.filter((el) => el.isLocation && !el.isHiddenWaypoint), [elements]);
   const routePaths = useMemo(() => buildRoutePaths(routes, elementPositions), [routes, elementPositions]);
   const activeRoute = routes.find((r) => r.id === activeRouteId) || null;
 
@@ -1447,6 +1448,8 @@ if (updates.privacy === 'private') {
       id,
       name: `${t('editor.routeDefaultName')} ${routes.length + 1}`,
       color: '#cc0000',
+      thickness: routeThickness,
+      isDashed: routeIsDashed,
       pointIds: [],
       visible: true
     };
@@ -1464,6 +1467,8 @@ if (updates.privacy === 'private') {
       id,
       name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
       color: '#cc0000',
+      thickness: routeThickness,
+      isDashed: routeIsDashed,
       pointIds: locationElements.map((el) => el.id),
       visible: true
     }]);
@@ -1487,6 +1492,8 @@ if (updates.privacy === 'private') {
         id: targetId,
         name: `${t('editor.routeDefaultName')} ${prev.length + 1}`,
         color: '#cc0000',
+        thickness: routeThickness,
+        isDashed: routeIsDashed,
         pointIds: [elementId],
         visible: true
       }]);
@@ -2503,6 +2510,30 @@ if (updates.privacy === 'private') {
                     </div>
                   </div>
                   <p className="text-[10px] text-gray-500 font-bold leading-tight">{t('editor.routesHelper')}</p>
+                  
+                  {/* Global Route Options */}
+                  <div className="flex flex-col gap-1.5 bg-gray-100 p-1.5 rounded border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">STYLE</span>
+                      <div className="flex items-center gap-1 bg-white rounded border border-gray-300 p-0.5">
+                        <button type="button" onClick={() => { setRouteIsDashed(false); if (activeRouteId) setRoutes(prev => prev.map(r => r.id === activeRouteId ? { ...r, isDashed: false } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${!routeIsDashed ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Solid</button>
+                        <button type="button" onClick={() => { setRouteIsDashed(true); if (activeRouteId) setRoutes(prev => prev.map(r => r.id === activeRouteId ? { ...r, isDashed: true } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${routeIsDashed ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Dashed</button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">{t('editor.routeThickness')}</span>
+                        <input type="range" min="1" max="20" value={routeThickness} onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setRouteThickness(val);
+                          if (activeRouteId) {
+                            setRoutes((prev) => prev.map((r) => r.id === activeRouteId ? { ...r, thickness: val } : r));
+                          }
+                        }} onMouseUp={() => pushHistory()} onTouchEnd={() => pushHistory()} className="w-full min-w-[50px] accent-[#cc0000]" />
+                      </div>
+                      <span className="text-[9px] font-black text-emerald-600 shrink-0">{routeThickness}px</span>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button type="button" onClick={createRoute} className="flex items-center justify-center gap-1.5 border-2 border-black bg-emerald-400 rounded-lg px-2 py-2 font-black text-[10px] uppercase hover:bg-emerald-500">
                       <Plus className="w-3.5 h-3.5" /> {t('editor.routeNew')}
@@ -2531,8 +2562,25 @@ if (updates.privacy === 'private') {
                         </button>
                       </div>
                       {activeRouteId === route.id && (
-                        <div className="space-y-1 max-h-36 overflow-y-auto">
-                          {route.pointIds.length === 0 && <p className="text-[9px] text-gray-400 font-bold italic">{t('editor.routeClickHint', { name: route.name })}</p>}
+                        <div className="space-y-2 mt-2">
+                          <div className="flex flex-col gap-1.5 bg-white/50 p-1.5 rounded border border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">STYLE</span>
+                              <div className="flex items-center gap-1 bg-white rounded border border-gray-300 p-0.5">
+                                <button type="button" onClick={() => { pushHistory(); setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, isDashed: false } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${route.isDashed === false ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Solid</button>
+                                <button type="button" onClick={() => { pushHistory(); setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, isDashed: true } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${route.isDashed !== false ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Dashed</button>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0 flex items-center gap-2">
+                                <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">{t('editor.routeThickness')}</span>
+                                <input type="range" min="1" max="20" value={route.thickness || 4} onChange={(e) => setRoutes((prev) => prev.map((r) => r.id === route.id ? { ...r, thickness: Number(e.target.value) } : r))} onMouseUp={() => pushHistory()} onTouchEnd={() => pushHistory()} className="w-full min-w-[50px] accent-[#cc0000]" />
+                              </div>
+                              <span className="text-[9px] font-black text-emerald-600 shrink-0">{route.thickness || 4}px</span>
+                            </div>
+                          </div>
+                          <div className="space-y-1 max-h-36 overflow-y-auto">
+                            {route.pointIds.length === 0 && <p className="text-[9px] text-gray-400 font-bold italic">{t('editor.routeClickHint', { name: route.name })}</p>}
                           {route.pointIds.map((pid, idx) => {
                             const el = elements.find((e) => e.id === pid);
                             return (
@@ -2548,6 +2596,7 @@ if (updates.privacy === 'private') {
                           <button type="button" onClick={() => addWaypointToRoute(route.id)} className="w-full mt-1.5 py-1.5 border-2 border-black border-dashed rounded text-[10px] font-black text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-1">
                             <Plus className="w-3 h-3" /> เพิ่มจุดแวะ (โค้งเส้น)
                           </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2727,20 +2776,22 @@ if (updates.privacy === 'private') {
               <svg className="absolute inset-0 z-[2] pointer-events-none" width={canvasWidth} height={canvasHeight} viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}>
                 {routePaths.filter((route) => route.visible !== false).map((route) => {
                   const pathD = generateRoutePathData(route.points, route.controlPoints);
+                  const strokeW = Math.max(2, (route.thickness || 4) * 2);
+                  const dashArr = route.isDashed === false ? undefined : `${strokeW * 3.5} ${strokeW * 2.5}`;
                   return (
                     <g key={route.id}>
                       <path 
                         d={pathD} 
                         fill="none" 
                         stroke="#000000" 
-                        strokeWidth={20} 
+                        strokeWidth={Math.max(20, strokeW + 12)} 
                         strokeLinecap="round" 
                         strokeLinejoin="round" 
                         opacity={0.1}
                         style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                         onPointerDown={(e) => insertWaypointAtClick(e, route.id, route.points)}
                       />
-                      <path d={pathD} fill="none" stroke={route.color || '#cc0000'} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="28 18" pointerEvents="none" />
+                      <path d={pathD} fill="none" stroke={route.color || '#cc0000'} strokeWidth={strokeW} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={dashArr} pointerEvents="none" />
                       
                       {route.pointIds && route.pointIds.length > 0 && route.points.map((p, idx) => {
                         const el = elements.find(e => e.id === route.pointIds[idx]);
@@ -3057,7 +3108,7 @@ if (updates.privacy === 'private') {
                     {element.isLocation && (
                       <div className="absolute -top-1 -right-1 pointer-events-none z-10" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}>
                         <div className="w-7 h-7 rounded-full bg-red-600 border-2 border-black flex items-center justify-center text-[11px] font-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                          {elements.filter(e => e.isLocation).findIndex(e => e.id === element.id) + 1}
+                          {locationElements.findIndex(e => e.id === element.id) + 1}
                         </div>
                       </div>
                     )}
@@ -3580,12 +3631,12 @@ if (updates.privacy === 'private') {
           {/* ADDED LOCATIONS LIST */}
           <div className="mt-auto border-t-4 border-black bg-gray-50 flex flex-col min-h-[160px] max-h-[30vh]">
             <div className="p-3 border-b-2 border-black border-dashed shrink-0">
-              <h3 className="font-black text-xs uppercase text-gray-700 tracking-wider flex items-center gap-1.5">{t('editor.addedLocations')} <span className="text-[10px] text-gray-400 font-bold normal-case">({elements.filter(e => e.isLocation).length})</span></h3>
+              <h3 className="font-black text-xs uppercase text-gray-700 tracking-wider flex items-center gap-1.5">{t('editor.addedLocations')} <span className="text-[10px] text-gray-400 font-bold normal-case">({locationElements.length})</span></h3>
             </div>
             <div className="p-3 space-y-2 overflow-y-auto flex-1">
-              {elements.filter(e => e.isLocation).length === 0 ? (
+              {locationElements.length === 0 ? (
                  <p className="text-[10px] text-gray-400 font-bold text-center italic py-4 border-2 border-dashed border-gray-300 rounded">{t('editor.markLocationHint')}</p>
-              ) : elements.filter(e => e.isLocation).map((loc, idx) => (
+              ) : locationElements.map((loc, idx) => (
                 <div key={loc.id} className={`flex items-center justify-between bg-white border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-amber-50 transition-colors ${selectedElement === loc.id ? 'border-amber-400 bg-amber-50' : ''}`} onClick={() => setSelectedElement(loc.id)}>
                   <div className="flex items-center gap-2 overflow-hidden flex-1">
                     <div className="w-6 h-6 rounded-full bg-red-600 border-2 border-black flex items-center justify-center text-[10px] font-black text-white shrink-0">

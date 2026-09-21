@@ -167,22 +167,38 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
   const scaledElements = scaleElementFontSizes(elementsArr, elementPositions);
   const hasMarkedLocations = scaledElements.some((element) => element.isLocation === true);
   const candidates = hasMarkedLocations
-    ? scaledElements.filter((element) => element.isLocation === true)
-    : scaledElements;
+    ? scaledElements.filter((element) => element.isLocation === true && !element.isHiddenWaypoint)
+    : scaledElements.filter((element) => !element.isHiddenWaypoint);
   return candidates
     .map((element) => {
       const position = positions[element.id];
       if (!position) return null;
       const details = element.locationDetails || {};
-      const fallbackLabel = getLabel
-        ? getLabel(element)
-        : (element.content || element.label || element.type || 'Spot');
+      let fallbackLabel = getLabel ? getLabel(element) : null;
+      if (!fallbackLabel) {
+        if (element.type === 'text' || element.type === 'emoji') {
+          fallbackLabel = element.content;
+        } else if (element.label) {
+          fallbackLabel = element.label
+            .replace(/\.[a-zA-Z0-9]+$/, '')
+            .replace(/-removebg-preview/gi, '')
+            .replace(/_/g, ' ')
+            .trim();
+        } else {
+          fallbackLabel = element.type === 'image' ? 'Photo Spot' : (element.type || 'Spot');
+        }
+      }
+
       const isImageSrc = element.type === 'image'
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));
       const locationSelfies = Array.isArray(details.selfies) ? details.selfies : [];
       const pinHours = details.hours
         || (details.openTime && details.closeTime ? `${details.openTime} - ${details.closeTime}` : null);
+      
+      const explicitLore = details.description || element.lore;
+      const finalLore = explicitLore || (element.type === 'text' ? element.content : null);
+
       return {
         id: `editor-${element.id}`,
         title: details.name || fallbackLabel,
@@ -192,7 +208,7 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         category: 'landmarks',
         tag: 'Landmark',
         type: 'Custom Location',
-        lore: details.description || (element.type === 'text' ? element.content : element.lore || fallbackLabel),
+        lore: finalLore,
         // The created element itself becomes the pin marker:
         elementType: element.type,
         shape: element.shape,
