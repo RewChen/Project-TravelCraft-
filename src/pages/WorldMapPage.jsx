@@ -50,7 +50,7 @@ export default function WorldMapPage() {
 
       if (Array.isArray(mapElements)) {
         mapElements.forEach(({ element, position }) => {
-          if (element.isLocation === true && position) {
+          if (element.isLocation === true && !element.isHiddenWaypoint && position) {
             stops.push({
               id: `spot-${element.id}`,
               type: 'spot',
