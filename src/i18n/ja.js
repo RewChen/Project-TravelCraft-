@@ -311,10 +311,10 @@ export default {
   nav: {
     home: 'ホーム',
     community: 'コミュニティ発見',
-    worldMap: '🗺️ ワールドマップ',
+    worldMap: 'ワールドマップ',
     myMaps: 'マイマップ',
     settings: '設定',
-    admin: '🛡️ 管理者',
+    admin: '管理者',
     profile: 'プロフィール',
     goToProfile: 'プロフィールへ',
     toggleTheme: 'テーマ切替',

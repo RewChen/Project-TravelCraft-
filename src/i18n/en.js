@@ -330,10 +330,10 @@ export default {
   nav: {
     home: 'Home',
     community: 'Community Discoveries',
-    worldMap: '🗺️ World Map',
+    worldMap: 'World Map',
     myMaps: 'My Maps',
     settings: 'Settings',
-    admin: '🛡️ Admin',
+    admin: 'Admin',
     profile: 'Profile',
     goToProfile: 'Go to Profile',
     toggleTheme: 'Toggle theme',

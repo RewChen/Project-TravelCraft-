@@ -311,10 +311,10 @@ export default {
   nav: {
     home: '홈',
     community: '커뮤니티 발견',
-    worldMap: '🗺️ 세계 지도',
+    worldMap: '세계 지도',
     myMaps: '내 지도',
     settings: '설정',
-    admin: '🛡️ 관리자',
+    admin: '관리자',
     profile: '프로필',
     goToProfile: '프로필로 이동',
     toggleTheme: '테마 전환',
