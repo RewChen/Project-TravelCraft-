@@ -191,21 +191,7 @@ export default function Header() {
           </button>
         )}
 
-        {/* ── Language Toggle ── */}
-        <div className="ml-2 flex items-center bg-[#e4e6e9] dark:bg-slate-700 rounded-full p-0.5 shrink-0">
-          <button
-            onClick={() => setLanguage('en')}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${language === 'en' ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-500 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-          >
-            EN
-          </button>
-          <button
-            onClick={() => setLanguage('th')}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${language === 'th' ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-500 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-          >
-            TH
-          </button>
-        </div>
+
       </nav>
 
       {/* ── Right Icons ── */}
