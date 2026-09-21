@@ -206,7 +206,7 @@ export default function LocationReviews() {
             <button
               type="button"
               onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
-              className="inline-flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white font-black px-4 py-2 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white font-black px-4 py-2 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
             >
               <PenLine className="w-3.5 h-3.5" /> {t('details.writeReview')}
             </button>
@@ -305,7 +305,7 @@ export default function LocationReviews() {
                     <button
                       type="button"
                       onClick={() => setFullReview(review)}
-                      className="inline-flex items-center gap-1.5 bg-black hover:bg-gray-800 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
                     >
                       <BookOpen className="w-3.5 h-3.5" /> {t('details.viewFullReview')}
                     </button>
@@ -365,7 +365,7 @@ export default function LocationReviews() {
                 <button
                   type="button"
                   onClick={() => setFullReview(null)}
-                  className="shrink-0 bg-black hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                  className="shrink-0 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
                 >
                 <X className="w-4 h-4" />
               </button>

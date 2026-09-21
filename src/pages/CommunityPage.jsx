@@ -133,7 +133,7 @@ export default function CommunityPage() {
           title={t('community.searchByTag')}
           className={`px-4 py-2 border-2 border-black rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
             activeTags.length > 0
-              ? 'bg-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+              ? 'bg-slate-800 dark:bg-black text-white hover:bg-slate-700 dark:hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
               : 'bg-amber-400 hover:bg-amber-300 text-black'
           }`}
         >
@@ -263,7 +263,7 @@ export default function CommunityPage() {
               <div className="space-y-2 pt-2">
                 <button
                   onClick={() => openDetails(mapItem)}
-                  className="w-full bg-black text-white hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer text-center"
+                  className="w-full bg-slate-800 dark:bg-black text-white hover:bg-slate-700 dark:hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer text-center"
                 >
                   {t('community.viewDetails')}
                 </button>

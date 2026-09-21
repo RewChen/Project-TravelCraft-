@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   // 2. If logged in as regular player without admin role
   if (!isAdminLoggedIn && userProfile?.role?.toLowerCase() !== 'admin') {
     return (
-      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-[#1a1d20]'} flex flex-col items-center justify-center p-4 font-mono`}>
+      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-[#e8ecef]'} flex flex-col items-center justify-center p-4 font-mono`}>
         <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#e8ecef] text-black'} border-4 border-black rounded-[28px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4`}>
           <div className="w-16 h-16 bg-red-100 border-4 border-black rounded-full mx-auto flex items-center justify-center text-3xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
             🔒

@@ -93,7 +93,7 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-black hover:bg-neutral-800 text-white rounded-lg border-2 border-white flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-8 h-8 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-neutral-800 text-white rounded-lg border-2 border-slate-400 dark:border-white flex items-center justify-center cursor-pointer transition-transform active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
@@ -182,7 +182,7 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute top-2 right-2 w-7 h-7 bg-black hover:bg-neutral-800 text-white rounded-lg border-2 border-white flex items-center justify-center cursor-pointer"
+                  className="absolute top-2 right-2 w-7 h-7 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-neutral-800 text-white rounded-lg border-2 border-slate-400 dark:border-white flex items-center justify-center cursor-pointer"
                   title="Remove image"
                 >
                   <X className="w-4 h-4" />

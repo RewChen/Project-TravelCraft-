@@ -2121,13 +2121,13 @@ if (updates.privacy === 'private') {
       {saveStatus && <div className="absolute top-16 right-4 z-30 bg-emerald-100 border-2 border-black px-3 py-2 text-xs font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">{saveStatus}</div>}
 
       {showShareModal && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShareModal(false)}>
-        <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg shadow-2xl p-5" onClick={(event) => event.stopPropagation()}>
-          <div className="flex items-center justify-between border-b border-white/20 pb-3">
+        <div className="w-full max-w-md bg-[#e8ecef] text-slate-800 dark:bg-[#202020] dark:text-white border-2 border-slate-300 dark:border-white/70 rounded-lg shadow-2xl p-5" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-slate-300 dark:border-white/20 pb-3">
             <h2 className="font-black text-lg">{t('editor.shareModalTitle')}</h2>
-            <button onClick={() => setShowShareModal(false)} title={t('editor.close')} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+            <button onClick={() => setShowShareModal(false)} title={t('editor.close')} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
           </div>
           <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">{t('editor.shareBtn')}</button>
-          <p className="text-center text-sm text-gray-300 mb-5">{t('editor.shareModalDesc')}</p>
+          <p className="text-center text-sm text-slate-600 dark:text-gray-300 mb-5">{t('editor.shareModalDesc')}</p>
           <div className="grid grid-cols-5 gap-3 mb-6">
             <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title={t('editor.facebook')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">{t('editor.facebook')}</span></button>
             <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.messages')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">{t('editor.messages')}</span></button>
@@ -2135,9 +2135,9 @@ if (updates.privacy === 'private') {
             <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title={t('editor.x')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">{t('editor.x')}</span></button>
             <button onClick={copyShareLink} title={t('editor.copyLink')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? t('editor.copied') : t('editor.copy')}</span></button>
           </div>
-          <div className="flex items-center gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
-            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
-            <button onClick={copyShareLink} className="shrink-0 border border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-white/10">{copied ? t('editor.copied') : t('editor.copy')}</button>
+          <div className="flex items-center gap-2 bg-white dark:bg-[#111] border border-slate-300 dark:border-white/20 rounded-lg p-2">
+            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-slate-700 dark:text-gray-300 outline-none" />
+            <button onClick={copyShareLink} className="shrink-0 border border-slate-400 dark:border-white/40 rounded-full px-3 py-1 text-xs font-bold hover:bg-slate-200 dark:hover:bg-white/10">{copied ? t('editor.copied') : t('editor.copy')}</button>
           </div>
         </div>
       </div>}
@@ -3437,7 +3437,7 @@ if (updates.privacy === 'private') {
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">{t('editor.fontSize')}</label>
                         <input type="number" min="8" max="120" value={selectedData.fontSize ?? 28} onChange={(event) => updateSelectedTextStyle({ fontSize: Math.max(8, Math.min(120, Number(event.target.value) || 8)) })} className="w-full px-2 py-1.5 border-2 border-black rounded text-xs font-bold bg-gray-50 outline-none" />
                       </div>
-                      <button type="button" onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight ?? 900) > 400 ? 400 : 900 })} className={`px-3 py-2 border-2 border-black rounded font-black text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedData.fontWeight && selectedData.fontWeight > 400 ? 'bg-gray-900 text-white' : 'bg-yellow-200 text-black'}`}>
+                      <button type="button" onClick={() => updateSelectedTextStyle({ fontWeight: (selectedData.fontWeight ?? 900) > 400 ? 400 : 900 })} className={`px-3 py-2 border-2 border-black rounded font-black text-[10px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${selectedData.fontWeight && selectedData.fontWeight > 400 ? 'bg-slate-800 dark:bg-black text-white' : 'bg-yellow-200 text-black'}`}>
                         {selectedData.fontWeight && selectedData.fontWeight > 400 ? t('editor.normal') : t('editor.bold')}
                       </button>
                     </div>

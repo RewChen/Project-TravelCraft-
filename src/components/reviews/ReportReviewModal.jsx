@@ -35,7 +35,7 @@ export default function ReportReviewModal({ review, onClose }) {
           <button
             type="button"
             onClick={() => onClose(null)}
-            className="bg-black hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+            className="bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

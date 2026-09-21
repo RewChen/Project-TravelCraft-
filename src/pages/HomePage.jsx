@@ -319,7 +319,7 @@ export default function HomePage() {
                   <div className="space-y-2 pt-2">
                     <button
                       onClick={() => openDetails(mapItem)}
-                      className="w-full bg-black text-white hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer"
+                      className="w-full bg-slate-800 dark:bg-black text-white hover:bg-slate-700 dark:hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer"
                     >
                       {t('community.viewDetails')}
                     </button>
@@ -346,10 +346,10 @@ export default function HomePage() {
 
       {/* Create CTA */}
       <Reveal>
-      <section className="bg-black text-white border-4 border-black rounded-2xl p-6 md:p-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-6">
+      <section className="bg-white text-slate-900 dark:bg-black dark:text-white border-4 border-black rounded-2xl p-6 md:p-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="max-w-xl">
           <h2 className="text-2xl font-black uppercase tracking-wider mb-2">{t('home.createCtaTitle')}</h2>
-          <p className="text-sm font-sans font-medium text-slate-300 leading-relaxed">{t('home.createCtaDesc')}</p>
+          <p className="text-sm font-sans font-medium text-slate-600 dark:text-slate-300 leading-relaxed">{t('home.createCtaDesc')}</p>
         </div>
         <button
           onClick={() => navigateTo('mymaps')}

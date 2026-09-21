@@ -87,21 +87,21 @@ export default function LocationStats() {
       </button>
 
       {showShare && <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowShare(false)}>
-        <div className="w-full max-w-md bg-[#202020] text-white border-2 border-white/70 rounded-lg p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-          <div className="flex items-center justify-between border-b border-white/20 pb-3">
+        <div className="w-full max-w-md bg-[#e8ecef] text-slate-800 dark:bg-[#202020] dark:text-white border-2 border-slate-300 dark:border-white/70 rounded-lg p-5 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between border-b border-slate-300 dark:border-white/20 pb-3">
             <h2 className="font-black text-lg">{t('details.shareTitle')}</h2>
-            <button onClick={() => setShowShare(false)} title={t('common.close')} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
+            <button onClick={() => setShowShare(false)} title={t('common.close')} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
           </div>
-          <p className="text-sm text-gray-300 mt-4 mb-5">{shareText}</p>
+          <p className="text-sm text-slate-600 dark:text-gray-300 mt-4 mb-5">{shareText}</p>
           <div className="grid grid-cols-4 gap-3 mb-5">
             <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center text-2xl font-black">f</span>{t('details.facebook')}</button>
             <button onClick={() => window.open(`sms:?body=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-white text-blue-600 flex items-center justify-center"><Share2 className="w-6 h-6" /></span>{t('details.messages')}</button>
             <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`, '_blank')} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Share2 className="w-6 h-6" /></span>{t('details.whatsapp')}</button>
             <button onClick={copyLink} className="text-xs font-bold"><span className="mx-auto mb-1 w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span>{copied ? t('details.copied') : t('details.copyLink')}</button>
           </div>
-          <div className="flex gap-2 bg-[#111] border border-white/20 rounded-lg p-2">
-            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-gray-300 outline-none" />
-            <button onClick={copyLink} className="border border-white/40 rounded-full px-3 py-1 text-xs font-bold">{copied ? t('common.copied') : t('common.copy')}</button>
+          <div className="flex gap-2 bg-white dark:bg-[#111] border border-slate-300 dark:border-white/20 rounded-lg p-2">
+            <input readOnly value={shareUrl} className="min-w-0 flex-1 bg-transparent text-xs text-slate-700 dark:text-gray-300 outline-none" />
+            <button onClick={copyLink} className="border border-slate-400 dark:border-white/40 rounded-full px-3 py-1 text-xs font-bold">{copied ? t('common.copied') : t('common.copy')}</button>
           </div>
         </div>
       </div>}
