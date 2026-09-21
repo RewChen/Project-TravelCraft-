@@ -957,6 +957,8 @@ export default {
     unpinReview: '固定を解除',
     hideReview: '非表示 / 拒否',
     unhideReview: '復元',
+    deleteAllVisible: '表示中をすべて削除',
+    confirmDeleteAll: '表示中の {count} 件のレビューをすべて削除しますか？この操作は取り消せません。',
     gpsCheckin: 'GPS VERIFIED CHECK-IN',
     inAppReview: 'IN-APP REVIEW',
     evidencePhoto: 'EVIDENCE PHOTOGRAPHY',

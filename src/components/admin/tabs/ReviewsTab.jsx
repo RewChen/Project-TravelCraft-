@@ -82,6 +82,11 @@ export default function ReviewsTab() {
     selectedIds.forEach((id) => hideReview(id));
     setSelectedIds([]);
   };
+  const batchDeleteAll = () => {
+    if (!window.confirm(t('admin.confirmDeleteAll', { count: visible.length }))) return;
+    visible.forEach((r) => deleteReview(r.id, 'Admin bulk delete'));
+    setSelectedIds([]);
+  };
 
   const tabs = [
     { id: 'all', label: t('admin.allReviews'), count: (reviews || []).length, style: 'bg-emerald-600 text-white border-emerald-800' },
@@ -162,6 +167,14 @@ export default function ReviewsTab() {
             className="px-3 py-1.5 rounded-lg border-2 border-black bg-red-100 hover:bg-red-200 text-[#cc0000] text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <EyeOff className="w-4 h-4" /> HIDE SELECTED
+          </button>
+          <button
+            type="button"
+            onClick={batchDeleteAll}
+            disabled={visible.length === 0}
+            className="px-3 py-1.5 rounded-lg border-2 border-black bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+          >
+            <Trash2 className="w-4 h-4" /> {t('admin.deleteAllVisible')} ({visible.length})
           </button>
         </div>
       </div>

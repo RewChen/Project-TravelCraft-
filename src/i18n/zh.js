@@ -956,6 +956,8 @@ export default {
     unpinReview: '取消置顶',
     hideReview: '隐藏 / 拒绝',
     unhideReview: '恢复',
+    deleteAllVisible: '删除全部可见',
+    confirmDeleteAll: '确定删除全部可见的 {count} 条评价吗？此操作无法撤销。',
     gpsCheckin: 'GPS VERIFIED CHECK-IN',
     inAppReview: 'IN-APP REVIEW',
     evidencePhoto: 'EVIDENCE PHOTOGRAPHY',

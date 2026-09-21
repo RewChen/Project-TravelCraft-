@@ -993,6 +993,8 @@ export default {
     unpinReview: 'Unpin',
     hideReview: 'Hide / Reject',
     unhideReview: 'Restore',
+    deleteAllVisible: 'Delete All Visible',
+    confirmDeleteAll: 'Delete all {count} visible reviews? This action cannot be undone.',
     gpsCheckin: 'GPS VERIFIED CHECK-IN',
     inAppReview: 'IN-APP REVIEW',
     evidencePhoto: 'EVIDENCE PHOTOGRAPHY',

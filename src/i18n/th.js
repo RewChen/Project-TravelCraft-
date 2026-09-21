@@ -987,6 +987,8 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     unpinReview: 'ถอนหมุด',
     hideReview: 'ซ่อน / ปฏิเสธ',
     unhideReview: 'กู้คืน',
+    deleteAllVisible: 'ลบทั้งหมดที่มองเห็น',
+    confirmDeleteAll: 'ลบรีวิวทั้งหมด {count} รายการที่มองเห็นได้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้',
     gpsCheckin: 'GPS VERIFIED CHECK-IN',
     inAppReview: 'IN-APP REVIEW',
     evidencePhoto: 'EVIDENCE PHOTOGRAPHY',

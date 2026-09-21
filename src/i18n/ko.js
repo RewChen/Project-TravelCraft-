@@ -956,6 +956,8 @@ export default {
     unpinReview: '고정 해제',
     hideReview: '숨기기 / 거부',
     unhideReview: '복원',
+    deleteAllVisible: '표시 중 모두 삭제',
+    confirmDeleteAll: '표시 중인 {count}개의 리뷰를 모두 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
     gpsCheckin: 'GPS VERIFIED CHECK-IN',
     inAppReview: 'IN-APP REVIEW',
     evidencePhoto: 'EVIDENCE PHOTOGRAPHY',
