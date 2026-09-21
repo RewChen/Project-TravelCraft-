@@ -31,7 +31,8 @@ export default function LocationHero() {
   const displayCover = coverFailed ? null : coverImage;
   const videoSrc = useMemo(() => toEmbedUrl(selectedLocation?.videoUrl), [selectedLocation]);
   const hasVideo = Boolean(videoSrc);
-  const isFileVideo = typeof selectedLocation?.videoUrl === 'string' && selectedLocation.videoUrl.startsWith('data:video/');
+  const isFileVideo = typeof selectedLocation?.videoUrl === 'string' &&
+    (selectedLocation.videoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/'));
   const showVideo = hasVideo && mediaTab === 'video';
   // ซ่อน hero image ทั้งหมดถ้า creator ไม่ได้ใส่รูป cover จริง
   const showHeroMedia = hasCover || hasVideo;

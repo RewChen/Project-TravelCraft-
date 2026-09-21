@@ -41,6 +41,8 @@ export default {
     removeVideo: '移除视频',
     onlyVideo: '请仅选择视频文件',
     ytInvalid: '请输入有效的 YouTube 链接或上传视频文件',
+    uploadingMedia: '正在上传…',
+    uploadFailed: '上传失败，请重试',
     selfiePhoto: '自拍照片（旅行日志）',
     attachSelfie: '附加自拍',
     selfieHelper: '自拍将显示在详情页的旅行日志中 — 最多9张',

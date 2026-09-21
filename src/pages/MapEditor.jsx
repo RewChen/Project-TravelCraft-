@@ -14,6 +14,7 @@ import {
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
 import { compressForUpload } from '../lib/imageUtils';
+import { uploadMapMedia } from '../lib/supabaseUploads';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
 import EditableCover from '../components/map/EditableCover';
@@ -444,15 +445,18 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }));
   };
 
-  const handleLocationVideoUpload = (event) => {
+  const handleLocationVideoUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     event.target.value = '';
     if (!file.type.startsWith('video/')) return;
     if (file.size > 25 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => patchLocationDetails({ video: reader.result });
-    reader.readAsDataURL(file);
+    try {
+      const url = await uploadMapMedia(mapId, 'loc-video', file);
+      if (url) patchLocationDetails({ video: url });
+    } catch (err) {
+      console.warn('Location video upload skipped:', err);
+    }
   };
 
   const addLocationSelfie = (url) => {
@@ -470,18 +474,22 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }));
   };
 
-  const handleLocationSelfieUpload = (event) => {
+  const handleLocationSelfieUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
     event.target.value = '';
     const currentCount = Array.isArray(selectedData?.locationDetails?.selfies) ? selectedData.locationDetails.selfies.length : 0;
-    files.slice(0, Math.max(0, 9 - currentCount)).forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      if (file.size > 8 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onload = () => addLocationSelfie(reader.result);
-      reader.readAsDataURL(file);
-    });
+    const toProcess = files.slice(0, Math.max(0, 9 - currentCount));
+    for (const file of toProcess) {
+      if (!file.type.startsWith('image/')) continue;
+      if (file.size > 8 * 1024 * 1024) continue;
+      try {
+        const url = await uploadMapMedia(mapId, 'loc-selfie', file);
+        if (url) addLocationSelfie(url);
+      } catch (err) {
+        console.warn('Location selfie upload skipped:', err);
+      }
+    }
   };
 
   const removeLocationSelfie = (idx) => {
@@ -1708,20 +1716,25 @@ if (updates.privacy === 'private') {
     setActiveTool(tool);
   };
 
-  const handleUpload = (event) => {
+  const handleUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     event.target.value = '';
     if (!files.length) return;
-    files.forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = () => {
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+      try {
+        // Keep element images off the map's data JSONB (and small): compress and
+        // store in Supabase Storage, persist only the public URL.
+        const small = await compressForUpload(file, { maxWidth: 1024, quality: 0.85, mime: 'image/png' }, 'png');
+        const url = await uploadMapMedia(mapId, 'element', small || file);
+        if (!url) continue;
         nextElementId.current += 1;
         const id = `upload-${nextElementId.current}`;
-        setUploadedFiles((previous) => [...previous, { id, label: file.name, content: reader.result }]);
-      };
-      reader.readAsDataURL(file);
-    });
+        setUploadedFiles((previous) => [...previous, { id, label: file.name, content: url }]);
+      } catch (err) {
+        console.warn('Element image upload skipped:', err);
+      }
+    }
   };
 
   const handleElementUpload = async (event) => {
@@ -2178,6 +2191,7 @@ if (updates.privacy === 'private') {
 
       {showPublishModal && (
         <PublishMapModal
+          mapId={mapId}
           initial={{
             title: mapTitle,
             description: publishDescription,

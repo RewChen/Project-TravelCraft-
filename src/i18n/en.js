@@ -41,6 +41,8 @@ export default {
     removeVideo: 'Remove video',
     onlyVideo: 'Please choose a video file only',
     ytInvalid: 'Please enter a valid YouTube link or upload a video file',
+    uploadingMedia: 'Uploading media…',
+    uploadFailed: 'Upload failed. Try again.',
     selfiePhoto: 'Selfie Photos (Travel Log)',
     attachSelfie: 'Attach Selfies',
     selfieHelper: 'Your selfies will appear in Traveler Logs (บันทึกการเดินทาง) on the details page — up to 9 images',

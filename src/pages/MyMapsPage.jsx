@@ -285,6 +285,7 @@ const openMapInEditor = async (mapItem) => {
 
       {publishTarget && (
         <PublishMapModal
+          mapId={publishTarget?.id}
           initial={{
             title: publishTarget.title || publishTarget.details?.title || '',
             description: publishTarget.description || publishTarget.details?.lore || '',

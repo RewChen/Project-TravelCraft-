@@ -4,6 +4,7 @@ import {
   Image as ImageIcon, Link
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { uploadMapMedia } from '../../lib/supabaseUploads';
 import { PRESET_TAGS as presetTags } from '../../lib/tags';
 import EditableCover from './EditableCover';
 
@@ -33,7 +34,7 @@ const privacyOptions = [
   { value: 'private', labelKey: 'editor.private', descKey: 'editor.privateDesc' }
 ];
 
-export default function PublishMapModal({ initial = {}, onClose, onPublish, onValuesChange }) {
+export default function PublishMapModal({ initial = {}, mapId, onClose, onPublish, onValuesChange }) {
   const { t } = useApp();
   const [title, setTitle] = useState(initial.title || '');
   const [description, setDescription] = useState(initial.description || '');
@@ -46,9 +47,14 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
   const [videoError, setVideoError] = useState('');
   const [selfieUrls, setSelfieUrls] = useState(Array.isArray(initial.selfieUrls) ? [...initial.selfieUrls] : []);
   const [selfieError, setSelfieError] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   const videoInputRef = useRef(null);
   const selfieInputRef = useRef(null);
+
+  const isUploadedVideo = (value) =>
+    typeof value === 'string' &&
+    (value.startsWith('data:video/') || value.includes('/storage/v1/object/public/'));
 
   const notify = (patch) => {
     if (!onValuesChange) return;
@@ -85,7 +91,7 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
     notify({ tags: next });
   };
 
-  const handleVideoUpload = (event) => {
+  const handleVideoUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('video/')) {
@@ -98,17 +104,23 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
       event.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setVideoUrl(reader.result);
-      setVideoError('');
-      notify({ videoUrl: reader.result });
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    setVideoError('');
+    try {
+      const url = await uploadMapMedia(mapId, 'video', file);
+      if (!url) throw new Error('upload returned no url');
+      setVideoUrl(url);
+      notify({ videoUrl: url });
+    } catch (err) {
+      console.warn('Video upload skipped:', err);
+      setVideoError(t('editor.uploadFailed'));
+    } finally {
+      setUploading(false);
+    }
     event.target.value = '';
   };
 
-  const handleSelfieUpload = (event) => {
+  const handleSelfieUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
     const remainingSlots = 9 - selfieUrls.length;
@@ -117,26 +129,33 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
     }
     const toProcess = files.slice(0, remainingSlots);
     let hasError = false;
-    toProcess.forEach((file) => {
+    let next = [...selfieUrls];
+    setUploading(true);
+    for (const file of toProcess) {
       if (!file.type.startsWith('image/')) {
         setSelfieError(t('editor.onlyImage'));
         hasError = true;
-        return;
+        continue;
       }
       if (file.size > 8 * 1024 * 1024) {
         setSelfieError(t('editor.imageTooLarge'));
         hasError = true;
-        return;
+        continue;
       }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const next = selfieUrls.length >= 9 ? selfieUrls : [...selfieUrls, reader.result];
-        setSelfieUrls(next);
+      try {
+        const url = await uploadMapMedia(mapId, 'selfie', file);
+        if (!url) throw new Error('upload returned no url');
+        if (next.length < 9) next = [...next, url];
         setSelfieError('');
-        notify({ selfieUrls: next });
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        console.warn('Selfie upload skipped:', err);
+        setSelfieError(t('editor.uploadFailed'));
+        hasError = true;
+      }
+    }
+    setSelfieUrls(next);
+    notify({ selfieUrls: next });
+    setUploading(false);
     if (!hasError && toProcess.length) setSelfieError('');
     event.target.value = '';
   };
@@ -148,8 +167,9 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
   };
 
   const handleSubmit = () => {
+    if (uploading) return;
     const finalVideoUrl = videoUrl.trim();
-    if (finalVideoUrl && !finalVideoUrl.startsWith('data:video/')) {
+    if (finalVideoUrl && !isUploadedVideo(finalVideoUrl)) {
       const embedUrl = getYouTubeEmbedUrl(finalVideoUrl);
       if (!embedUrl) {
         setVideoError(t('editor.ytInvalid'));
@@ -162,7 +182,7 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
       imageUrl: coverImage || null,
       tags: tags.map((tag) => tag.trim().toLowerCase().replace(/\s+/g, '-')).filter(Boolean),
       privacy,
-      videoUrl: finalVideoUrl.startsWith('data:video/') ? finalVideoUrl : (finalVideoUrl ? getYouTubeEmbedUrl(finalVideoUrl) : null),
+      videoUrl: isUploadedVideo(finalVideoUrl) ? finalVideoUrl : (finalVideoUrl ? getYouTubeEmbedUrl(finalVideoUrl) : null),
       selfieUrl: selfieUrls[0] || null,
       selfieUrls: selfieUrls.length ? [...selfieUrls] : null
     });
@@ -244,18 +264,19 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
               <input
                 id="publish-video"
                 type="url"
-                value={videoUrl.startsWith('data:') ? '' : videoUrl}
+                value={isUploadedVideo(videoUrl) ? '' : videoUrl}
                 onChange={(event) => { setVideoUrl(event.target.value); setVideoError(''); notify({ videoUrl: event.target.value }); }}
                 placeholder={t('editor.videoYtPh')}
                 className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
               />
               <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-              <button type="button" onClick={() => videoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <button type="button" onClick={() => videoInputRef.current?.click()} disabled={uploading} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50">
                 <Video className="w-4 h-4 mx-auto" />
                 <span className="sr-only">{t('editor.uploadVideo')}</span>
               </button>
             </div>
-            {videoUrl.startsWith('data:video/') && <p className="mt-1 text-[10px] text-emerald-700 font-bold">{t('editor.videoSelected')}</p>}
+            {isUploadedVideo(videoUrl) && <p className="mt-1 text-[10px] text-emerald-700 font-bold">{t('editor.videoSelected')} {uploading ? '…' : ''}</p>}
+            {uploading && !isUploadedVideo(videoUrl) && <p className="mt-1 text-[10px] text-amber-700 font-bold">{t('editor.uploadingMedia')}</p>}
             {videoError && <p className="mt-1 text-[10px] text-red-600 font-bold">{videoError}</p>}
             <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
           </div>
@@ -269,7 +290,8 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
               <button
                 type="button"
                 onClick={() => selfieInputRef.current?.click()}
-                className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+                disabled={uploading}
+                className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-50"
               >
                 <ImageIcon className="w-4 h-4" /> {t('editor.attachSelfie')} {selfieUrls.length ? `(${selfieUrls.length}/9)` : ''}
               </button>
@@ -325,9 +347,9 @@ export default function PublishMapModal({ initial = {}, onClose, onPublish, onVa
           </fieldset>
           <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
             <button type="button" onClick={onClose} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>
-            <button type="submit" className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5">
-              {privacy === 'unlisted' && <Link className="w-3.5 h-3.5" />}
-              {privacy === 'unlisted' ? t('editor.shareMap') : privacy === 'private' ? t('editor.saveDraft') : t('editor.publishMap')}
+            <button type="submit" disabled={uploading} className="px-4 py-2 bg-[#cc0000] text-white border-2 border-black rounded font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-50">
+              {uploading ? <span>…</span> : privacy === 'unlisted' ? <Link className="w-3.5 h-3.5" /> : null}
+              <span>{uploading ? t('editor.uploadingMedia') : privacy === 'unlisted' ? t('editor.shareMap') : privacy === 'private' ? t('editor.saveDraft') : t('editor.publishMap')}</span>
             </button>
           </div>
         </div>

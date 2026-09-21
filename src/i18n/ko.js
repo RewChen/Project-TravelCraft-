@@ -41,6 +41,8 @@ export default {
     removeVideo: '동영상 제거',
     onlyVideo: '동영상 파일만 선택해 주세요',
     ytInvalid: '올바른 YouTube 링크를 입력하거나 동영상 파일을 업로드하세요',
+    uploadingMedia: '업로드 중…',
+    uploadFailed: '업로드에 실패했습니다. 다시 시도해 주세요',
     selfiePhoto: '셀카 사진 (여행 로그)',
     attachSelfie: '셀카 첨부',
     selfieHelper: '셀카는 상세 페이지의 여행 로그에 표시됩니다 — 최대 9장',

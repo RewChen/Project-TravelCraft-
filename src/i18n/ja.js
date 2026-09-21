@@ -41,6 +41,8 @@ export default {
     removeVideo: 'ビデオを削除',
     onlyVideo: '動画ファイルのみ選択してください',
     ytInvalid: '有効なYouTubeリンクを入力するか、動画ファイルをアップロードしてください',
+    uploadingMedia: 'アップロード中…',
+    uploadFailed: 'アップロードに失敗しました。もう一度お試しください',
     selfiePhoto: '自撮り写真（トラベラーログ）',
     attachSelfie: '自撮りを添付',
     selfieHelper: '自撮りは詳細ページのトラベラーログに表示されます — 最大9枚',
