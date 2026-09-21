@@ -530,6 +530,13 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     kyotoKanji: '京都市',
     bgAlt: 'พื้นหลังแผนที่โลกที่กำหนดเอง',
     changeMapImageShort: 'เปลี่ยนรูปแผนที่',
+    tour: 'เที่ยวชม',
+    tourStart: 'เริ่มเที่ยวชม — แผนที่จะเลื่อนไปทีละจุด',
+    tourStop: 'หยุดเที่ยวชม',
+    tourLabel: 'จุดชม',
+    tourPrev: 'จุดก่อนหน้า',
+    tourNext: 'จุดถัดไป',
+    tourStopTitle: 'จุดชม',
   },
   details: {
     backToMap: 'กลับไปแผนที่โลก',

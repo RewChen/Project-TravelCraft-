@@ -509,6 +509,13 @@ export default {
     kyotoKanji: '京都市',
     bgAlt: 'カスタムワールドマップ背景',
     changeMapImageShort: 'マップ画像を変更',
+    tour: 'ツアー',
+    tourStart: 'ツアー開始 — マップが各スポットを順に巡ります',
+    tourStop: 'ツアー停止',
+    tourLabel: 'スポット',
+    tourPrev: '前のスポット',
+    tourNext: '次のスポット',
+    tourStopTitle: 'スポット',
   },
   details: {
     backToMap: 'ワールドマップに戻る',

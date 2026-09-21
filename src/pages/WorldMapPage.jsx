@@ -1,11 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import KeyItemsSidebar from '../components/map/KeyItemsSidebar';
 import MapPins from '../components/map/MapPins';
 import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
@@ -22,6 +22,10 @@ export default function WorldMapPage() {
   const panStartRef = useRef({ x: 0, y: 0 });
   const mapContainerRef = useRef(null);
 
+  // Tour State
+  const [tourActive, setTourActive] = useState(false);
+  const [tourIndex, setTourIndex] = useState(0);
+
   // Reset pan when zoom resets to 1 or map changes
   useEffect(() => {
     if (zoomLevel <= 1) {
@@ -32,7 +36,111 @@ export default function WorldMapPage() {
   useEffect(() => {
     setPan({ x: 0, y: 0 });
     setZoomLevel(1);
+    setTourActive(false);
+    setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
+
+  // Build tour stops from elements and pins
+  const tourStops = useMemo(() => {
+    const stops = [];
+    const canvasW = mapCanvasWidth || 4000;
+    const canvasH = mapCanvasHeight || 4000;
+
+    // Add editor elements with positions
+    if (mapElements) {
+      mapElements.forEach((element) => {
+        if (element.x !== undefined && element.y !== undefined) {
+          stops.push({
+            id: `element-${element.id}`,
+            type: 'element',
+            element,
+            x: element.x,
+            y: element.y,
+            title: element.text || element.locName || t('worldMap.tourStop'),
+          });
+        }
+      });
+    }
+
+    // Add map pins
+    if (mapPins) {
+      mapPins.forEach((pin) => {
+        if (pin.top !== undefined && pin.left !== undefined) {
+          const top = parseFloat(pin.top);
+          const left = parseFloat(pin.left);
+          if (!isNaN(top) && !isNaN(left)) {
+            stops.push({
+              id: `pin-${pin.id}`,
+              type: 'pin',
+              pin,
+              x: (left / 100) * canvasW,
+              y: (top / 100) * canvasH,
+              title: pin.title || pin.name || t('worldMap.tourStop'),
+            });
+          }
+        }
+      });
+    }
+
+    return stops;
+  }, [mapElements, mapPins, mapCanvasWidth, mapCanvasHeight, t]);
+
+  // Animate to tour stop
+  const goToTourStop = useCallback((index) => {
+    if (index < 0 || index >= tourStops.length) return;
+    const stop = tourStops[index];
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const viewportW = containerRect.width;
+    const viewportH = containerRect.height;
+    const targetZoom = 1.5;
+
+    // Calculate pan to center the stop
+    const targetPanX = -(stop.x * targetZoom - viewportW / 2);
+    const targetPanY = -(stop.y * targetZoom - viewportH / 2);
+
+    setZoomLevel(targetZoom);
+    setPan({ x: targetPanX, y: targetPanY });
+    setTourIndex(index);
+
+    // Select the pin if it's a pin
+    if (stop.type === 'pin') {
+      setSelectedPin(stop.pin);
+    }
+  }, [tourStops, setSelectedPin]);
+
+  const handleResetZoom = useCallback(() => {
+    setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  const startTour = useCallback(() => {
+    if (tourStops.length > 0) {
+      setTourActive(true);
+      setTourIndex(0);
+      goToTourStop(0);
+    }
+  }, [tourStops, goToTourStop]);
+
+  const stopTour = useCallback(() => {
+    setTourActive(false);
+    setTourIndex(0);
+    handleResetZoom();
+  }, [handleResetZoom]);
+
+  const nextTourStop = useCallback(() => {
+    if (tourIndex < tourStops.length - 1) {
+      goToTourStop(tourIndex + 1);
+    }
+  }, [tourIndex, tourStops, goToTourStop]);
+
+  const prevTourStop = useCallback(() => {
+    if (tourIndex > 0) {
+      goToTourStop(tourIndex - 1);
+    }
+  }, [tourIndex, goToTourStop]);
 
   const handleZoomIn = () => {
     setZoomLevel((prev) => Math.min(prev + 0.25, 2.5));
@@ -40,11 +148,6 @@ export default function WorldMapPage() {
 
   const handleZoomOut = () => {
     setZoomLevel((prev) => Math.max(prev - 0.25, 0.75));
-  };
-
-  const handleResetZoom = () => {
-    setZoomLevel(1);
-    setPan({ x: 0, y: 0 });
   };
 
   const handleMapClick = () => {
@@ -119,6 +222,15 @@ export default function WorldMapPage() {
             {t('worldMap.viewDetails')}
           </button>
         )}
+        {tourStops.length > 0 && !tourActive && (
+          <button
+            onClick={startTour}
+            className="bg-emerald-400 hover:bg-emerald-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+            title={t('worldMap.tourStart')}
+          >
+            <Play className="w-3.5 h-3.5 fill-black" /> {t('worldMap.tour')}
+          </button>
+        )}
       </div>
 
       {/* Map Container Viewport (matches the editor's aspect ratio) */}
@@ -191,6 +303,47 @@ export default function WorldMapPage() {
           <MapPins hideElementPins />
 
         </div>
+
+        {/* Tour Controls Overlay */}
+        {tourActive && tourStops.length > 0 && (
+          <div 
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-white border-4 border-black rounded-xl px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3">
+              <span className="text-xs font-black text-gray-400 uppercase tracking-wider">
+                {t('worldMap.tourLabel')} {tourIndex + 1}<span className="mx-1">/</span>{tourStops.length}
+              </span>
+              <span className="font-black text-sm text-[#cc0000] truncate max-w-[200px]">{tourStops[tourIndex]?.title}</span>
+              <button
+                type="button"
+                onClick={prevTourStop}
+                disabled={tourIndex === 0}
+                title={t('worldMap.tourPrev')}
+                className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={nextTourStop}
+                disabled={tourIndex === tourStops.length - 1}
+                title={t('worldMap.tourNext')}
+                className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={stopTour}
+                title={t('worldMap.tourStop')}
+                className="w-8 h-8 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-red-50 text-red-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Selected Location Popup — rendered outside the overflow-hidden map
             box so the detail card is never clipped, and pinned to the viewport */}

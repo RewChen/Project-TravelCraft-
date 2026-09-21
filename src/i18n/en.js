@@ -530,6 +530,13 @@ export default {
     kyotoKanji: '京都市',
     bgAlt: 'Custom World Map Background',
     changeMapImageShort: 'Change Map Image',
+    tour: 'Tour',
+    tourStart: 'Start Tour — Map will pan through each spot',
+    tourStop: 'Stop Tour',
+    tourLabel: 'Stop',
+    tourPrev: 'Previous',
+    tourNext: 'Next',
+    tourStopTitle: 'Stop',
   },
   details: {
     backToMap: 'Back to World Map',
