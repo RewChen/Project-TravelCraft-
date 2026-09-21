@@ -81,7 +81,7 @@ TravelCraft รวบรวมการค้นหาสถานที่ท�
 | สำรวจแผนที่ Interactive + คลิก icon | ✅ มีแล้ว (mock data) | `src/pages/WorldMapPage.jsx`, `src/components/map/MapPins.jsx` |
 | ดูรายละเอียดสถานที่ (ภาพ/ประวัติ/เวลา/ค่าเข้า/สถิติ) | ✅ มีแล้ว (mock data) | `src/pages/DetailsPage.jsx`, `src/components/details/*` |
 | Map Editor (วาด/วาง POI/ปรับ background) | ✅ มีแล้ว | `src/pages/MapEditor.jsx` |
-| หน้า My Maps + Favorite | 🔶 บางส่วน (localStorage/mock) | `src/pages/MyMapsPage.jsx` |
+| หน้า My Maps + Favorite | ✅ มีแล้ว (Favorite sync กับ DB หลัง login) | `src/pages/MyMapsPage.jsx` |
 | ค้นหา/กรองตามหมวด (น้ำตก/วัด/จุดชมวิว/อุทยาน) | 🔶 อยู่ระหว่างทำ | `WorldMapPage`, `AppContext.jsx` |
 | Community (publish/ดูแผนที่คนอื่น) | 🔶 อยู่ระหว่างทำ (mock) | `src/pages/CommunityPage.jsx` |
 | Admin Dashboard (users/base maps/settings/reports) | 🔶 มี UI แล้ว (ข้อมูล mock) | `src/pages/AdminDashboard.jsx`, `src/components/admin/*` |

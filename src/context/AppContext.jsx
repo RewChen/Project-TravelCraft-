@@ -29,6 +29,7 @@ import {
   dataUrlToFile
 } from '../lib/supabaseUserAssets';
 import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps, buildRoutePaths } from '../lib/editorCanvas';
+import { fetchFavorites, insertFavorite, deleteFavorite } from '../lib/supabaseFavorites';
 
 const AppContext = createContext();
 
@@ -932,6 +933,11 @@ export const AppProvider = ({ children }) => {
   const [communityMaps, setCommunityMaps] = useState(() => loadStored('communityMaps', initialCommunityDiscoveries));
   const [activeCommunityMap, setActiveCommunityMap] = useState(null);
 
+  const favoritesRef = useRef(favorites);
+  useEffect(() => {
+    favoritesRef.current = favorites;
+  }, [favorites]);
+
   // Per-user saved editor Elements & Backgrounds (DB when signed in, localStorage for guests).
   const USER_ASSETS_KEY = 'project_travelcraft_userAssets';
   const [userAssets, setUserAssets] = useState(() => {
@@ -1058,6 +1064,42 @@ export const AppProvider = ({ children }) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthLoading]);
+
+  // Hydrate favorites once auth resolves (or whenever the signed-in user
+  // changes): signed-in users get their DB list (merged with any guest/local
+  // favorites so nothing is lost), guests keep the localStorage mirror.
+  useEffect(() => {
+    if (isAuthLoading || !userProfile?.id) return undefined;
+    let cancelled = false;
+    const uid = userProfile.id;
+    (async () => {
+      try {
+        const dbFavorites = await fetchFavorites(uid);
+        if (cancelled || !Array.isArray(dbFavorites)) return;
+        const localFavorites = favoritesRef.current || [];
+        const merged = Array.from(new Set([...dbFavorites, ...localFavorites]));
+        const onlyLocal = localFavorites.filter((title) => !dbFavorites.includes(title));
+        if (onlyLocal.length) {
+          // Push guest favorites into the account so they follow the user.
+          for (const title of onlyLocal) {
+            try {
+              await insertFavorite(uid, title);
+            } catch {
+              // keep going with the rest
+            }
+          }
+        }
+        if (cancelled) return;
+        setFavorites(merged);
+      } catch (err) {
+        console.warn('Favorites fallback to local storage:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthLoading, userProfile?.id]);
 
   // Persist a map to Supabase. Returns a status so callers can tell the user
   // whether the map really reached the database:
@@ -1638,11 +1680,24 @@ export const AppProvider = ({ children }) => {
   };
 
   const toggleFavorite = (locationTitle) => {
+    const wasFav = (favoritesRef.current || []).includes(locationTitle);
     setFavorites((prev) =>
       prev.includes(locationTitle)
         ? prev.filter((item) => item !== locationTitle)
         : [...prev, locationTitle]
     );
+    if (isLoggedIn && userProfile?.id) {
+      const uid = userProfile.id;
+      if (wasFav) {
+        deleteFavorite(uid, locationTitle).catch((err) => {
+          console.warn('Favorite delete skipped:', err);
+        });
+      } else {
+        insertFavorite(uid, locationTitle).catch((err) => {
+          console.warn('Favorite insert skipped:', err);
+        });
+      }
+    }
   };
 
   const addCustomPin = (newPinData) => {
