@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Star, Check, X, Pin, PinOff, EyeOff, Eye, MapPin, ShieldCheck, Image as ImageIcon, Trash2, CheckSquare, Square
+  Star, Check, X, Pin, PinOff, EyeOff, Eye, MapPin, ShieldCheck, Image as ImageIcon, Trash2, CheckSquare, Square, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import DeleteReviewModal from '../../reviews/DeleteReviewModal';
@@ -27,6 +27,45 @@ const Stars = ({ value, size = 'w-4 h-4' }) => (
   </span>
 );
 
+const DeleteAllConfirmModal = ({ isOpen, onClose, onConfirm, count, t }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-150">
+      <div className="w-full max-w-md bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in zoom-in-95 fade-in duration-150">
+        <div className="bg-[#cc0000] border-b-4 border-black p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-red-600 border-2 border-black rounded-lg flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-white" />
+          </div>
+          <h3 className="text-white font-black text-lg uppercase">{t('admin.deleteAllConfirmTitle')}</h3>
+        </div>
+        <div className="p-5 space-y-4">
+          <p className="text-sm font-bold text-gray-800 leading-relaxed">
+            {t('admin.confirmDeleteAll', { count })}
+          </p>
+          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3">
+            <p className="text-xs font-black text-red-800 uppercase tracking-wider">{t('admin.bulkDeleteWarning')}</p>
+            <p className="text-[10px] text-red-700 font-sans mt-1">{t('admin.bulkDeleteDesc')}</p>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-black bg-white text-gray-700 hover:bg-gray-100 text-sm font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-black bg-[#cc0000] hover:bg-red-700 text-white text-sm font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+            >
+              {t('admin.deleteAllConfirmBtn')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // หน้าตรวจสอบรีวิวการให้คะแนน — คิวงานผู้ดูแลก่อนเผยแพร่สู่ชุมชน
 export default function ReviewsTab() {
   const {
@@ -40,6 +79,7 @@ export default function ReviewsTab() {
   const [photoOnly, setPhotoOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleting, setDeleting] = useState(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   const pendingCount = (reviews || []).filter((r) => r.status === 'pending').length;
   const approvedCount = (reviews || []).filter((r) => r.status === 'approved').length;
@@ -82,9 +122,12 @@ export default function ReviewsTab() {
     selectedIds.forEach((id) => hideReview(id));
     setSelectedIds([]);
   };
-  const batchDeleteAll = () => {
-    if (!window.confirm(t('admin.confirmDeleteAll', { count: visible.length }))) return;
+  const handleDeleteAllClick = () => {
+    if (visible.length > 0) setShowDeleteAllConfirm(true);
+  };
+  const confirmDeleteAll = () => {
     visible.forEach((r) => deleteReview(r.id, 'Admin bulk delete'));
+    setShowDeleteAllConfirm(false);
     setSelectedIds([]);
   };
 
@@ -346,6 +389,13 @@ export default function ReviewsTab() {
           onClose={() => setDeleting(null)}
         />
       )}
+      <DeleteAllConfirmModal
+        isOpen={showDeleteAllConfirm}
+        onClose={() => setShowDeleteAllConfirm(false)}
+        onConfirm={confirmDeleteAll}
+        count={visible.length}
+        t={t}
+      />
     </div>
   );
 }
