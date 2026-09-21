@@ -40,53 +40,31 @@ export default function WorldMapPage() {
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
-  // Build tour stops from elements and pins - only show marked locations and pins
+  // Build tour stops from the map pins — one stop per visible marker.
+  // Editor-location markers are already represented in mapPins as element-type
+  // pins, so iterating elements too would double-count every created spot.
   const tourStops = useMemo(() => {
     const stops = [];
-    const canvasW = mapCanvasWidth || 4000;
-    const canvasH = mapCanvasHeight || 4000;
-
-    // Add editor elements that are marked as locations
-    if (mapElements) {
-      mapElements.forEach(({ element, position }) => {
-        // Only include elements explicitly marked as locations
-        if (element.isLocation === true && position) {
+    if (Array.isArray(mapPins)) {
+      mapPins.forEach((pin) => {
+        const top = parseFloat(pin.top);
+        const left = parseFloat(pin.left);
+        if (!isNaN(top) && !isNaN(left)) {
           stops.push({
-            id: `element-${element.id}`,
-            type: 'element',
-            element,
-            x: position.left + (position.width || 0) / 2,
-            y: position.top + (position.height || 0) / 2,
-            title: element.locName || element.text || element.label || t('worldMap.tourStop'),
+            id: `pin-${pin.id}`,
+            type: 'pin',
+            pin,
+            left,
+            top,
+            title: pin.title || pin.name || t('worldMap.tourStop'),
           });
         }
       });
     }
-
-    // Add map pins (user uploaded photos, etc.)
-    if (mapPins) {
-      mapPins.forEach((pin) => {
-        if (pin.top !== undefined && pin.left !== undefined) {
-          const top = parseFloat(pin.top);
-          const left = parseFloat(pin.left);
-          if (!isNaN(top) && !isNaN(left)) {
-            stops.push({
-              id: `pin-${pin.id}`,
-              type: 'pin',
-              pin,
-              x: (left / 100) * canvasW,
-              y: (top / 100) * canvasH,
-              title: pin.title || pin.name || t('worldMap.tourStop'),
-            });
-          }
-        }
-      });
-    }
-
     return stops;
-  }, [mapElements, mapPins, mapCanvasWidth, mapCanvasHeight, t]);
+  }, [mapPins, t]);
 
-  // Animate to tour stop
+  // Pan + zoom so a stop's absolute (left%, top%) position lands in the center.
   const goToTourStop = useCallback((index) => {
     if (index < 0 || index >= tourStops.length) return;
     const stop = tourStops[index];
@@ -98,18 +76,20 @@ export default function WorldMapPage() {
     const viewportH = containerRect.height;
     const targetZoom = 1.5;
 
-    // Calculate pan to center the stop
-    const targetPanX = -(stop.x * targetZoom - viewportW / 2);
-    const targetPanY = -(stop.y * targetZoom - viewportH / 2);
+    // The zoomable wrapper fills the container, so at zoom=1 a marker at
+    // (left%, top%) appears at (left/100 * viewportW, top/100 * viewportH).
+    const displayX = (stop.left / 100) * viewportW;
+    const displayY = (stop.top / 100) * viewportH;
 
+    // The wrapper uses `transform: scale(s) translate(t)` with transform-origin
+    // at center. Mapping a point p to the screen center requires t = center - p.
     setZoomLevel(targetZoom);
-    setPan({ x: targetPanX, y: targetPanY });
+    setPan({
+      x: viewportW / 2 - displayX,
+      y: viewportH / 2 - displayY,
+    });
     setTourIndex(index);
-
-    // Select the pin if it's a pin
-    if (stop.type === 'pin') {
-      setSelectedPin(stop.pin);
-    }
+    setSelectedPin(stop.pin);
   }, [tourStops, setSelectedPin]);
 
   const handleResetZoom = useCallback(() => {
