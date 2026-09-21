@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Star, Check, X, Pin, PinOff, EyeOff, Eye, MapPin, ShieldCheck, Image as ImageIcon, Trash2, CheckSquare, Square, AlertTriangle
+  Star, Check, Pin, PinOff, EyeOff, Eye, MapPin, ShieldCheck, Image as ImageIcon, Trash2, CheckSquare, Square, AlertTriangle
 } from 'lucide-react';
 import { useApp } from '../../../context/AppContext';
 import DeleteReviewModal from '../../reviews/DeleteReviewModal';
@@ -213,7 +213,7 @@ export default function ReviewsTab() {
           </button>
           <button
             type="button"
-            onClick={batchDeleteAll}
+            onClick={handleDeleteAllClick}
             disabled={visible.length === 0}
             className="px-3 py-1.5 rounded-lg border-2 border-black bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
