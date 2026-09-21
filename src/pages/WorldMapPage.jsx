@@ -40,29 +40,30 @@ export default function WorldMapPage() {
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
-  // Build tour stops from elements and pins
+  // Build tour stops from elements and pins - only show marked locations and pins
   const tourStops = useMemo(() => {
     const stops = [];
     const canvasW = mapCanvasWidth || 4000;
     const canvasH = mapCanvasHeight || 4000;
 
-    // Add editor elements with positions
+    // Add editor elements that are marked as locations
     if (mapElements) {
-      mapElements.forEach((element) => {
-        if (element.x !== undefined && element.y !== undefined) {
+      mapElements.forEach(({ element, position }) => {
+        // Only include elements explicitly marked as locations
+        if (element.isLocation === true && position) {
           stops.push({
             id: `element-${element.id}`,
             type: 'element',
             element,
-            x: element.x,
-            y: element.y,
-            title: element.text || element.locName || t('worldMap.tourStop'),
+            x: position.left + (position.width || 0) / 2,
+            y: position.top + (position.height || 0) / 2,
+            title: element.locName || element.text || element.label || t('worldMap.tourStop'),
           });
         }
       });
     }
 
-    // Add map pins
+    // Add map pins (user uploaded photos, etc.)
     if (mapPins) {
       mapPins.forEach((pin) => {
         if (pin.top !== undefined && pin.left !== undefined) {
