@@ -6,7 +6,11 @@ export default {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        thai: ['"Noto Sans Thai"', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }

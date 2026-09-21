@@ -1,3 +1,5 @@
+import { cleanAssetName } from './imageUtils';
+
 export const DEFAULT_CANVAS_WIDTH = 4000;
 export const DEFAULT_CANVAS_HEIGHT = 4000;
 
@@ -174,7 +176,10 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
       const position = positions[element.id];
       if (!position) return null;
       const details = element.locationDetails || {};
-      let fallbackLabel = getLabel ? getLabel(element) : null;
+      const rawLabel = getLabel
+        ? getLabel(element)
+        : (element.content || element.label || element.type || 'Spot');
+      let fallbackLabel = rawLabel || null;
       if (!fallbackLabel) {
         if (element.type === 'text' || element.type === 'emoji') {
           fallbackLabel = element.content;
@@ -188,7 +193,7 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
           fallbackLabel = element.type === 'image' ? 'Photo Spot' : (element.type || 'Spot');
         }
       }
-
+      fallbackLabel = cleanAssetName(fallbackLabel) || 'Location';
       const isImageSrc = element.type === 'image'
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));

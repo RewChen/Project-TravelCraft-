@@ -311,10 +311,10 @@ export default {
   nav: {
     home: '首页',
     community: '社区发现',
-    worldMap: '🗺️ 世界地图',
+    worldMap: '世界地图',
     myMaps: '我的地图',
     settings: '设置',
-    admin: '🛡️ 管理员',
+    admin: '管理员',
     profile: '个人资料',
     goToProfile: '前往个人资料',
     toggleTheme: '切换主题',

@@ -330,10 +330,10 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
   nav: {
     home: 'หน้าแรก',
     community: 'สถานที่ค้นพบจากชุมชน',
-    worldMap: '🗺️ แผนที่โลก',
+    worldMap: 'แผนที่โลก',
     myMaps: 'แผนที่ของฉัน',
     settings: 'ตั้งค่า',
-    admin: '🛡️ ผู้ดูแล',
+    admin: 'ผู้ดูแล',
     profile: 'โปรไฟล์',
     goToProfile: 'ไปที่โปรไฟล์',
     toggleTheme: 'สลับธีม',

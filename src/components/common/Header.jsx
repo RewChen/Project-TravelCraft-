@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Settings, User, X, CheckCheck, Trash2, ChevronRight, Map as MapIcon, ExternalLink } from 'lucide-react';
+import { Bell, Settings, User, X, CheckCheck, Trash2, ChevronRight, Map as MapIcon, ExternalLink, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
+const activeNav = 'bg-[#fce4c7] text-amber-800 px-3.5 py-1.5 rounded-full dark:bg-amber-900/30 dark:text-amber-200';
+const inactiveNav = 'text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-full hover:bg-white/60 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10 transition-colors';
+
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps, hasEverOpenedMap } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps, language, setLanguage } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [scrolled, setScrolled] = useState(false);
   const [easterEggCount, setEasterEggCount] = useState(0);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
   const notifRef = useRef(null);
@@ -32,10 +34,8 @@ export default function Header() {
     setSelectedNotification({ ...n, read: true });
   };
 
-  // Deep-link: where should this notification jump to?
   const resolveNotificationDestination = (n) => {
     if (!n) return { page: 'community', labelKey: 'nav.community' };
-    // 1) Explicit target stored in data wins
     if (n.data?.page) {
       const page = n.data.page;
       if (n.data.mapId) {
@@ -44,13 +44,11 @@ export default function Header() {
       }
       return { page, labelKey: pageLabelKey(page) };
     }
-    // 2) Map-linked realtime notifications
     if (n.data?.mapId) {
       const map = communityMaps?.find((m) => m.id === n.data.mapId);
       if (map) return { page: 'details', location: map, labelKey: 'nav.community' };
       return { page: 'community', labelKey: 'nav.community' };
     }
-    // 3) Fallback by notification type (covers old localStorage items without data)
     const findMapByTitle = (titleParam) => {
       if (!titleParam || !communityMaps?.length) return null;
       const needle = String(titleParam).trim().toLowerCase();
@@ -108,7 +106,6 @@ export default function Header() {
   const handleGoToDestination = (n) => {
     const target = n || selectedNotification;
     if (!target) return;
-    // Admin page is guarded — non-admins fall back to community
     const dest = resolveNotificationDestination(target);
     if (dest.page === 'admin' && !(isLoggedIn && isAdminLoggedIn)) {
       navigateTo('community');
@@ -120,13 +117,6 @@ export default function Header() {
     setSelectedNotification(null);
     setShowNotifications(false);
   };
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   useEffect(() => {
     if (!showNotifications && !selectedNotification) return;
@@ -149,8 +139,9 @@ export default function Header() {
   }, [showNotifications, selectedNotification]);
 
   return (
-    <header className={`bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 flex items-center justify-between transition-all duration-200 ${scrolled ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' : 'shadow-none'}`}>
-      <div 
+    <header className="font-thai bg-[#f0f1f3] dark:bg-slate-800 px-4 sm:px-5 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-40 rounded-2xl mb-6">
+      {/* ── Brand ── */}
+      <div
         onClick={() => {
           navigateTo('home');
           const nextCount = easterEggCount + 1;
@@ -161,94 +152,95 @@ export default function Header() {
             setEasterEggCount(nextCount);
           }
         }}
-        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity select-none"
+        className="flex items-center gap-2.5 cursor-pointer select-none shrink-0"
       >
-        <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-          <img src="/logo.png" alt="TravelCraft Logo" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
-        </div>
-        <span className="font-black text-lg tracking-wider text-[#cc0000] uppercase hidden sm:block ml-3">
-          TravelCraft
-        </span>
+        <img src="/logo.png" alt="TravelCraft Logo" className="w-9 h-9 object-contain" />
+        <span className="font-extrabold text-[15px] tracking-wide text-[#9b1c1c] dark:text-red-400 hidden sm:block">TRAVELCRAFT</span>
       </div>
 
-      <nav className="flex items-center gap-2 sm:gap-4 md:gap-6 text-sm font-bold">
-        <button 
+      {/* ── Navigation ── */}
+      <nav className="flex items-center gap-1 text-[13px] font-semibold">
+        <button
           onClick={() => navigateTo('home')}
-className={`${currentPage === 'home' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={currentPage === 'home' ? activeNav : inactiveNav}
         >
           {t('nav.home')}
         </button>
 
-        <button 
+        <button
           onClick={() => navigateTo('community')}
-className={`${currentPage === 'community' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={currentPage === 'community' ? activeNav : inactiveNav}
         >
           {t('nav.community')}
         </button>
 
-        {/* World Map — hidden until the user previews a map at least once */}
-        {hasEverOpenedMap && (
-        <button 
-          onClick={() => navigateTo('map')}
-className={`${currentPage === 'map' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
-        >
-          {t('nav.worldMap')}
-        </button>
-        )}
-
-        <button 
+        <button
           onClick={() => navigateTo('mymaps')}
-className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offset-4 decoration-2 border-dashed border-2 border-red-200 px-2' : 'text-gray-700 dark:text-slate-200 hover:text-black dark:hover:text-white border-2 border-transparent px-2'}`}
+          className={currentPage === 'mymaps' ? activeNav : inactiveNav}
         >
           {t('nav.myMaps')}
         </button>
 
-        {/* Admin Command Center — only visible when logged in with an Admin account */}
         {isLoggedIn && isAdminLoggedIn && (
-          <button 
+          <button
             onClick={() => navigateTo('admin')}
-            className={`${
-              currentPage === 'admin' 
-                ? 'bg-[#cc0000] text-white px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
-                : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border-2 border-black px-2 py-0.5 rounded-lg shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'
-            } flex items-center gap-1.5`}
+            className="ml-1 bg-[#cc0000] text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-[#b30000] transition-colors text-[13px] font-bold"
           >
-            <span>{t('nav.admin')}</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 border border-black animate-pulse"></span>
+            <Shield className="w-3.5 h-3.5" />
+            {t('nav.admin')}
           </button>
         )}
 
+        {/* ── Language Toggle ── */}
+        <div className="ml-2 flex items-center bg-[#e4e6e9] dark:bg-slate-700 rounded-full p-0.5 shrink-0">
+          <button
+            onClick={() => setLanguage('en')}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${language === 'en' ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-500 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLanguage('th')}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-all ${language === 'th' ? 'bg-white text-gray-900 shadow-sm dark:bg-slate-500 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+          >
+            TH
+          </button>
+        </div>
       </nav>
 
-      <div className="flex items-center gap-3">
+      {/* ── Right Icons ── */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowNotifications((v) => !v)}
             title={t('notifications.title')}
             aria-label={t('notifications.title')}
-            className="w-9 h-9 border border-slate-200 rounded-full flex items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none cursor-pointer relative"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer relative"
           >
-            <Bell className="w-4 h-4 text-black" />
+            <Bell className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#cc0000] text-white text-[10px] font-black border border-black rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#cc0000] text-white text-[10px] font-black rounded-full flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
+
+          {/* Notification Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white border-4 border-black rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden z-[60] font-mono">
-              <div className="bg-[#cc0000] text-white px-4 py-3 border-b-4 border-black flex items-center justify-between">
+            <div className="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl shadow-lg overflow-hidden z-[60] font-mono">
+              <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 dark:border-slate-600 flex items-center justify-between">
                 <span className="text-xs font-black uppercase flex items-center gap-1.5"><Bell className="w-3.5 h-3.5" /> {t('notifications.title')} {unreadCount > 0 ? `(${unreadCount})` : ''}</span>
-                <button onClick={() => setShowNotifications(false)} className="w-6 h-6 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-100"><X className="w-3 h-3" /></button>
+                <button onClick={() => setShowNotifications(false)} className="w-6 h-6 bg-white/20 hover:bg-white/40 text-white border-0 rounded flex items-center justify-center"><X className="w-3 h-3" /></button>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="p-6 text-center">
                     <div className="text-2xl mb-2">🔕</div>
-                    <p className="text-xs font-bold text-gray-500">{t('notifications.empty')}</p>
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('notifications.empty')}</p>
                   </div>
                 ) : (
-                  <div className="divide-y-2 divide-gray-100">
+                  <div className="divide-y divide-gray-100 dark:divide-slate-700">
                     {notifications.map((n) => (
                       <div
                         key={n.id}
@@ -257,27 +249,27 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
                         tabIndex={0}
                         title={getNotificationTitle(n)}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(n); } }}
-                        className={`p-3 flex gap-3 hover:bg-amber-50 cursor-pointer group ${!n.read ? 'bg-amber-50/60' : 'bg-white'}`}
+                        className={`p-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer group ${!n.read ? 'bg-orange-50/60 dark:bg-slate-700/50' : 'bg-white dark:bg-slate-800'}`}
                       >
-                        <div className="w-8 h-8 border-2 border-black rounded-lg bg-gray-100 flex items-center justify-center text-sm shrink-0">{n.icon || '🔔'}</div>
+                        <div className="w-8 h-8 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-sm shrink-0">{n.icon || '🔔'}</div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black leading-tight truncate">
+                          <p className="text-xs font-black leading-tight truncate dark:text-slate-100">
                             {getNotificationTitle(n)}
                           </p>
-                          <p className="text-[11px] text-gray-600 font-sans leading-tight line-clamp-2">
+                          <p className="text-[11px] text-gray-600 dark:text-gray-400 font-sans leading-tight line-clamp-2">
                             {getNotificationMessage(n)}
                           </p>
-                          <p className="text-[10px] text-gray-400 font-bold mt-1 flex items-center gap-1">
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold mt-1 flex items-center gap-1">
                             <span>{n.time}</span>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-[#cc0000] flex items-center gap-0.5 group-hover:underline">
+                            <span className="text-gray-300 dark:text-gray-600">•</span>
+                            <span className="text-[#cc0000] dark:text-red-400 flex items-center gap-0.5 group-hover:underline">
                               <ExternalLink className="w-2.5 h-2.5" /> {getDestinationLabel(n)}
                             </span>
                           </p>
                         </div>
                         <div className="flex flex-col items-end justify-start gap-1.5 shrink-0">
                           {!n.read && <span className="w-2 h-2 bg-[#cc0000] rounded-full mt-1.5" />}
-                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 group-hover:text-black dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                         </div>
                       </div>
                     ))}
@@ -285,46 +277,49 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
                 )}
               </div>
               {notifications.length > 0 && (
-                <div className="p-2 bg-gray-50 border-t-2 border-black flex gap-2">
-                  <button onClick={markAllNotificationsRead} className="flex-1 py-1.5 bg-white border-2 border-black rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100"><CheckCheck className="w-3 h-3" /> {t('notifications.markAllRead')}</button>
-                  <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#cc0000] text-white border-2 border-black rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-red-700"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
+                <div className="p-2 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex gap-2">
+                  <button onClick={markAllNotificationsRead} className="flex-1 py-1.5 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors"><CheckCheck className="w-3 h-3" /> {t('notifications.markAllRead')}</button>
+                  <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#cc0000] text-white border-0 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-[#b30000] transition-colors"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
                 </div>
               )}
             </div>
           )}
         </div>
-        {/* Settings — visible for all users (including unlogged-in) */}
-        <button 
+
+        {/* Settings */}
+        <button
           onClick={() => navigateTo('settings')}
           title={t('nav.settings')}
           aria-label={t('nav.settings')}
-          className="w-9 h-9 border border-slate-200 rounded-full items-center justify-center bg-gray-100 hover:bg-amber-100 shadow-none hidden sm:flex cursor-pointer"
+          className="w-9 h-9 rounded-full items-center justify-center hover:bg-white/60 dark:hover:bg-white/10 transition-colors hidden sm:flex cursor-pointer"
         >
-          <Settings className="w-4 h-4 text-black" />
+          <Settings className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" />
         </button>
+
+        {/* Profile */}
         {isLoggedIn ? (
-          <div 
-            onClick={() => navigateTo('profile')} 
-            className="w-9 h-9 bg-amber-400 border border-black rounded-full flex items-center justify-center cursor-pointer hover:bg-amber-300 shadow-none overflow-hidden" 
+          <div
+            onClick={() => navigateTo('profile')}
+            className="w-9 h-9 rounded-full border-[2.5px] border-amber-400 overflow-hidden cursor-pointer hover:border-amber-500 transition-colors shrink-0"
             title={t('nav.goToProfile')}
           >
             {isAvatarImage(avatar) ? (
               <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-sm font-black">{avatar}</span>
+              <div className="w-full h-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-sm font-black">{avatar}</div>
             )}
           </div>
         ) : (
-          <button 
-            onClick={() => { setAuthMode('login'); navigateTo('auth'); }} 
-            className="w-9 h-9 border-2 border-black rounded-lg flex items-center justify-center bg-[#cc0000] text-white hover:bg-red-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+          <button
+            onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 transition-colors cursor-pointer shrink-0"
           >
-            <User className="w-4 h-4" />
+            <User className="w-4 h-4 text-gray-500 dark:text-gray-300" />
           </button>
         )}
       </div>
 
-      {/* Notification detail modal — opens for every item, not just ones with mapId */}
+      {/* Notification Detail Modal */}
       {selectedNotification && (
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50"
@@ -334,45 +329,45 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-white border-4 border-black rounded-2xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden font-mono"
+            className="w-full max-w-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl shadow-xl overflow-hidden font-mono"
           >
-            <div className="bg-[#cc0000] text-white px-4 py-3 border-b-4 border-black flex items-center justify-between">
+            <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 dark:border-slate-600 flex items-center justify-between">
               <span className="text-xs font-black uppercase flex items-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> {t('notifications.title')}
               </span>
               <button
                 onClick={() => setSelectedNotification(null)}
                 aria-label={t('common.close')}
-                className="w-6 h-6 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-100"
+                className="w-6 h-6 bg-white/20 hover:bg-white/40 text-white rounded flex items-center justify-center"
               >
                 <X className="w-3 h-3" />
               </button>
             </div>
             <div className="p-5">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 border-2 border-black rounded-xl bg-amber-100 flex items-center justify-center text-2xl shrink-0">
+                <div className="w-12 h-12 border border-gray-200 dark:border-slate-600 rounded-xl bg-orange-50 dark:bg-slate-700 flex items-center justify-center text-2xl shrink-0">
                   {selectedNotification.icon || '🔔'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-black leading-snug break-words">
+                  <p className="text-sm font-black leading-snug break-words dark:text-slate-100">
                     {getNotificationTitle(selectedNotification)}
                   </p>
-                  <p className="text-[11px] text-gray-400 font-bold mt-1">
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 font-bold mt-1">
                     {selectedNotification.time}
                     {!selectedNotification.read && (
-                      <span className="ml-2 inline-block px-1.5 py-0.5 bg-[#cc0000] text-white text-[9px] rounded border border-black align-middle">NEW</span>
+                      <span className="ml-2 inline-block px-1.5 py-0.5 bg-[#cc0000] text-white text-[9px] rounded border-0 align-middle">NEW</span>
                     )}
                   </p>
                 </div>
               </div>
-              <p className="mt-4 text-sm text-gray-700 font-sans leading-relaxed whitespace-pre-wrap break-words">
+              <p className="mt-4 text-sm text-gray-700 dark:text-gray-300 font-sans leading-relaxed whitespace-pre-wrap break-words">
                 {getNotificationMessage(selectedNotification)}
               </p>
             </div>
-            <div className="p-3 bg-gray-50 border-t-2 border-black flex gap-2">
+            <div className="p-3 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex gap-2">
               <button
                 onClick={() => handleGoToDestination()}
-                className="flex-1 py-2 bg-amber-400 border-2 border-black rounded-lg text-[11px] font-black uppercase flex items-center justify-center gap-1.5 hover:bg-amber-300 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="flex-1 py-2 bg-amber-400 border border-gray-200 dark:border-slate-600 rounded-lg text-[11px] font-black uppercase flex items-center justify-center gap-1.5 hover:bg-amber-300 transition-colors"
               >
                 {resolveNotificationDestination(selectedNotification).page === 'details'
                   ? <MapIcon className="w-3.5 h-3.5" />
@@ -381,7 +376,7 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
               </button>
               <button
                 onClick={() => setSelectedNotification(null)}
-                className="flex-1 py-2 bg-white border-2 border-black rounded-lg text-[11px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100"
+                className="flex-1 py-2 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-[11px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors dark:text-slate-200"
               >
                 {t('common.close')}
               </button>
@@ -389,11 +384,11 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
           </div>
         </div>
       )}
-      
+
       {/* Easter Egg Modal */}
       {showEasterEgg && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80" onClick={() => setShowEasterEgg(false)}>
-          <div 
+          <div
             className="relative w-full max-w-3xl bg-black border-4 border-white rounded-xl shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] overflow-hidden aspect-video flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
@@ -401,14 +396,13 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
               <X className="w-5 h-5" />
             </button>
             <div className="w-full h-full">
-              {/* Replace the URL in the src below with your desired video URL */}
-              <iframe 
-                width="100%" 
-                height="100%" 
-                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
-                title="Easter Egg Video" 
-                frameBorder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+              <iframe
+                width="100%"
+                height="100%"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                title="Easter Egg Video"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               ></iframe>
             </div>

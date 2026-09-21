@@ -6,6 +6,7 @@ import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
 import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { cleanAssetName } from '../lib/imageUtils';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
@@ -40,52 +41,34 @@ export default function WorldMapPage() {
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
-  // Build tour stops from elements and pins
-  const tourStops = useMemo(() => {
-    const stops = [];
-    const canvasW = mapCanvasWidth || 4000;
-    const canvasH = mapCanvasHeight || 4000;
+  // Build tour stops ONLY from editor elements marked as locations.
+    // Photo-upload pins and template pins are excluded so the tour count always
+    // matches the number of spots the user placed in the editor.
+    const tourStops = useMemo(() => {
+      const stops = [];
+      const canvasW = mapCanvasWidth || 4000;
+      const canvasH = mapCanvasHeight || 4000;
 
-    // Add editor elements with positions
-    if (mapElements) {
-      mapElements.forEach((element) => {
-        if (element.x !== undefined && element.y !== undefined) {
-          stops.push({
-            id: `element-${element.id}`,
-            type: 'element',
-            element,
-            x: element.x,
-            y: element.y,
-            title: element.text || element.locName || t('worldMap.tourStop'),
-          });
-        }
-      });
-    }
-
-    // Add map pins
-    if (mapPins) {
-      mapPins.forEach((pin) => {
-        if (pin.top !== undefined && pin.left !== undefined) {
-          const top = parseFloat(pin.top);
-          const left = parseFloat(pin.left);
-          if (!isNaN(top) && !isNaN(left)) {
+      if (Array.isArray(mapElements)) {
+        mapElements.forEach(({ element, position }) => {
+          if (element.isLocation === true && !element.isHiddenWaypoint && position) {
+            const labelSource = element.type === 'image' ? element.label : (element.label || element.content);
             stops.push({
-              id: `pin-${pin.id}`,
-              type: 'pin',
-              pin,
-              x: (left / 100) * canvasW,
-              y: (top / 100) * canvasH,
-              title: pin.title || pin.name || t('worldMap.tourStop'),
+              id: `spot-${element.id}`,
+              type: 'spot',
+              pin: null,
+              left: ((position.left + (position.width || 0) / 2) / canvasW) * 100,
+              top: ((position.top + (position.height || 0) / 2) / canvasH) * 100,
+              title: element.locationDetails?.name || cleanAssetName(labelSource) || t('worldMap.tourStop'),
             });
           }
-        }
-      });
-    }
+        });
+      }
 
-    return stops;
-  }, [mapElements, mapPins, mapCanvasWidth, mapCanvasHeight, t]);
+      return stops;
+    }, [mapElements, mapCanvasWidth, mapCanvasHeight, t]);
 
-  // Animate to tour stop
+  // Pan + zoom so a stop's absolute (left%, top%) position lands in the center.
   const goToTourStop = useCallback((index) => {
     if (index < 0 || index >= tourStops.length) return;
     const stop = tourStops[index];
@@ -97,16 +80,20 @@ export default function WorldMapPage() {
     const viewportH = containerRect.height;
     const targetZoom = 1.5;
 
-    // Calculate pan to center the stop
-    const targetPanX = -(stop.x * targetZoom - viewportW / 2);
-    const targetPanY = -(stop.y * targetZoom - viewportH / 2);
+    // The zoomable wrapper fills the container, so at zoom=1 a marker at
+    // (left%, top%) appears at (left/100 * viewportW, top/100 * viewportH).
+    const displayX = (stop.left / 100) * viewportW;
+    const displayY = (stop.top / 100) * viewportH;
 
+    // The wrapper uses `transform: scale(s) translate(t)` with transform-origin
+    // at center. Mapping a point p to the screen center requires t = center - p.
     setZoomLevel(targetZoom);
-    setPan({ x: targetPanX, y: targetPanY });
+    setPan({
+      x: viewportW / 2 - displayX,
+      y: viewportH / 2 - displayY,
+    });
     setTourIndex(index);
-
-    // Select the pin if it's a pin
-    if (stop.type === 'pin') {
+    if (stop.pin) {
       setSelectedPin(stop.pin);
     }
   }, [tourStops, setSelectedPin]);
