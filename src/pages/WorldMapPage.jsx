@@ -214,23 +214,25 @@ export default function WorldMapPage() {
             </p>
           </div>
         </div>
-        {activeCommunityMap && (
-          <button
-            onClick={() => navigateTo('details', activeCommunityMap)}
-            className="bg-amber-400 hover:bg-amber-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-          >
-            {t('worldMap.viewDetails')}
-          </button>
-        )}
-        {tourStops.length > 0 && !tourActive && (
-          <button
-            onClick={startTour}
-            className="bg-emerald-400 hover:bg-emerald-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
-            title={t('worldMap.tourStart')}
-          >
-            <Play className="w-3.5 h-3.5 fill-black" /> {t('worldMap.tour')}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {tourStops.length > 0 && !tourActive && (
+            <button
+              onClick={startTour}
+              className="bg-emerald-400 hover:bg-emerald-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+              title={t('worldMap.tourStart')}
+            >
+              <Play className="w-3.5 h-3.5 fill-black" /> {t('worldMap.tour')}
+            </button>
+          )}
+          {activeCommunityMap && (
+            <button
+              onClick={() => navigateTo('details', activeCommunityMap)}
+              className="bg-amber-400 hover:bg-amber-300 text-black font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-1.5 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+            >
+              {t('worldMap.viewDetails')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Map Container Viewport (matches the editor's aspect ratio) */}
