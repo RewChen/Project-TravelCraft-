@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Camera, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function TravelerLogs() {
@@ -15,6 +15,7 @@ export default function TravelerLogs() {
   const hiddenCount = Math.max(0, displaySelfies.length - visibleSelfies.length);
   const [activeIdx, setActiveIdx] = useState(null);
   const [showAll, setShowAll] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const activeLog = activeIdx !== null ? displaySelfies[activeIdx] : null;
 
   useEffect(() => {
@@ -33,18 +34,27 @@ export default function TravelerLogs() {
   return (
     <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
-        <h3 className="text-lg font-black flex items-center gap-2 text-indigo-700">
-          <Camera className="w-5 h-5" /> {t('details.logsTitle')}
-        </h3>
         <button
-          onClick={() => setShowAll(true)}
-          className="text-xs font-bold hover:underline text-red-600 cursor-pointer"
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-lg font-black flex items-center gap-2 text-indigo-700 hover:underline cursor-pointer"
+          aria-label={collapsed ? t('details.expandLogs') : t('details.collapseLogs')}
         >
-          {t('details.viewAll')}{displaySelfies.length > 3 ? ` (${displaySelfies.length})` : ''}
+          <Camera className="w-5 h-5" /> {t('details.logsTitle')}
+          {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
         </button>
+        {!collapsed && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="text-xs font-bold hover:underline text-red-600 cursor-pointer"
+          >
+            {t('details.viewAll')}{displaySelfies.length > 3 ? ` (${displaySelfies.length})` : ''}
+          </button>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        {visibleSelfies.map((log, idx) => (
+      {!collapsed && (
+        <div className="grid grid-cols-3 gap-3">
+          {visibleSelfies.map((log, idx) => (
             <button
               key={log.id}
               type="button"
@@ -65,7 +75,8 @@ export default function TravelerLogs() {
               )}
             </button>
           ))}
-      </div>
+        </div>
+      )}
       {showAll && (
         <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowAll(false)}>
           <div className="relative w-full max-w-3xl bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>

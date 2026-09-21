@@ -518,6 +518,8 @@ export default {
     travel: '교통',
     logsTitle: '사진',
     viewAll: '모두 보기',
+    collapseLogs: '사진 접기',
+    expandLogs: '사진 펼치기',
     statsTitle: '장소 통계',
     visitors: '방문자',
     rarity: '희귀도',

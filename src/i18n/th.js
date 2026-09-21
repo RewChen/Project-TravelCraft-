@@ -540,6 +540,8 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     travel: 'การเดินทาง',
     logsTitle: 'รูปภาพ',
     viewAll: 'ดูทั้งหมด',
+    collapseLogs: 'ย่อรูปภาพ',
+    expandLogs: 'ขยายรูปภาพ',
     statsTitle: 'สถิติสถานที่',
     visitors: 'ผู้เยี่ยมชม',
     rarity: 'ความหายาก',

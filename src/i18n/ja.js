@@ -519,6 +519,8 @@ export default {
     travel: 'アクセス',
     logsTitle: '写真',
     viewAll: 'すべて見る',
+    collapseLogs: '写真を折りたたむ',
+    expandLogs: '写真を展開する',
     statsTitle: '場所の統計',
     visitors: '訪問者',
     rarity: 'レア度',

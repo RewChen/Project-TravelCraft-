@@ -518,6 +518,8 @@ export default {
     travel: '交通',
     logsTitle: '照片',
     viewAll: '查看全部',
+    collapseLogs: '收起照片',
+    expandLogs: '展开照片',
     statsTitle: '地点统计',
     visitors: '访客',
     rarity: '稀有度',

@@ -540,6 +540,8 @@ export default {
     travel: 'Travel',
     logsTitle: 'Photo',
     viewAll: 'View All',
+    collapseLogs: 'Collapse photos',
+    expandLogs: 'Expand photos',
     statsTitle: 'Location Stats',
     visitors: 'Visitors',
     rarity: 'Rarity',

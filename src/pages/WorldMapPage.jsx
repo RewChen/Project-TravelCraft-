@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import KeyItemsSidebar from '../components/map/KeyItemsSidebar';
 import MapPins from '../components/map/MapPins';
 import MapElementsLayer from '../components/editor/MapElementsLayer';
@@ -16,7 +16,23 @@ export default function WorldMapPage() {
   // Zoom Controls State
   const [zoomLevel, setZoomLevel] = useState(1);
 
+  // Pan State
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const panStartRef = useRef({ x: 0, y: 0 });
   const mapContainerRef = useRef(null);
+
+  // Reset pan when zoom resets to 1 or map changes
+  useEffect(() => {
+    if (zoomLevel <= 1) {
+      setPan({ x: 0, y: 0 });
+    }
+  }, [zoomLevel]);
+
+  useEffect(() => {
+    setPan({ x: 0, y: 0 });
+    setZoomLevel(1);
+  }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
   const handleZoomIn = () => {
     setZoomLevel((prev) => Math.min(prev + 0.25, 2.5));
@@ -28,11 +44,41 @@ export default function WorldMapPage() {
 
   const handleResetZoom = () => {
     setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
   };
 
   const handleMapClick = () => {
     setSelectedPin(null);
   };
+
+  const handleMouseDown = useCallback((e) => {
+    if (zoomLevel <= 1) return;
+    if (e.target.closest('button') || e.target.closest('[role="button"]')) return;
+    
+    setIsPanning(true);
+    panStartRef.current = {
+      x: e.clientX - pan.x,
+      y: e.clientY - pan.y
+    };
+    e.preventDefault();
+  }, [zoomLevel, pan]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isPanning) return;
+    
+    setPan({
+      x: e.clientX - panStartRef.current.x,
+      y: e.clientY - panStartRef.current.y
+    });
+  }, [isPanning]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsPanning(false);
+  }, []);
 
   // The World Map stays hidden until the user has previewed a map at least
   // once this session. Only a map loading in (or an already-seen map) reveals it.
@@ -79,13 +125,20 @@ export default function WorldMapPage() {
       <div 
         ref={mapContainerRef}
         onClick={handleMapClick}
-        className="w-full mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] cursor-crosshair select-none [container-type:inline-size]"
-        style={{ aspectRatio: `${mapCanvasWidth || 4000} / ${mapCanvasHeight || 4000}` }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        className="w-full mx-auto border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] relative bg-[#e2f0d9] select-none [container-type:inline-size]"
+        style={{ 
+          aspectRatio: `${mapCanvasWidth || 4000} / ${mapCanvasHeight || 4000}`,
+          cursor: zoomLevel > 1 ? (isPanning ? 'grabbing' : 'grab') : 'crosshair'
+        }}
       >
         {/* Zoomable Canvas Wrapper */}
         <div 
           className="w-full h-full relative transition-transform duration-200 origin-center"
-          style={{ transform: `scale(${zoomLevel})` }}
+          style={{ transform: `scale(${zoomLevel}) translate(${pan.x}px, ${pan.y}px)` }}
         >
           {/* Custom Uploaded Map Image Background */}
           {mapViewLoading ? (
