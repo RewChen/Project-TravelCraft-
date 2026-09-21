@@ -40,52 +40,31 @@ export default function WorldMapPage() {
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
-  // Build tour stops ONLY from spots that were actually created:
-// editor elements marked as locations + photo-upload pins. This excludes
-// template/preset pins and legacy element-derived pins so the tour never
-// shows more stops than the points the user placed.
-  const tourStops = useMemo(() => {
-    const stops = [];
-    const canvasW = mapCanvasWidth || 4000;
-    const canvasH = mapCanvasHeight || 4000;
+  // Build tour stops ONLY from editor elements marked as locations.
+    // Photo-upload pins and template pins are excluded so the tour count always
+    // matches the number of spots the user placed in the editor.
+    const tourStops = useMemo(() => {
+      const stops = [];
+      const canvasW = mapCanvasWidth || 4000;
+      const canvasH = mapCanvasHeight || 4000;
 
-    // Editor locations — the player placed these as real spots.
-    if (Array.isArray(mapElements)) {
-      mapElements.forEach(({ element, position }) => {
-        if (element.isLocation === true && position) {
-          stops.push({
-            id: `spot-${element.id}`,
-            type: 'spot',
-            pin: null,
-            left: ((position.left + (position.width || 0) / 2) / canvasW) * 100,
-            top: ((position.top + (position.height || 0) / 2) / canvasH) * 100,
-            title: element.locName || element.label || element.content || t('worldMap.tourStop'),
-          });
-        }
-      });
-    }
+      if (Array.isArray(mapElements)) {
+        mapElements.forEach(({ element, position }) => {
+          if (element.isLocation === true && position) {
+            stops.push({
+              id: `spot-${element.id}`,
+              type: 'spot',
+              pin: null,
+              left: ((position.left + (position.width || 0) / 2) / canvasW) * 100,
+              top: ((position.top + (position.height || 0) / 2) / canvasH) * 100,
+              title: element.locName || element.label || element.content || t('worldMap.tourStop'),
+            });
+          }
+        });
+      }
 
-    // Photo-upload pins — user-created spots only, never template pins.
-    if (Array.isArray(mapPins)) {
-      mapPins.forEach((pin) => {
-        if (pin.isUserUploaded !== true) return;
-        const top = parseFloat(pin.top);
-        const left = parseFloat(pin.left);
-        if (!isNaN(top) && !isNaN(left)) {
-          stops.push({
-            id: `pin-${pin.id}`,
-            type: 'pin',
-            pin,
-            left,
-            top,
-            title: pin.title || pin.name || t('worldMap.tourStop'),
-          });
-        }
-      });
-    }
-
-    return stops;
-  }, [mapElements, mapPins, mapCanvasWidth, mapCanvasHeight, t]);
+      return stops;
+    }, [mapElements, mapCanvasWidth, mapCanvasHeight, t]);
 
   // Pan + zoom so a stop's absolute (left%, top%) position lands in the center.
   const goToTourStop = useCallback((index) => {
