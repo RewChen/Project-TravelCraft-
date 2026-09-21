@@ -1892,8 +1892,8 @@ if (updates.privacy === 'private') {
             <ArrowLeft className="w-5 h-5 font-black" />
           </button>
           <div className="flex items-center gap-2 text-[#cc0000] font-black uppercase tracking-wider">
-            <div className="relative w-6 h-6 flex items-center justify-center">
-              <img src="/logo.png" alt="TravelCraft Logo" className="absolute w-12 h-12 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" style={{ top: '-8px', left: '-8px' }} />
+            <div className="relative w-6 h-6 flex items-center justify-center shrink-0">
+              <img src="/logo.png" alt="TravelCraft Logo" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
             </div>
             <span className="hidden sm:inline ml-1">TravelCraft</span>
           </div>

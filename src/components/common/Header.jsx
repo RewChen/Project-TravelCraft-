@@ -152,8 +152,8 @@ export default function Header() {
         onClick={() => navigateTo('home')}
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <div className="relative w-8 h-8 flex items-center justify-center">
-          <img src="/logo.png" alt="TravelCraft Logo" className="absolute w-16 h-16 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" style={{ top: '-10px', left: '-8px' }} />
+        <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+          <img src="/logo.png" alt="TravelCraft Logo" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
         </div>
         <span className="font-black text-lg tracking-wider text-[#cc0000] uppercase hidden sm:block ml-3">
           TravelCraft
