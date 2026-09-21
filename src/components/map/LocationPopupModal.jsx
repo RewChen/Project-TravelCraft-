@@ -5,17 +5,18 @@ import ReportLocationModal from '../report/ReportLocationModal';
 
 const POPUP_WIDTH = 320;
 const VIEWPORT_MARGIN = 16;
-const ANCHOR_OFFSET = 14;
+const ANCHOR_OFFSET = 22;
 
 export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel = 1 }) {
   const { t, navigateTo, favorites, toggleFavorite, deleteCustomPin, isLoggedIn, setAuthMode } = useApp();
   const [showReport, setShowReport] = useState(false);
-  const [pos, setPos] = useState(() => ({ left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, placeBelow: true }));
+  const [pos, setPos] = useState(() => ({ left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, placeRight: true }));
   const popupRef = useRef(null);
 
-  // Position the popup in the viewport, anchored to the pin's on-screen spot
-  // (pin % coords are inside the zoomed canvas) and clamped so it never
-  // overflows past any edge of the screen.
+  // Position the popup beside the pin (to the right by default, flipping to the
+  // left when there is no room) so it never covers the element marker. The pin's
+  // on-screen spot is derived from its % coords inside the zoomed canvas, and
+  // the result is clamped so it never overflows past any edge of the screen.
   const pinLeft = pin ? pin.left : undefined;
   const pinTop = pin ? pin.top : undefined;
   useLayoutEffect(() => {
@@ -33,21 +34,22 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
       const vh = window.innerHeight || document.documentElement.clientHeight;
       const popupHeight = popupRef.current.offsetHeight;
 
-      const left = Math.min(
-        Math.max(VIEWPORT_MARGIN, anchorX - POPUP_WIDTH / 2),
-        vw - POPUP_WIDTH - VIEWPORT_MARGIN
-      );
-      // Prefer below the pin; flip above when it would spill off the bottom.
-      const belowBottom = anchorY + ANCHOR_OFFSET + popupHeight + VIEWPORT_MARGIN;
-      const hasRoomBelow = belowBottom <= vh;
-      const hasRoomAbove = anchorY - ANCHOR_OFFSET - popupHeight - VIEWPORT_MARGIN >= 0;
-      const placeBelow = hasRoomBelow || !hasRoomAbove;
-      const desiredTop = placeBelow
-        ? anchorY + ANCHOR_OFFSET
-        : anchorY - ANCHOR_OFFSET - popupHeight;
-      const top = Math.min(Math.max(VIEWPORT_MARGIN, desiredTop), vh - popupHeight - VIEWPORT_MARGIN);
+      // Prefer the right side of the pin; flip to the left when there is no room.
+      const hasRoomRight = anchorX + ANCHOR_OFFSET + POPUP_WIDTH + VIEWPORT_MARGIN <= vw;
+      const hasRoomLeft = anchorX - ANCHOR_OFFSET - POPUP_WIDTH - VIEWPORT_MARGIN >= 0;
+      const placeRight = hasRoomRight || !hasRoomLeft;
+      const desiredLeft = placeRight
+        ? anchorX + ANCHOR_OFFSET
+        : anchorX - ANCHOR_OFFSET - POPUP_WIDTH;
+      const left = Math.min(Math.max(VIEWPORT_MARGIN, desiredLeft), vw - POPUP_WIDTH - VIEWPORT_MARGIN);
 
-      setPos({ left, top, placeBelow });
+      // Vertically center the popup on the pin, clamped to the viewport.
+      const top = Math.min(
+        Math.max(VIEWPORT_MARGIN, anchorY - popupHeight / 2),
+        vh - popupHeight - VIEWPORT_MARGIN
+      );
+
+      setPos({ left, top, placeRight });
     };
 
     recompute();
@@ -77,20 +79,18 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     onClose();
   };
 
-  const caretColor = 'border-white';
-
   return (
     <>
       <div
         ref={popupRef}
         style={{ left: pos.left, top: pos.top }}
-        className="fixed w-80 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 max-h-[calc(100vh-2rem)] overflow-y-auto"
+        className="fixed w-80 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 max-h-[calc(100vh-2rem)] flex flex-col"
       >
         {/* Anchor caret pointing at the pin */}
-        {pos.placeBelow ? (
-          <div className={`absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-white border-t-4 border-l-4 ${caretColor} rotate-45 border-black shadow-[-2px_-2px_0px_0px_rgba(0,0,0,1)]`} />
+        {pos.placeRight ? (
+          <div className="absolute top-1/2 -left-3 -translate-y-1/2 w-5 h-5 bg-white border-t-4 border-l-4 border-black rotate-45" />
         ) : (
-          <div className={`absolute -bottom-3 left-1/2 -translate-x-1/2 w-5 h-5 bg-white border-b-4 border-r-4 ${caretColor} rotate-45 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]`} />
+          <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-5 h-5 bg-white border-b-4 border-r-4 border-black rotate-45" />
         )}
 
         {/* Header */}
@@ -114,6 +114,8 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
           </button>
         </div>
 
+        {/* Scrollable body keeps the side caret on the outer box unclipped */}
+        <div className="overflow-y-auto">
         <div className="p-3">
           {pin.lore ? (
             <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-3 border border-black p-2 bg-gray-50 rounded break-words">
@@ -176,15 +178,17 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
             </button>
           </div>
         </div>
+        </div>
 
-        <ReportLocationModal
-          key={showReport ? 'open' : 'closed'}
-          isOpen={showReport}
-          onClose={() => setShowReport(false)}
-          locationName={pin.title}
-          mapId={pin.id || null}
-        />
       </div>
+
+      <ReportLocationModal
+        key={showReport ? 'open' : 'closed'}
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        locationName={pin.title}
+        mapId={pin.id || null}
+      />
     </>
   );
 }
