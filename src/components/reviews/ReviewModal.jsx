@@ -6,7 +6,8 @@ import { compressForUpload, fileToDataUrl } from '../../lib/imageUtils';
 const MAX_PHOTOS = 4;
 
 // ฟอร์มให้คะแนน + เขียนรีวิวสถานที่
-// เปิดจากหน้า Details (ปุ่ม "เขียนรีวิว") — ส่งแล้วสถานะ pending รอ admin ตรวจสอบ
+// เปิดจากหน้า Details (ปุ่ม "เขียนรีวิว") — ส่งแล้วรีวิวเผยแพร่ทันที (ขึ้นเลย)
+// และยังถูกส่งเข้า ReviewsTab ให้ admin ตรวจยืนยันทีหลัง (admin_checked)
 export default function ReviewModal({ location, onClose }) {
   const { t, submitReview } = useApp();
   const [rating, setRating] = useState(5);

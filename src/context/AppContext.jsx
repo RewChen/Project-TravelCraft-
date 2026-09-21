@@ -19,7 +19,7 @@ import {
 } from '../lib/supabaseAdmin';
 import { deleteMapAssets } from '../lib/supabaseUploads';
 import { uploadAvatar } from '../lib/supabaseAvatar';
-import { fetchReviews, insertReview, updateReviewStatus, setReviewPinned, deleteReviewRow, bumpReviewCounter, rowToReview } from '../lib/supabaseReviews';
+import { fetchReviews, insertReview, updateReviewStatus, setReviewPinned, deleteReviewRow, bumpReviewCounter, markReviewChecked, rowToReview } from '../lib/supabaseReviews';
 import { fileToDataUrl, compressForUpload, isImageSrc, resolveCardBackground } from '../lib/imageUtils';
 import {
   fetchUserAssets,
@@ -2256,10 +2256,11 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
   }, []);
 
   // --- Location reviews & ratings ---
-  // บังคับให้รีวิวใหม่ทุกอันเข้าคิว Pending เสมอ เพื่อให้ Admin ตรวจสอบก่อน
+  // รีวิวใหม่เผยแพร่ทันที (status approved) เพื่อให้คอมเมนต์ขึ้นเลย โดยไม่ต้องรอ
+  // pending ฝั่งผู้ใช้ แต่ยังถูกส่งเข้า ReviewsTab ให้ admin ตรวจยืนยันทีหลัง
+  // (admin_checked) — ถ้าไม่ดี admin ก็ hide/delete เองได้
   const submitReview = useCallback(({ locationId, locationName, region, rating, text, images, gpsVerified }) => {
     const id = `REV-${Math.floor(10000 + Math.random() * 90000)}`;
-    const autoApprove = globalSettings?.autoApproveReviews === true; // ต้องเปิดตั้งค่าชัดเจนถึงจะผ่าน (ค่าเริ่มต้นคือ false)
     const review = {
       id,
       locationId: locationId || locationName || 'unknown',
@@ -2272,8 +2273,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       rating: Math.min(5, Math.max(1, Number(rating) || 5)),
       text: (text || '').trim(),
       images: Array.isArray(images) ? images.slice(0, 4) : [],
-      status: autoApprove ? 'approved' : 'pending',
+      status: 'approved',
       pinned: false,
+      adminChecked: false,
       reports: 0,
       helpful: 0,
       gpsVerified: Boolean(gpsVerified),
@@ -2284,12 +2286,19 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       console.warn('Review DB write skipped (offline/missing table):', err);
     });
     return review;
-  }, [userProfile, globalSettings]);
+  }, [userProfile]);
 
   const approveReview = useCallback((reviewId) => {
     setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, status: 'approved' } : r)));
     showAdminToast('Review approved.', 'success');
     updateReviewStatus(reviewId, 'approved').catch((err) => console.warn('Review status DB write skipped:', err));
+  }, []);
+
+  // Admin ยืนยันว่าได้ตรวจสอบรีวิวแล้ว (รีวิวขึ้นอยู่แล้ว — นี่คือการ stamp หลังเผยแพร่)
+  const checkReview = useCallback((reviewId) => {
+    setReviews((prev) => prev.map((r) => (r.id === reviewId ? { ...r, adminChecked: true } : r)));
+    showAdminToast('Review marked as checked.', 'success');
+    markReviewChecked(reviewId).catch((err) => console.warn('Review check DB write skipped:', err));
   }, []);
 
   const hideReview = useCallback((reviewId) => {
@@ -2732,6 +2741,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         reviews,
         submitReview,
         approveReview,
+        checkReview,
         hideReview,
         unhideReview,
         togglePinReview,

@@ -19,6 +19,7 @@ export const rowToReview = (row) => ({
   images: Array.isArray(row.images) ? row.images : [],
   status: row.status,
   pinned: Boolean(row.pinned),
+  adminChecked: Boolean(row.admin_checked),
   reports: row.reports || 0,
   helpful: row.helpful || 0,
   gpsVerified: Boolean(row.gps_verified),
@@ -41,6 +42,7 @@ const reviewToRow = (review) => ({
   images: Array.isArray(review.images) ? review.images.slice(0, 4) : [],
   status: review.status || 'pending',
   pinned: Boolean(review.pinned),
+  admin_checked: Boolean(review.adminChecked),
   reports: review.reports || 0,
   helpful: review.helpful || 0,
   gps_verified: Boolean(review.gpsVerified),
@@ -84,6 +86,21 @@ export const updateReviewStatus = async (reviewId, status) => {
     .update({ status })
     .eq('id', reviewId);
   if (error) throw error;
+};
+
+// Mark a review as administrator-checked via the SECURITY DEFINER function
+// (guards admin-only inside the DB; the plain UPDATE policy would otherwise
+// also let the author self-stamp this flag). No-op when the migration is not
+// applied yet (schemaGuard marks reviews and future calls are skipped).
+export const markReviewChecked = async (reviewId) => {
+  if (!isSupabaseConfigured || isSchemaMissing('reviews')) return;
+  const { error } = await supabase.rpc('review_mark_checked', {
+    rev_id: reviewId,
+  });
+  if (error) {
+    if (isMissingSchemaError(error)) markSchemaMissing('reviews');
+    throw error;
+  }
 };
 
 export const setReviewPinned = async (reviewId, pinned) => {

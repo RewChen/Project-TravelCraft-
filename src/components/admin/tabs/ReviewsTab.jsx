@@ -66,14 +66,14 @@ const DeleteAllConfirmModal = ({ isOpen, onClose, onConfirm, count, t }) => {
   );
 };
 
-// หน้าตรวจสอบรีวิวการให้คะแนน — คิวงานผู้ดูแลก่อนเผยแพร่สู่ชุมชน
+// หน้าตรวจสอบรีวิวการให้คะแนน — รีวิวเผยแพร่แล้วทันที admin แค่ตรวจยืนยันทีหลัง
 export default function ReviewsTab() {
   const {
     t, language, reviews,
-    approveReview, hideReview, unhideReview, togglePinReview, deleteReview,
+    approveReview, checkReview, hideReview, unhideReview, togglePinReview, deleteReview,
   } = useApp();
 
-  const [queue, setQueue] = useState('all'); // all | pending | approved | reported
+  const [queue, setQueue] = useState('all'); // all | unchecked | pending | approved | reported
   const [ratingFilter, setRatingFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [photoOnly, setPhotoOnly] = useState(false);
@@ -83,6 +83,7 @@ export default function ReviewsTab() {
 
   const pendingCount = (reviews || []).filter((r) => r.status === 'pending').length;
   const approvedCount = (reviews || []).filter((r) => r.status === 'approved').length;
+  const uncheckedCount = (reviews || []).filter((r) => !r.adminChecked && r.status !== 'hidden').length;
   const reportedCount = (reviews || []).filter((r) => (r.reports || 0) > 0 && r.status !== 'hidden').length;
 
   const locations = useMemo(() => {
@@ -93,6 +94,7 @@ export default function ReviewsTab() {
 
   const visible = useMemo(() => {
     let list = reviews || [];
+    if (queue === 'unchecked') list = list.filter((r) => !r.adminChecked && r.status !== 'hidden');
     if (queue === 'pending') list = list.filter((r) => r.status === 'pending');
     if (queue === 'approved') list = list.filter((r) => r.status === 'approved');
     if (queue === 'reported') list = list.filter((r) => (r.reports || 0) > 0 && r.status !== 'hidden');
@@ -118,6 +120,10 @@ export default function ReviewsTab() {
     selectedIds.forEach((id) => approveReview(id));
     setSelectedIds([]);
   };
+  const batchCheck = () => {
+    selectedIds.forEach((id) => checkReview(id));
+    setSelectedIds([]);
+  };
   const batchReject = () => {
     selectedIds.forEach((id) => hideReview(id));
     setSelectedIds([]);
@@ -133,6 +139,7 @@ export default function ReviewsTab() {
 
   const tabs = [
     { id: 'all', label: t('admin.allReviews'), count: (reviews || []).length, style: 'bg-emerald-600 text-white border-emerald-800' },
+    { id: 'unchecked', label: t('admin.uncheckedReviews'), count: uncheckedCount, style: 'bg-sky-400 text-black border-black' },
     { id: 'pending', label: t('admin.pendingReview'), count: pendingCount, style: 'bg-amber-400 text-black border-black' },
     { id: 'approved', label: t('admin.approvedReviews'), count: approvedCount, style: 'bg-white text-black border-black' },
     { id: 'reported', label: t('admin.reportedReviews'), count: reportedCount, style: 'bg-[#cc0000] text-white border-black' },
@@ -202,6 +209,14 @@ export default function ReviewsTab() {
             className="px-3 py-1.5 rounded-lg border-2 border-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <Check className="w-4 h-4" /> {t('admin.approveSelected')} ({selectedIds.length})
+          </button>
+          <button
+            type="button"
+            onClick={batchCheck}
+            disabled={!selectedIds.length}
+            className="px-3 py-1.5 rounded-lg border-2 border-black bg-sky-400 hover:bg-sky-500 text-black text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+          >
+            <ShieldCheck className="w-4 h-4" /> {t('admin.markCheckedSelected')} ({selectedIds.length})
           </button>
           <button
             type="button"
@@ -285,6 +300,19 @@ export default function ReviewsTab() {
                       <Check className="w-3 h-3" /> APPROVED
                     </span>
                   )}
+                  {review.status === 'hidden' ? (
+                    <span className="text-[10px] font-black uppercase bg-gray-200 text-gray-500 px-2 py-0.5 rounded flex items-center gap-1">
+                      <EyeOff className="w-3 h-3" /> UNCHECKED
+                    </span>
+                  ) : review.adminChecked ? (
+                    <span className="text-[10px] font-black uppercase text-sky-700 px-2 py-0.5 rounded flex items-center gap-1 border border-sky-200 bg-sky-50">
+                      <ShieldCheck className="w-3 h-3" /> {t('admin.checkedBadge')}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-black uppercase bg-sky-400 text-black px-2 py-0.5 rounded flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" /> {t('admin.uncheckedBadge')}
+                    </span>
+                  )}
                   <span className="text-[11px] font-bold text-gray-400">{timeAgo(review.createdAt, language)}</span>
                 </div>
 
@@ -330,6 +358,16 @@ export default function ReviewsTab() {
                     className="w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
                   >
                     <Check className="w-4 h-4" strokeWidth={3} /> {t('admin.approve')}
+                  </button>
+                )}
+
+                {review.status === 'approved' && !review.adminChecked && (
+                  <button
+                    type="button"
+                    onClick={() => checkReview(review.id)}
+                    className="w-full px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-xs font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                  >
+                    <ShieldCheck className="w-4 h-4" strokeWidth={3} /> {t('admin.markChecked')}
                   </button>
                 )}
 

@@ -13,7 +13,9 @@ export default function AdminSidebar() {
   const { adminActiveTab, setAdminActiveTab, userProfile, navigateTo, adminLogout, reportedLocations, reviews, t } = useApp();
 
   const pendingReportsCount = reportedLocations?.filter((r) => r.status === 'pending').length || 0;
-  const pendingReviewsCount = reviews?.filter((r) => r.status === 'pending').length || 0;
+  // Reviews publish instantly now; the badge shows how many still need an admin
+  // to confirm they've checked them (admin_checked), incl. legacy pending rows.
+  const pendingReviewsCount = (reviews || []).filter((r) => !r.adminChecked && r.status !== 'hidden').length || 0;
 
   const navItems = [
     { id: 'overview', label: t('admin.overview'), icon: LayoutGrid },

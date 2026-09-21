@@ -188,11 +188,6 @@ export default function LocationReviews() {
           </button>
         </div>
 
-        {reviewStatus === 'pending' && (
-          <p className="text-[11px] font-bold text-amber-700 bg-amber-50 border-2 border-amber-600 rounded-lg px-3 py-2 mb-4">
-            {t('details.pendingNotice')}
-          </p>
-        )}
         {reviewStatus === 'approved' && (
           <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-600 rounded-lg px-3 py-2 mb-4">
             {t('details.reviewLiveNotice')}
