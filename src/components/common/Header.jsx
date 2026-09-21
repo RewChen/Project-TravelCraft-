@@ -184,7 +184,7 @@ export default function Header() {
         {isLoggedIn && isAdminLoggedIn && (
           <button
             onClick={() => navigateTo('admin')}
-            className="ml-1 bg-[#e8476a] text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-[#d63d5d] transition-colors text-[13px] font-bold"
+            className="ml-1 bg-[#cc0000] text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-[#d63d5d] transition-colors text-[13px] font-bold"
           >
             <Shield className="w-3.5 h-3.5" />
             {t('nav.admin')}
@@ -220,7 +220,7 @@ export default function Header() {
           >
             <Bell className="w-[18px] h-[18px] text-gray-500" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#e8476a] text-white text-[10px] font-black rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#cc0000] text-white text-[10px] font-black rounded-full flex items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -229,7 +229,7 @@ export default function Header() {
           {/* Notification Dropdown */}
           {showNotifications && (
             <div className="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden z-[60] font-mono">
-              <div className="bg-[#e8476a] text-white px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                 <span className="text-xs font-black uppercase flex items-center gap-1.5"><Bell className="w-3.5 h-3.5" /> {t('notifications.title')} {unreadCount > 0 ? `(${unreadCount})` : ''}</span>
                 <button onClick={() => setShowNotifications(false)} className="w-6 h-6 bg-white/20 hover:bg-white/40 text-white border-0 rounded flex items-center justify-center"><X className="w-3 h-3" /></button>
               </div>
@@ -262,13 +262,13 @@ export default function Header() {
                           <p className="text-[10px] text-gray-400 font-bold mt-1 flex items-center gap-1">
                             <span>{n.time}</span>
                             <span className="text-gray-300">•</span>
-                            <span className="text-[#e8476a] flex items-center gap-0.5 group-hover:underline">
+                            <span className="text-[#cc0000] flex items-center gap-0.5 group-hover:underline">
                               <ExternalLink className="w-2.5 h-2.5" /> {getDestinationLabel(n)}
                             </span>
                           </p>
                         </div>
                         <div className="flex flex-col items-end justify-start gap-1.5 shrink-0">
-                          {!n.read && <span className="w-2 h-2 bg-[#e8476a] rounded-full mt-1.5" />}
+                          {!n.read && <span className="w-2 h-2 bg-[#cc0000] rounded-full mt-1.5" />}
                           <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-black group-hover:translate-x-0.5 transition-all" />
                         </div>
                       </div>
@@ -279,7 +279,7 @@ export default function Header() {
               {notifications.length > 0 && (
                 <div className="p-2 bg-gray-50 border-t border-gray-200 flex gap-2">
                   <button onClick={markAllNotificationsRead} className="flex-1 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100 transition-colors"><CheckCheck className="w-3 h-3" /> {t('notifications.markAllRead')}</button>
-                  <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#e8476a] text-white border-0 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-[#d63d5d] transition-colors"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
+                  <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#cc0000] text-white border-0 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-[#d63d5d] transition-colors"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
                 </div>
               )}
             </div>
@@ -331,7 +331,7 @@ export default function Header() {
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden font-mono"
           >
-            <div className="bg-[#e8476a] text-white px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 flex items-center justify-between">
               <span className="text-xs font-black uppercase flex items-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> {t('notifications.title')}
               </span>
@@ -355,7 +355,7 @@ export default function Header() {
                   <p className="text-[11px] text-gray-400 font-bold mt-1">
                     {selectedNotification.time}
                     {!selectedNotification.read && (
-                      <span className="ml-2 inline-block px-1.5 py-0.5 bg-[#e8476a] text-white text-[9px] rounded border-0 align-middle">NEW</span>
+                      <span className="ml-2 inline-block px-1.5 py-0.5 bg-[#cc0000] text-white text-[9px] rounded border-0 align-middle">NEW</span>
                     )}
                   </p>
                 </div>
