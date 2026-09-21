@@ -9,6 +9,8 @@ export default function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const [easterEggCount, setEasterEggCount] = useState(0);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
   const notifRef = useRef(null);
 
   const getNotificationTitle = (n) => {
@@ -149,8 +151,17 @@ export default function Header() {
   return (
     <header className={`bg-white border border-slate-200 rounded-full p-3 px-5 mb-6 flex items-center justify-between transition-all duration-200 ${scrolled ? 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]' : 'shadow-none'}`}>
       <div 
-        onClick={() => navigateTo('home')}
-        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => {
+          navigateTo('home');
+          const nextCount = easterEggCount + 1;
+          if (nextCount >= 10) {
+            setShowEasterEgg(true);
+            setEasterEggCount(0);
+          } else {
+            setEasterEggCount(nextCount);
+          }
+        }}
+        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity select-none"
       >
         <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
           <img src="/logo.png" alt="TravelCraft Logo" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" />
@@ -374,6 +385,32 @@ className={`${currentPage === 'mymaps' ? 'text-red-600 underline underline-offse
               >
                 {t('common.close')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Easter Egg Modal */}
+      {showEasterEgg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80" onClick={() => setShowEasterEgg(false)}>
+          <div 
+            className="relative w-full max-w-3xl bg-black border-4 border-white rounded-xl shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] overflow-hidden aspect-video flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={() => setShowEasterEgg(false)} className="absolute top-4 right-4 w-8 h-8 bg-white text-black rounded-full flex items-center justify-center font-black z-10 hover:bg-gray-200 cursor-pointer">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="w-full h-full">
+              {/* Replace the URL in the src below with your desired video URL */}
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" 
+                title="Easter Egg Video" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowFullScreen
+              ></iframe>
             </div>
           </div>
         </div>
