@@ -40,13 +40,35 @@ export default function WorldMapPage() {
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
 
-  // Build tour stops from the map pins — one stop per visible marker.
-  // Editor-location markers are already represented in mapPins as element-type
-  // pins, so iterating elements too would double-count every created spot.
+  // Build tour stops ONLY from spots that were actually created:
+// editor elements marked as locations + photo-upload pins. This excludes
+// template/preset pins and legacy element-derived pins so the tour never
+// shows more stops than the points the user placed.
   const tourStops = useMemo(() => {
     const stops = [];
+    const canvasW = mapCanvasWidth || 4000;
+    const canvasH = mapCanvasHeight || 4000;
+
+    // Editor locations — the player placed these as real spots.
+    if (Array.isArray(mapElements)) {
+      mapElements.forEach(({ element, position }) => {
+        if (element.isLocation === true && position) {
+          stops.push({
+            id: `spot-${element.id}`,
+            type: 'spot',
+            pin: null,
+            left: ((position.left + (position.width || 0) / 2) / canvasW) * 100,
+            top: ((position.top + (position.height || 0) / 2) / canvasH) * 100,
+            title: element.locName || element.label || element.content || t('worldMap.tourStop'),
+          });
+        }
+      });
+    }
+
+    // Photo-upload pins — user-created spots only, never template pins.
     if (Array.isArray(mapPins)) {
       mapPins.forEach((pin) => {
+        if (pin.isUserUploaded !== true) return;
         const top = parseFloat(pin.top);
         const left = parseFloat(pin.left);
         if (!isNaN(top) && !isNaN(left)) {
@@ -61,8 +83,9 @@ export default function WorldMapPage() {
         }
       });
     }
+
     return stops;
-  }, [mapPins, t]);
+  }, [mapElements, mapPins, mapCanvasWidth, mapCanvasHeight, t]);
 
   // Pan + zoom so a stop's absolute (left%, top%) position lands in the center.
   const goToTourStop = useCallback((index) => {
@@ -89,7 +112,9 @@ export default function WorldMapPage() {
       y: viewportH / 2 - displayY,
     });
     setTourIndex(index);
-    setSelectedPin(stop.pin);
+    if (stop.pin) {
+      setSelectedPin(stop.pin);
+    }
   }, [tourStops, setSelectedPin]);
 
   const handleResetZoom = useCallback(() => {
