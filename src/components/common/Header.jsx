@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Compass, Bell, Settings, User, X, CheckCheck, Trash2, ChevronRight, Map as MapIcon, ExternalLink } from 'lucide-react';
+import { Bell, Settings, User, X, CheckCheck, Trash2, ChevronRight, Map as MapIcon, ExternalLink } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
@@ -152,10 +152,10 @@ export default function Header() {
         onClick={() => navigateTo('home')}
         className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
       >
-        <div className="w-7 h-7 bg-[#cc0000] rounded-full border-2 border-black flex items-center justify-center">
-          <Compass className="w-4 h-4 text-white" />
+        <div className="relative w-8 h-8 flex items-center justify-center">
+          <img src="/logo.png" alt="TravelCraft Logo" className="absolute w-16 h-16 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" style={{ top: '-10px', left: '-8px' }} />
         </div>
-        <span className="font-black text-lg tracking-wider text-[#cc0000] uppercase hidden sm:block">
+        <span className="font-black text-lg tracking-wider text-[#cc0000] uppercase hidden sm:block ml-3">
           TravelCraft
         </span>
       </div>

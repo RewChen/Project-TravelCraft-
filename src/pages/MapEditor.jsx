@@ -1892,8 +1892,10 @@ if (updates.privacy === 'private') {
             <ArrowLeft className="w-5 h-5 font-black" />
           </button>
           <div className="flex items-center gap-2 text-[#cc0000] font-black uppercase tracking-wider">
-            <Compass className="w-5 h-5" />
-            <span className="hidden sm:inline">TravelCraft</span>
+            <div className="relative w-6 h-6 flex items-center justify-center">
+              <img src="/logo.png" alt="TravelCraft Logo" className="absolute w-12 h-12 max-w-none object-contain drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]" style={{ top: '-8px', left: '-8px' }} />
+            </div>
+            <span className="hidden sm:inline ml-1">TravelCraft</span>
           </div>
           <div className="h-6 w-1 bg-black rounded-full mx-2 hidden sm:block"></div>
           <input 
