@@ -10,11 +10,43 @@
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8%); }
   }
+
+  /* Palomar brand colors */
+  --color-brand-dark: #2d3a2e;
+  --color-brand-green: #3d5a3e;
+  --color-brand-light: #f5f3ef;
+  --color-brand-cream: #faf8f5;
+
+  /* Palomar font families */
+  --font-helvetica-neue: "Helvetica Neue Light", Helvetica, Arial, sans-serif;
+  --font-playfair: "Playfair Display", serif;
+  --font-oswald: "Oswald", sans-serif;
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-roboto-slab: "Roboto Slab", serif;
+  --font-raleway: "Raleway", sans-serif;
 }
 
 html {
   scroll-behavior: smooth;
 }
+
+/* Palomar entrance animations */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up   { animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-down { animation: fade-down 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 120ms; }
+.stagger-3 { animation-delay: 240ms; }
+.stagger-4 { animation-delay: 360ms; }
+.stagger-5 { animation-delay: 480ms; }
+.stagger-6 { animation-delay: 600ms; }
 
 body {
   margin: 0;
