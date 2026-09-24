@@ -56,12 +56,12 @@ export default function OtherMaps() {
   };
 
   return (
-    <div className="bg-white border-4 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-      <h3 className="text-base font-black flex items-center gap-2 mb-4 border-b-2 border-black pb-2 text-black">
+    <div className="bg-white rounded-3xl p-5 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
+      <h3 className="text-base font-bold flex items-center gap-2 mb-4 pb-3 border-b border-brand-dark/[0.06] text-brand-dark">
         {t('details.otherMaps')}
       </h3>
       {otherMaps.length === 0 ? (
-        <p className="text-xs font-bold text-slate-500 dark:text-slate-400">
+        <p className="text-xs font-medium text-brand-dark/50">
           {t('details.otherMapsEmpty')}
         </p>
       ) : (
@@ -76,7 +76,7 @@ export default function OtherMaps() {
               <div
                 key={item.id}
                 onClick={() => openOtherMap(item)}
-                className="flex items-center gap-3 border border-gray-300 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 bg-brand-light/40 dark:bg-slate-700/40 hover:bg-brand-light/80 dark:hover:bg-slate-700/70 p-2 rounded-2xl cursor-pointer transition-colors"
               >
                 {item.imageUrl ? (
                   <img
@@ -84,26 +84,26 @@ export default function OtherMaps() {
                     alt={item.title}
                     loading="lazy"
                     decoding="async"
-                    className="w-10 h-10 border-2 border-black rounded object-cover shrink-0"
+                    className="w-10 h-10 rounded-xl object-cover shrink-0"
                   />
                 ) : bg ? (
-                  <div role="img" aria-label={item.title} className="w-10 h-10 border-2 border-black rounded shrink-0" style={bg} />
+                  <div role="img" aria-label={item.title} className="w-10 h-10 rounded-xl shrink-0" style={bg} />
                 ) : (
-                  <div className="w-10 h-10 bg-sky-200 border-2 border-black rounded flex items-center justify-center text-base shrink-0">🗺️</div>
+                  <div className="w-10 h-10 bg-brand-light rounded-xl flex items-center justify-center text-base shrink-0">🗺️</div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold text-slate-900 truncate">{item.title}</div>
+                  <div className="text-xs font-semibold text-brand-dark truncate">{item.title}</div>
                   {displayRegion ? (
-                    <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold">
+                    <div className="flex items-center gap-1 text-[10px] text-brand-dark/50 uppercase font-medium">
                       <MapPin className="w-3 h-3 shrink-0" /> <span className="truncate">{displayRegion}</span>
                     </div>
                   ) : (
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                    <div className="text-[10px] text-brand-dark/50 truncate">
                       {item.discoveredBy || t('common.traveler')}
                     </div>
                   )}
                 </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-brand-dark/30 shrink-0" />
               </div>
             );
           })}

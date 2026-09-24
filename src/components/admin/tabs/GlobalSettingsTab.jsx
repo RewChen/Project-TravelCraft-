@@ -17,21 +17,21 @@ export default function GlobalSettingsTab() {
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6 font-thai">
       {/* Top Banner */}
-      <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
+          <h2 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight text-brand-dark flex items-center gap-2">
             <span>{t('admin.globalMapSettings')}</span>
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
+          <p className="text-xs sm:text-sm text-brand-dark/50 font-medium mt-1">
             {t('admin.configureRegional')}
           </p>
         </div>
 
         <button
           onClick={handleSave}
-          className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2"
+          className="self-start sm:self-center bg-[#cc0000] hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-full text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-2 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.25)]"
         >
           <Save className="w-4 h-4" />
           <span>{t('admin.saveSettings')}</span>
@@ -41,15 +41,15 @@ export default function GlobalSettingsTab() {
       {/* Settings Sections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Cartography & Quota Controls */}
-        <div className="bg-white border-4 border-black rounded-2xl p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-4">
-          <div className="border-b-2 border-black pb-2 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-black text-sm uppercase">{t('admin.cartographyPolicies')}</h3>
+        <div className="bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-5 space-y-4">
+          <div className="border-b border-brand-dark/[0.06] pb-2 flex items-center gap-2 text-brand-dark">
+            <MapPin className="w-5 h-5 text-brand-dark/60" />
+            <h3 className="font-bold text-sm uppercase">{t('admin.cartographyPolicies')}</h3>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-black uppercase mb-1 text-gray-700">
+              <label className="block text-xs font-semibold uppercase mb-1 text-brand-dark/50">
                 {t('admin.maxPinsPerMap')}
               </label>
               <input
@@ -58,14 +58,14 @@ export default function GlobalSettingsTab() {
                 max="200"
                 value={settings.maxPinsPerMap}
                 onChange={(e) => handleChange('maxPinsPerMap', Number(e.target.value))}
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 text-xs font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl p-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between p-3 bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-2xl">
               <div>
-                <div className="text-xs font-black uppercase text-black">{t('admin.autoApprove')}</div>
-                <div className="text-[10px] text-gray-500 font-sans">
+                <div className="text-xs font-semibold uppercase text-brand-dark">{t('admin.autoApprove')}</div>
+                <div className="text-[10px] text-brand-dark/50 font-sans">
                   {t('admin.autoApproveDesc')}
                 </div>
               </div>
@@ -77,10 +77,10 @@ export default function GlobalSettingsTab() {
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-gray-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between p-3 bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-2xl">
               <div>
-                <div className="text-xs font-black uppercase text-black">{t('admin.fastTravel')}</div>
-                <div className="text-[10px] text-gray-500 font-sans">
+                <div className="text-xs font-semibold uppercase text-brand-dark">{t('admin.fastTravel')}</div>
+                <div className="text-[10px] text-brand-dark/50 font-sans">
                   {t('admin.fastTravelDesc')}
                 </div>
               </div>
@@ -95,15 +95,15 @@ export default function GlobalSettingsTab() {
         </div>
 
         {/* Card 2: Economy & Server Maintenance */}
-        <div className="bg-white border-4 border-black rounded-2xl p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-4">
-          <div className="border-b-2 border-black pb-2 flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-500" />
-            <h3 className="font-black text-sm uppercase">{t('admin.economyRules')}</h3>
+        <div className="bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-5 space-y-4">
+          <div className="border-b border-brand-dark/[0.06] pb-2 flex items-center gap-2 text-brand-dark">
+            <Award className="w-5 h-5 text-brand-dark/60" />
+            <h3 className="font-bold text-sm uppercase">{t('admin.economyRules')}</h3>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-black uppercase mb-1 text-gray-700">
+              <label className="block text-xs font-semibold uppercase mb-1 text-brand-dark/50">
                 {t('admin.coinMultiplier')}
               </label>
               <input
@@ -113,12 +113,12 @@ export default function GlobalSettingsTab() {
                 max="5.0"
                 value={settings.coinMultiplier}
                 onChange={(e) => handleChange('coinMultiplier', Number(e.target.value))}
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 text-xs font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl p-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-black uppercase mb-1 text-gray-700">
+              <label className="block text-xs font-semibold uppercase mb-1 text-brand-dark/50">
                 {t('admin.autoBanThreshold')}
               </label>
               <input
@@ -127,13 +127,13 @@ export default function GlobalSettingsTab() {
                 max="20"
                 value={settings.autoBanStrikeThreshold}
                 onChange={(e) => handleChange('autoBanStrikeThreshold', Number(e.target.value))}
-                className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 text-xs font-black focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl p-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-red-50 border-2 border-red-400 rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between p-3 bg-red-50 ring-1 ring-red-200 rounded-2xl">
               <div>
-                <div className="text-xs font-black uppercase text-red-900 flex items-center gap-1">
+                <div className="text-xs font-semibold uppercase text-red-900 flex items-center gap-1">
                   <ShieldAlert className="w-4 h-4 text-red-600" />
                   <span>{t('admin.maintenanceMode')}</span>
                 </div>

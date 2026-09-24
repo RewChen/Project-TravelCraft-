@@ -83,17 +83,17 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
   const showPreview = previewUrl || imageUrl;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
-      <div className="bg-white border-4 border-black rounded-2xl w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl w-full max-w-lg ring-1 ring-brand-dark/[0.06] shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] overflow-hidden">
         {/* Modal Header */}
-        <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
+        <div className="bg-[#cc0000] text-white p-4 border-b border-white/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Map className="w-5 h-5" />
-            <h3 className="text-base font-black uppercase tracking-wider">Add New Base Map</h3>
+            <h3 className="text-base font-bold uppercase tracking-wider">Add New Base Map</h3>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-neutral-800 text-white rounded-lg border-2 border-slate-400 dark:border-white flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-8 h-8 bg-white/15 hover:bg-white/30 text-white rounded-full flex items-center justify-center cursor-pointer transition-transform active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,7 +102,7 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
+            <label className="block text-xs font-semibold uppercase mb-1.5 text-brand-dark/60">
               Base Map Title
             </label>
             <input
@@ -111,18 +111,18 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
               value={mapName}
               onChange={(e) => setMapName(e.target.value)}
               placeholder="e.g. Celestial Highlands"
-              className="w-full bg-gray-50 border-2 border-black rounded-xl p-2.5 text-sm font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl p-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-black uppercase mb-1.5 text-gray-700">
+            <label className="block text-xs font-semibold uppercase mb-1.5 text-brand-dark/60">
               Map Image
             </label>
 
             {/* Upload file or paste link */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="border-2 border-dashed border-black rounded-xl p-4 flex flex-col items-center justify-center gap-2 bg-gray-50">
+              <div className="border-2 border-dashed border-brand-dark/15 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-brand-light/40">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -133,24 +133,24 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
                 />
                 <label
                   htmlFor="base-map-file-input"
-                  className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-xl text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+                  className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-brand-dark rounded-full text-xs font-semibold uppercase shadow-[0_4px_20px_-10px_rgba(45,58,46,0.2)] flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
                 >
                   <UploadCloud className="w-4 h-4" />
                   <span>Choose Image File</span>
                 </label>
-                <span className="text-[10px] text-gray-500 font-bold">
+                <span className="text-[10px] text-brand-dark/50 font-medium">
                   {imageFile ? imageFile.name : 'JPG / PNG / WebP (upload)'}
                 </span>
               </div>
 
               <div className="flex flex-col justify-center gap-2">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
-                  <span className="flex-1 h-0.5 bg-gray-200"></span>
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase text-brand-dark/40">
+                  <span className="flex-1 h-0.5 bg-brand-dark/10"></span>
                   <span>or</span>
-                  <span className="flex-1 h-0.5 bg-gray-200"></span>
+                  <span className="flex-1 h-0.5 bg-brand-dark/10"></span>
                 </div>
                 <div className="relative">
-                  <FileImage className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <FileImage className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-brand-dark/40" />
                   <input
                     type="url"
                     value={imageUrl}
@@ -163,7 +163,7 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
                       }
                     }}
                     placeholder="Paste image link: https://..."
-                    className="w-full bg-gray-50 border-2 border-black rounded-xl p-2 pl-9 text-xs font-bold focus:outline-none focus:bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    className="w-full bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl p-2 pl-9 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-brand-dark/20"
                   />
                 </div>
               </div>
@@ -172,7 +172,7 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
             {/* Preview */}
             {showPreview ? (
               <div className="mt-3 relative">
-                <div className="h-40 bg-gray-200 border-4 border-black rounded-xl overflow-hidden">
+                <div className="h-40 bg-brand-light/60 ring-1 ring-brand-dark/[0.06] rounded-xl overflow-hidden">
                   <img
                     src={showPreview}
                     alt="Base map preview"
@@ -182,16 +182,16 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute top-2 right-2 w-7 h-7 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-neutral-800 text-white rounded-lg border-2 border-slate-400 dark:border-white flex items-center justify-center cursor-pointer"
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center cursor-pointer"
                   title="Remove image"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="mt-3 w-full h-40 bg-gray-100 border-2 border-black rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400">
+              <div className="mt-3 w-full h-40 bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-xl flex flex-col items-center justify-center gap-2 text-brand-dark/40">
                 <ImagePlus className="w-8 h-8" />
-                <span className="text-[10px] font-black uppercase tracking-wider">
+                <span className="text-[10px] font-semibold uppercase tracking-wider">
                   No Image — Upload or Paste a Link
                 </span>
               </div>
@@ -203,14 +203,14 @@ export default function AddBaseMapModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 bg-gray-200 hover:bg-gray-300 border-2 border-black rounded-xl font-bold text-xs uppercase cursor-pointer"
+              className="px-4 py-2.5 bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-full font-semibold text-xs uppercase cursor-pointer hover:bg-brand-light"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={uploading}
-              className="px-5 py-2.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-xl font-black text-xs uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-5 py-2.5 bg-[#cc0000] hover:bg-red-700 text-white rounded-full font-semibold text-xs uppercase flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
               <span>{uploading ? 'Uploading...' : 'Create Base Map'}</span>

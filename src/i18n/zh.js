@@ -353,7 +353,7 @@ export default {
     supportBody: '遇到问题？请联系支持团队 — 联系方式将很快在此展示。',
     trainerClubTitle: '旅行者俱乐部',
     trainerClubBody: '旅行者俱乐部的特权、等级与会员信息将很快在此展示。',
-    copyright: '© 2026 TravelCraft - 全部探索！',
+    copyright: '© 2026 TravelCraft - 要去 Travel 全部！',
   },
   theme: {
     lightMode: '切换到浅色模式',

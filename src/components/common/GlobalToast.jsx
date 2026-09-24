@@ -9,7 +9,7 @@ export default function GlobalToast() {
   return (
     <div className="fixed bottom-6 right-6 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-200 pointer-events-none">
       <div
-        className={`border-4 border-black rounded-2xl p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 font-mono text-xs font-black uppercase max-w-sm ${
+        className={`rounded-2xl p-4 border border-black/10 shadow-[0_18px_45px_-18px_rgba(45,58,46,0.35)] flex items-center gap-3 font-thai text-xs font-semibold uppercase max-w-sm ${
           adminToast.type === 'error'
             ? 'bg-[#cc0000] text-white'
             : adminToast.type === 'warning'

@@ -24,22 +24,22 @@ export default function AdminDashboard() {
   // 2. If logged in as regular player without admin role
   if (!isAdminLoggedIn && userProfile?.role?.toLowerCase() !== 'admin') {
     return (
-      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-[#e8ecef]'} flex flex-col items-center justify-center p-4 font-mono`}>
-        <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-[#e8ecef] text-black'} border-4 border-black rounded-[28px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] text-center space-y-4`}>
-          <div className="w-16 h-16 bg-red-100 border-4 border-black rounded-full mx-auto flex items-center justify-center text-3xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+      <div className={`min-h-screen ${isDarkMode ? 'bg-slate-950' : 'bg-brand-cream'} flex flex-col items-center justify-center p-4 font-thai`}>
+        <div className={`w-full max-w-md ${isDarkMode ? 'bg-slate-900 text-slate-100' : 'bg-white text-brand-dark'} border ${isDarkMode ? 'border-white/10' : 'border-brand-dark/10'} rounded-[28px] p-6 shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] text-center space-y-4`}>
+          <div className="w-16 h-16 bg-red-50 rounded-full mx-auto flex items-center justify-center text-3xl">
             🔒
           </div>
 
-          <h2 className={`text-xl font-black uppercase ${isDarkMode ? 'text-slate-100' : 'text-black'}`}>
+          <h2 className={`text-xl font-bold uppercase ${isDarkMode ? 'text-slate-100' : 'text-brand-dark'}`}>
             {t('admin.restricted')}
           </h2>
 
-          <div className={`${isDarkMode ? 'bg-slate-800 border-red-500' : 'bg-red-50 border-red-400'} border-2 rounded-xl p-3 text-left space-y-1`}>
-            <div className={`text-[11px] font-black uppercase ${isDarkMode ? 'text-red-300' : 'text-red-900'} flex items-center gap-1.5`}>
+          <div className={`${isDarkMode ? 'bg-slate-800 border-red-500' : 'bg-red-50 border-red-200'} border rounded-2xl p-3 text-left space-y-1`}>
+            <div className={`text-[11px] font-semibold uppercase ${isDarkMode ? 'text-red-300' : 'text-red-800'} flex items-center gap-1.5`}>
               <ShieldAlert className="w-4 h-4 text-red-600" />
               <span>{t('admin.clearanceRequired')}</span>
             </div>
-            <p className={`text-[10px] ${isDarkMode ? 'text-red-200' : 'text-red-800'} font-sans font-bold leading-relaxed`}>
+            <p className={`text-[10px] ${isDarkMode ? 'text-red-200' : 'text-red-700'} font-medium leading-relaxed`}>
               {t('admin.denied', { name: userProfile?.name, role: userProfile?.role || 'Player' })}
             </p>
           </div>
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           <div className="pt-2 flex flex-col sm:flex-row gap-2">
             <button
               onClick={() => navigateTo('home')}
-              className="flex-1 bg-white hover:bg-gray-100 text-black font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-white hover:bg-brand-light text-brand-dark font-semibold py-3 px-3 rounded-full border border-brand-dark/15 text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{t('common.home')}</span>
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
                 setAuthMode('login');
                 navigateTo('auth');
               }}
-              className="flex-1 bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 bg-[#cc0000] hover:bg-[#b30000] text-white font-semibold py-3 px-3 rounded-full text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
             >
               <LogIn className="w-4 h-4" />
               <span>{t('admin.loginAsAdmin')}</span>
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
 
   // 3. Admin is logged in -> Render Command Center directly!
   return (
-    <div className={`${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-[#e8ecef] text-gray-900'} min-h-screen font-mono antialiased flex flex-col md:flex-row relative selection:bg-red-200`}>
+    <div className={`${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-brand-cream text-brand-dark'} min-h-screen font-thai antialiased flex flex-col md:flex-row relative`}>
       {/* Left Sidebar */}
       <AdminSidebar />
 
@@ -105,18 +105,18 @@ export default function AdminDashboard() {
         onClose={() => setIsAddBaseMapModalOpen(false)}
       />
 
-      {/* Retro HUD Toast Notification */}
+      {/* Admin Toast Notification */}
       {adminToast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-200">
           <div
-            className={`border-4 border-black rounded-2xl p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center gap-3 font-mono text-xs font-black uppercase ${
+            className={`rounded-2xl p-4 shadow-[0_10px_30px_-15px_rgba(45,58,46,0.4)] flex items-center gap-3 font-thai text-xs font-semibold uppercase ${
               adminToast.type === 'error'
                 ? 'bg-[#cc0000] text-white'
                 : adminToast.type === 'warning'
-                ? 'bg-amber-400 text-black'
+                ? 'bg-amber-400 text-brand-dark'
                 : adminToast.type === 'info'
-                ? 'bg-sky-400 text-black'
-                : 'bg-emerald-400 text-black'
+                ? 'bg-sky-400 text-brand-dark'
+                : 'bg-emerald-400 text-brand-dark'
             }`}
           >
             {adminToast.type === 'error' ? (

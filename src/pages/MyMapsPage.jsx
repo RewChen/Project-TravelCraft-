@@ -9,15 +9,15 @@ function CardCover({ imageUrl, title }) {
   const [failed, setFailed] = useState(false);
   if (!imageUrl || failed) {
     return (
-      <div className="mb-3 -mx-1 h-28 border-2 border-dashed border-black rounded bg-gray-50 flex flex-col items-center justify-center gap-1 text-gray-400">
+      <div className="mb-3 h-28 border border-dashed border-brand-dark/20 rounded-2xl bg-brand-light flex flex-col items-center justify-center gap-1 text-brand-dark/40">
         <ImageOff className="w-6 h-6" />
-        <span className="text-[10px] font-black uppercase">No Cover</span>
+        <span className="text-[10px] font-semibold uppercase">No Cover</span>
       </div>
     );
   }
   return (
-    <div className="mb-3 -mx-1">
-      <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-28 object-cover border-2 border-black rounded bg-gray-100" />
+    <div className="mb-3">
+      <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-28 object-cover rounded-2xl bg-brand-light" />
     </div>
   );
 }
@@ -25,11 +25,11 @@ function CardCover({ imageUrl, title }) {
 function PreviewCover({ imageUrl, title }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className="mb-3 h-44 border-2 border-black rounded bg-[#a2d2ff] dark:bg-slate-700 overflow-hidden flex items-center justify-center">
+    <div className="mb-3 h-44 rounded-2xl bg-brand-light overflow-hidden flex items-center justify-center">
       {imageUrl && !failed ? (
         <img src={imageUrl} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} className="w-full h-full object-cover" />
       ) : (
-        <span className="font-black uppercase text-xs text-gray-700">No Cover</span>
+        <span className="font-semibold uppercase text-xs text-brand-dark/50">No Cover</span>
       )}
     </div>
   );
@@ -138,23 +138,23 @@ const openMapInEditor = async (mapItem) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-12 space-y-8 font-mono">
+    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-8 font-thai text-brand-dark">
       
       {/* Header Banner */}
-      <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white rounded-3xl p-7 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Map className="w-6 h-6 text-red-600" />
-            <h1 className="text-2xl font-black uppercase">{t('myMaps.title')}</h1>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Map className="w-6 h-6 text-brand-green" />
+            <h1 className="text-2xl font-bold text-brand-dark">{t('myMaps.title')}</h1>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-sans">
+          <p className="text-xs text-brand-dark/60">
             {t('myMaps.subtitle')}
           </p>
         </div>
 
         <button 
           onClick={() => (userProfile ? setShowCreateModal(true) : requireLogin())}
-          className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 text-xs uppercase cursor-pointer"
+          className="bg-brand-dark hover:bg-brand-green text-white font-semibold px-5 py-3 rounded-full flex items-center gap-2 text-xs uppercase transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" /> {t('myMaps.createNewMap')}
         </button>
@@ -164,8 +164,8 @@ const openMapInEditor = async (mapItem) => {
 
       {/* Success Alert Banner */}
       {publishedSuccess && (
-        <div className="bg-emerald-100 border-4 border-black p-4 rounded-xl text-emerald-950 font-black text-xs flex items-center gap-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-in fade-in">
-          <Check className="w-5 h-5 text-emerald-700 stroke-[3]" />
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl text-emerald-800 font-semibold text-xs flex items-center gap-2 animate-in fade-in">
+          <Check className="w-5 h-5 stroke-[3]" />
           <span>{publishedSuccess}</span>
         </div>
       )}
@@ -173,17 +173,17 @@ const openMapInEditor = async (mapItem) => {
       {/* Map List Grid — only the logged-in user's own maps. Guests see a
           login prompt instead of other people's maps. */}
       {!userProfile ? (
-        <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-white rounded-3xl p-10 text-center shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
           <div className="text-4xl mb-2">🗺️</div>
-          <p className="text-slate-600 dark:text-slate-300 font-bold mb-4">{t('myMaps.loginRequired')}</p>
-          <button onClick={requireLogin} className="bg-[#cc0000] hover:bg-red-700 text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <p className="text-brand-dark/60 font-medium mb-4">{t('myMaps.loginRequired')}</p>
+          <button onClick={requireLogin} className="bg-brand-dark hover:bg-brand-green text-white font-semibold px-6 py-2.5 rounded-full uppercase transition-colors">
             {t('auth.submitLogin')}
           </button>
         </div>
       ) : myMapsList.length === 0 ? (
-        <div className="bg-white border-4 border-black rounded-2xl p-8 text-center shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-          <p className="text-slate-600 dark:text-slate-300 font-bold mb-4">You haven't created any maps yet.</p>
-          <button onClick={() => (userProfile ? setShowCreateModal(true) : requireLogin())} className="bg-[#cc0000] text-white font-black px-6 py-2 rounded-xl border-2 border-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-white rounded-3xl p-10 text-center shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
+          <p className="text-brand-dark/60 font-medium mb-4">You haven't created any maps yet.</p>
+          <button onClick={() => (userProfile ? setShowCreateModal(true) : requireLogin())} className="bg-brand-dark text-white font-semibold px-6 py-2.5 rounded-full uppercase transition-colors">
             Create Your First Map
           </button>
         </div>
@@ -192,18 +192,18 @@ const openMapInEditor = async (mapItem) => {
         {myMapsList.map((map) => (
           <div 
             key={map.id}
-            className="bg-white border-4 border-black rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between"
+            className="bg-white rounded-3xl p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col justify-between"
           >
             <div>
               <div className="flex justify-between items-start mb-3">
-                <span className={`text-[10px] font-black px-2 py-0.5 border-2 border-black rounded ${map.color}`}>
+                <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${map.color}`}>
                   {map.badge}
                 </span>
               </div>
               <CardCover imageUrl={map.imageUrl} title={map.title} />
-              <h3 className="text-lg font-black mb-1 text-slate-900 line-clamp-1 overflow-hidden">{map.title}</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{map.region}</p>
-              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 line-clamp-2 overflow-hidden">
+              <h3 className="text-lg font-bold mb-1 text-brand-dark line-clamp-1 overflow-hidden">{map.title}</h3>
+              <p className="text-[11px] text-brand-dark/50 font-medium mb-3">{map.region}</p>
+              <p className="text-xs text-brand-dark/70 leading-relaxed mb-6 line-clamp-2 overflow-hidden">
                 {map.description}
               </p>
             </div>
@@ -211,30 +211,30 @@ const openMapInEditor = async (mapItem) => {
             <div className="space-y-2">
               <button 
                 onClick={() => setPublishTarget(map)}
-                className="w-full bg-amber-400 hover:bg-amber-300 text-black font-black py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all active:translate-y-0.5"
+                className="w-full bg-amber-400 hover:bg-amber-300 text-brand-dark font-semibold py-2.5 rounded-full text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
               >
                 <Globe className="w-4 h-4" /> {t('myMaps.pushToCommunity')}
               </button>
 
-              <button 
+              <button
                 onClick={() => setPreviewTarget(map)}
-                className="w-full bg-[#cc0000] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-700 cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full bg-[#cc0000] text-white font-semibold py-2.5 rounded-full text-xs uppercase hover:bg-[#b30000] cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Eye className="w-4 h-4" /> Preview Map
+                <Eye className="w-4 h-4" /> {t('myMaps.openMap')}
               </button>
 
               <button
                 onClick={() => openMapInEditor(map)}
-                className="w-full bg-[#4895ef] text-white font-bold py-2 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-blue-600 cursor-pointer flex justify-center items-center gap-1.5"
+                className="w-full bg-brand-dark text-white font-semibold py-2.5 rounded-full text-xs uppercase hover:bg-brand-green cursor-pointer flex justify-center items-center gap-1.5 transition-colors"
               >
                 <Edit3 className="w-4 h-4" /> Edit Map
               </button>
 
               <button
                 onClick={() => setDeleteTarget(map)}
-                className="w-full bg-white text-red-600 font-bold py-2 rounded-lg border-2 border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase hover:bg-red-50 cursor-pointer flex justify-center items-center gap-1.5"
+                className="w-full bg-white text-red-600 font-semibold py-2.5 rounded-full text-xs uppercase hover:bg-red-50 cursor-pointer flex justify-center items-center gap-1.5 transition-colors"
               >
-                <Trash2 className="w-4 h-4" /> Delete Map
+                <Trash2 className="w-4 h-4" /> {t('common.delete')}
               </button>
             </div>
           </div>
@@ -244,12 +244,12 @@ const openMapInEditor = async (mapItem) => {
 
       {/* Favorites Quick Access — account-only, hidden from guests */}
       {userProfile && (
-      <div className="bg-amber-50 border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <h2 className="text-lg font-black uppercase mb-3 flex items-center gap-2 text-amber-900">
-          <Star className="w-5 h-5 fill-amber-500 text-amber-600" /> {t('myMaps.favoritesTitle')} ({favorites.length})
+      <div className="bg-white rounded-3xl p-7 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
+        <h2 className="text-lg font-bold text-brand-dark mb-3 flex items-center gap-2">
+          <Star className="w-5 h-5 fill-amber-400 text-amber-500" /> {t('myMaps.favoritesTitle')} ({favorites.length})
         </h2>
         {favorites.length === 0 ? (
-          <p className="text-xs text-slate-600 dark:text-slate-300">{t('myMaps.noFavorites')}</p>
+          <p className="text-xs text-brand-dark/50">{t('myMaps.noFavorites')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {favorites.map((item, idx) => (
@@ -269,13 +269,13 @@ const openMapInEditor = async (mapItem) => {
                   visitors: 'Millions',
                   rarity: 'Legendary'
                 })}
-                className="bg-white border-2 border-black rounded-lg p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex justify-between items-center cursor-pointer hover:bg-amber-100 transition-colors"
+                className="bg-brand-light/70 rounded-2xl p-3 flex justify-between items-center cursor-pointer hover:bg-brand-light transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-red-600" />
-                  <span className="text-xs font-bold">{item}</span>
+                  <MapPin className="w-4 h-4 text-brand-green" />
+                  <span className="text-xs font-semibold">{item}</span>
                 </div>
-                <span className="text-[10px] text-red-600 font-black">{t('myMaps.view')}</span>
+                <span className="text-[10px] text-brand-green font-semibold">{t('myMaps.view')}</span>
               </div>
             ))}
           </div>
@@ -304,26 +304,26 @@ const openMapInEditor = async (mapItem) => {
       )}
 
       {previewTarget && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-md shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-            <div className="bg-[#4895ef] text-white p-4 border-b-4 border-black flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)]">
+            <div className="bg-brand-dark text-white p-5 rounded-t-3xl flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Eye className="w-5 h-5" />
-                <h2 className="font-black uppercase tracking-wide">Map Preview</h2>
+                <h2 className="font-bold uppercase tracking-wide">Map Preview</h2>
               </div>
               <button
                 onClick={() => setPreviewTarget(null)}
-                className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+                className="w-7 h-7 bg-white/15 hover:bg-white/30 text-white rounded-full flex items-center justify-center cursor-pointer transition-colors"
                 title="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5">
+            <div className="p-6">
               <PreviewCover imageUrl={previewTarget.imageUrl} title={previewTarget.title} />
-              <h3 className="text-lg font-black mb-1 text-slate-900 break-words leading-snug">{previewTarget.title}</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mb-3">{previewTarget.region}</p>
-              <p className="text-xs text-slate-700 dark:text-slate-200 font-sans leading-relaxed mb-6 max-h-24 overflow-y-auto">
+              <h3 className="text-lg font-bold mb-1 text-brand-dark break-words leading-snug">{previewTarget.title}</h3>
+              <p className="text-[11px] text-brand-dark/50 font-medium mb-3">{previewTarget.region}</p>
+              <p className="text-xs text-brand-dark/70 leading-relaxed mb-6 max-h-24 overflow-y-auto">
                 {previewTarget.description}
               </p>
               <div className="flex flex-col gap-2">
@@ -332,7 +332,7 @@ const openMapInEditor = async (mapItem) => {
                     trackMapOnWorldMap(previewTarget);
                     setPreviewTarget(null);
                   }}
-                  className="w-full bg-[#cc0000] hover:bg-red-700 text-white font-black py-2.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-brand-dark hover:bg-brand-green text-white font-semibold py-2.5 rounded-full text-xs uppercase flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <MapPin className="w-4 h-4" /> Open in World Map
                 </button>
@@ -341,7 +341,7 @@ const openMapInEditor = async (mapItem) => {
                     openMapInEditor(previewTarget);
                     setPreviewTarget(null);
                   }}
-                  className="w-full bg-[#4895ef] hover:bg-blue-600 text-white font-black py-2.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-white hover:bg-brand-light border border-brand-dark/15 text-brand-dark font-semibold py-2.5 rounded-full text-xs uppercase flex items-center justify-center gap-2 cursor-pointer transition-colors"
                 >
                   <Edit3 className="w-4 h-4" /> Edit Map
                 </button>
@@ -352,20 +352,20 @@ const openMapInEditor = async (mapItem) => {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-            <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)]">
+            <div className="bg-brand-dark text-white p-5 rounded-t-3xl flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              <h2 className="font-black uppercase tracking-wide">Delete Map?</h2>
+              <h2 className="font-bold uppercase tracking-wide">Delete Map?</h2>
             </div>
-            <div className="p-5">
-              <p className="text-sm font-bold text-gray-800">
+            <div className="p-6">
+              <p className="text-sm font-medium text-brand-dark/80">
                 Are you sure you want to delete "{deleteTarget.title}"? This cannot be undone.
               </p>
               <div className="mt-6 flex justify-end gap-2">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                  className="px-5 py-2.5 bg-white border border-brand-dark/15 rounded-full font-semibold text-xs uppercase cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
@@ -374,7 +374,7 @@ const openMapInEditor = async (mapItem) => {
                     deleteCommunityMap(deleteTarget.id);
                     setDeleteTarget(null);
                   }}
-                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#b40000] text-white rounded-full font-semibold text-xs uppercase flex items-center gap-2 cursor-pointer transition-colors"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>

@@ -13,24 +13,24 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 font-mono animate-in fade-in duration-150">
-      <div className="bg-white border-4 border-black rounded-2xl w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl w-full max-w-lg ring-1 ring-brand-dark/[0.06] shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] overflow-hidden">
         {/* Modal Header */}
-        <div className="bg-amber-400 text-black p-4 border-b-4 border-black flex items-center justify-between">
+        <div className="bg-amber-400 text-brand-dark p-4 border-b border-white/60 flex items-center justify-between">
           <div className="flex items-center gap-2">
             {isAvatarImage(trainer.avatar) ? (
-              <img src={trainer.avatar} alt={trainer.name} className="w-9 h-9 rounded-full border-2 border-black object-cover" />
+              <img src={trainer.avatar} alt={trainer.name} className="w-9 h-9 rounded-full ring-2 ring-white object-cover" />
             ) : (
               <span className="text-xl">{trainer.avatar || '🧢'}</span>
             )}
             <div>
-              <h3 className="text-sm font-black uppercase tracking-wider">{trainer.name}'s Cartography Roster</h3>
-              <p className="text-[10px] text-gray-700 font-bold">{trainer.email} • {trainerMaps.length} Total Maps (Live)</p>
+              <h3 className="text-sm font-bold uppercase tracking-wider">{trainer.name}'s Cartography Roster</h3>
+              <p className="text-[10px] text-brand-dark/70 font-medium">{trainer.email} • {trainerMaps.length} Total Maps (Live)</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-neutral-800 text-white rounded-lg border-2 border-slate-400 dark:border-white flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-8 h-8 bg-white/70 hover:bg-white text-brand-dark rounded-full flex items-center justify-center cursor-pointer transition-transform active:scale-90"
           >
             <X className="w-5 h-5" />
           </button>
@@ -38,22 +38,22 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
 
         {/* Modal Body */}
         <div className="p-6 space-y-4">
-          <div className="text-xs font-black uppercase text-gray-600">Created Regional Maps</div>
+          <div className="text-xs font-semibold uppercase text-brand-dark/50">Created Regional Maps</div>
 
-          <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
             {trainerMaps.length > 0 ? (
               trainerMaps.map((mapItem) => (
                 <div
                   key={mapItem.id}
-                  className="bg-gray-50 border-2 border-black rounded-xl p-3 flex items-center justify-between shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-50 transition-colors"
+                  className="bg-brand-light/40 ring-1 ring-brand-dark/10 rounded-2xl p-3 flex items-center justify-between hover:bg-brand-light transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-amber-200 border-2 border-black rounded-lg flex items-center justify-center text-sm overflow-hidden">
+                    <div className="w-8 h-8 bg-amber-100 ring-1 ring-amber-200 rounded-lg flex items-center justify-center text-sm overflow-hidden">
                       {mapItem.imageUrl ? <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className="w-full h-full object-cover" /> : '🗺️'}
                     </div>
                     <div>
-                      <div className="text-xs font-black text-black">{mapItem.title}</div>
-                      <div className="text-[10px] text-gray-500 font-bold">Status: {mapItem.privacy === 'private' ? 'Draft' : 'Published'} • {mapItem.pinCount ?? mapItem.pins?.length ?? 0} pins</div>
+                      <div className="text-xs font-semibold text-brand-dark">{mapItem.title}</div>
+                      <div className="text-[10px] text-brand-dark/50 font-medium">Status: {mapItem.privacy === 'private' ? 'Draft' : 'Published'} • {mapItem.pinCount ?? mapItem.pins?.length ?? 0} pins</div>
                     </div>
                   </div>
 
@@ -62,7 +62,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
                       onClose();
                       trackMapOnWorldMap(mapItem);
                     }}
-                    className="px-2.5 py-1.5 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
+                    className="px-2.5 py-1.5 bg-[#cc0000] hover:bg-red-700 text-white rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 cursor-pointer"
                   >
                     <span>Inspect</span>
                     <ExternalLink className="w-3 h-3" />
@@ -70,7 +70,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-xs text-gray-500">
+              <div className="text-center py-6 text-xs text-brand-dark/50 font-medium">
                 No active custom maps registered for this trainer. New maps created by the user will appear here instantly via live sync.
               </div>
             )}
@@ -79,7 +79,7 @@ export default function TrainerMapsModal({ isOpen, trainer, onClose }) {
           <div className="flex justify-end pt-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 border-2 border-black rounded-xl font-bold text-xs uppercase cursor-pointer"
+              className="px-4 py-2 bg-brand-light/40 ring-1 ring-brand-dark/10 hover:bg-brand-light rounded-full font-semibold text-xs uppercase cursor-pointer"
             >
               Close
             </button>

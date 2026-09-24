@@ -13,23 +13,23 @@ export default function FooterInfoModal({ section, onClose }) {
       aria-modal="true"
     >
       <div
-        className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-3xl p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.8)] relative"
+        className="w-full max-w-sm bg-white dark:bg-slate-800 rounded-3xl p-6 border border-brand-dark/10 dark:border-slate-600 shadow-[0_20px_50px_-20px_rgba(45,58,46,0.25)] relative font-thai"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label={t('common.close')}
-          className="absolute top-2.5 right-2.5 w-7 h-7 bg-[#cc0000] text-white border-2 border-black rounded-md flex items-center justify-center cursor-pointer hover:bg-red-700 transition-colors"
+          className="absolute top-3 right-3 w-7 h-7 bg-brand-dark/10 text-brand-dark hover:bg-brand-dark hover:text-white rounded-full flex items-center justify-center cursor-pointer transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
-        <h3 className="text-sm font-black uppercase tracking-wider text-black mb-2">{t(`footer.${section}Title`)}</h3>
-        <p className="text-[11px] text-gray-700 font-sans leading-relaxed mb-4">{t(`footer.${section}Body`)}</p>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-brand-dark mb-2">{t(`footer.${section}Title`)}</h3>
+        <p className="text-[11px] text-brand-dark/70 leading-relaxed mb-4">{t(`footer.${section}Body`)}</p>
         <button
           type="button"
           onClick={onClose}
-          className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer hover:bg-red-700 transition-colors"
+          className="w-full bg-brand-dark hover:bg-brand-green text-white font-semibold py-2.5 px-4 rounded-full text-xs uppercase cursor-pointer transition-colors"
         >
           {t('common.close')}
         </button>

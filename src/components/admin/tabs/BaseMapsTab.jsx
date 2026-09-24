@@ -33,24 +33,24 @@ export default function BaseMapsTab({ onOpenAddModal }) {
   };
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6 font-thai">
       {/* Top Banner */}
-      <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black flex items-center gap-2">
+          <h2 className="text-3xl sm:text-4xl font-bold uppercase tracking-tight text-brand-dark flex items-center gap-2">
             <span>{t('admin.manageBaseMaps')}</span>
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 font-bold mt-1">
+          <p className="text-xs sm:text-sm text-brand-dark/50 font-medium mt-1">
             {t('admin.curateFoundations')}
           </p>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div className="text-[10px] font-black uppercase text-gray-500 bg-gray-100 border-2 border-black rounded-lg px-3 py-1.5">
+          <div className="text-[10px] font-semibold uppercase text-brand-dark/50 bg-brand-light/60 rounded-full px-3 py-1.5 ring-1 ring-brand-dark/[0.06]">
             {baseMaps.length} {t('admin.base')} · {isAdminLoggedIn ? 'Synced to DB' : 'Local Only'}
           </div>
           <button
             onClick={() => onOpenAddModal?.()}
-            className="px-4 py-2 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-xl text-xs font-black uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer transition-all"
+            className="px-4 py-2 bg-[#cc0000] hover:bg-red-700 text-white rounded-full text-xs font-semibold uppercase flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{t('admin.addNewBaseMap')}</span>
@@ -59,13 +59,13 @@ export default function BaseMapsTab({ onOpenAddModal }) {
       </div>
 
       {/* Active Base Maps */}
-      <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-        <div className="bg-[#eab308] border-b-4 border-black p-3.5 px-5 flex items-center justify-between">
-          <h3 className="font-black text-sm uppercase tracking-wider text-black flex items-center gap-2">
+      <div className="bg-white rounded-3xl overflow-hidden ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)]">
+        <div className="bg-brand-light/60 border-b border-brand-dark/[0.06] p-3.5 px-5 flex items-center justify-between text-brand-dark">
+          <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
             <Star className="w-4 h-4" />
             <span>Active Base Maps</span>
           </h3>
-          <span className="bg-white text-black text-[10px] font-black px-3 py-0.5 rounded-full border border-black">
+          <span className="bg-white text-brand-dark text-[10px] font-bold px-3 py-0.5 rounded-full ring-1 ring-brand-dark/10">
             {baseMaps.length}
           </span>
         </div>
@@ -79,9 +79,9 @@ export default function BaseMapsTab({ onOpenAddModal }) {
             {baseMaps.map((map) => (
               <div
                 key={map.id}
-                className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between group hover:-translate-y-1 transition-transform"
+                className="bg-white rounded-3xl overflow-hidden ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] flex flex-col justify-between group hover:-translate-y-1 transition-transform"
               >
-                <div className="relative h-40 bg-gray-200 border-b-4 border-black overflow-hidden">
+                <div className="relative h-40 bg-brand-light/60 border-b border-brand-dark/[0.06] overflow-hidden">
                   {map.image ? (
                     <img
                       src={map.image}
@@ -93,9 +93,9 @@ export default function BaseMapsTab({ onOpenAddModal }) {
                       🗺️
                     </div>
                   )}
-                  <div className="absolute bottom-3 left-3 bg-white/90 border-2 border-black rounded-full px-2.5 py-0.5 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                    <span className="w-2 h-2 rounded-full bg-amber-400 border border-black"></span>
-                    <span className="text-[10px] font-black uppercase text-black tracking-wider">
+                  <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-0.5 flex items-center gap-1.5 ring-1 ring-brand-dark/10">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span className="text-[10px] font-semibold uppercase text-brand-dark tracking-wider">
                       {map.badge || t('admin.base')}
                     </span>
                   </div>
@@ -103,25 +103,25 @@ export default function BaseMapsTab({ onOpenAddModal }) {
 
                 <div className="p-4 flex flex-col justify-between flex-1 space-y-3">
                   <div>
-                    <h3 className="font-black text-base uppercase text-black truncate mb-1">
+                    <h3 className="font-bold text-base uppercase text-brand-dark truncate mb-1">
                       {map.name}
                     </h3>
-                    <p className="text-[11px] text-gray-500 font-sans font-medium line-clamp-2">
+                    <p className="text-[11px] text-brand-dark/50 font-sans font-medium line-clamp-2">
                       {map.description}
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t-2 border-gray-100 flex items-center justify-between gap-2">
+                  <div className="pt-2 border-t border-brand-dark/[0.06] flex items-center justify-between gap-2">
                     <button
                       onClick={() => handleLaunchInEditor(map)}
-                      className="flex-1 py-1.5 px-2 bg-amber-400 hover:bg-amber-300 text-black border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1 cursor-pointer"
+                      className="flex-1 py-1.5 px-2 bg-amber-400 hover:bg-amber-300 text-brand-dark rounded-full text-[10px] font-semibold uppercase flex items-center justify-center gap-1 cursor-pointer"
                     >
                       <Compass className="w-3 h-3" />
                       <span>Open in Editor</span>
                     </button>
 <button
                         onClick={() => demote(map)}
-                        className="py-1.5 px-2 bg-[#cc0000] hover:bg-red-700 text-white border-2 border-black rounded-lg text-[10px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 cursor-pointer"
+                        className="py-1.5 px-2 bg-[#cc0000] hover:bg-red-700 text-white rounded-full text-[10px] font-semibold uppercase flex items-center gap-1 cursor-pointer"
                       >
                       <Eye className="w-3 h-3" />
                       <span>Demote</span>

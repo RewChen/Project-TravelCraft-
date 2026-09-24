@@ -96,15 +96,16 @@ export default function CommunityPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-16 font-mono text-black dark:text-slate-100">
+    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-16 font-thai text-brand-dark dark:text-slate-100">
       
       {/* Main Title Section */}
       <Reveal>
-      <div className="text-center my-8 space-y-2">
-        <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tight">
+      <div className="text-center mb-8 space-y-3">
+        <p className="text-xs uppercase tracking-[0.3em] text-brand-green font-semibold">{t('home.featured')}</p>
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-brand-dark">
           {t('community.title')}
         </h1>
-        <p className="text-sm font-sans font-bold text-slate-700 dark:text-slate-300 underline decoration-2 underline-offset-4">
+        <p className="text-sm font-medium text-brand-dark/60">
           {t('community.subtitle')}
         </p>
       </div>
@@ -114,13 +115,13 @@ export default function CommunityPage() {
       <Reveal delay={80}>
       <div className="max-w-2xl mx-auto mb-6">
         <div className="relative">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-700 dark:text-slate-300" />
+          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-brand-dark/40" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('community.searchPh')} 
-            className="w-full pl-12 pr-4 py-3 border-4 border-black rounded-lg text-sm font-black tracking-wider bg-white focus:outline-none focus:bg-amber-50 uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            className="w-full pl-12 pr-4 py-3.5 rounded-full border border-brand-dark/10 text-sm font-semibold tracking-wide bg-white focus:outline-none focus:border-brand-green/40 shadow-[0_10px_30px_-25px_rgba(45,58,46,0.3)] uppercase placeholder:normal-case"
           />
         </div>
       </div>
@@ -131,10 +132,10 @@ export default function CommunityPage() {
         <button
           onClick={searchBySelectedTag}
           title={t('community.searchByTag')}
-          className={`px-4 py-2 border-2 border-black rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
             activeTags.length > 0
-              ? 'bg-slate-800 dark:bg-black text-white hover:bg-slate-700 dark:hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-              : 'bg-amber-400 hover:bg-amber-300 text-black'
+              ? 'bg-brand-dark text-white hover:bg-brand-green'
+              : 'bg-white border border-brand-dark/10 hover:bg-brand-light'
           }`}
         >
           <Search className="w-3 h-3" /> {t('community.searchByTag')}
@@ -145,10 +146,10 @@ export default function CommunityPage() {
             <button
               key={tagKey}
               onClick={() => toggleTag(tagKey)}
-              className={`px-3 py-2 border-2 border-black rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer ${
+              className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
                 isActive
-                  ? 'bg-[#2ec4b6] text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
-                  : 'bg-white hover:bg-gray-100 text-black'
+                  ? 'bg-brand-green text-white'
+                  : 'bg-white hover:bg-brand-light border border-brand-dark/10'
               }`}
             >
               <span className="text-sm leading-none">{meta.emoji}</span>
@@ -163,13 +164,13 @@ export default function CommunityPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {filteredMaps.map((mapItem, idx) => (
           <Reveal key={mapItem.id} delay={Math.min(idx, 8) * 70} className="h-full">
-          <div
-            className="bg-white border-4 border-black rounded-xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between hover:translate-y-[-2px] transition-transform h-full"
+<div
+            className="bg-white rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col justify-between hover:-translate-y-1 transition-transform h-full"
           >
             {/* Top Image Preview Banner (Clickable) */}
             <div 
               onClick={() => trackMapOnWorldMap(mapItem)}
-              className="h-56 bg-sky-200 border-b-4 border-black relative overflow-hidden flex items-center justify-center cursor-pointer group"
+              className="h-56 bg-brand-light relative overflow-hidden flex items-center justify-center cursor-pointer group"
               title={t('community.trackTooltip')}
             >
               {mapItem.imageUrl && !isDefaultCover(mapItem.imageUrl) ? (
@@ -188,25 +189,25 @@ export default function CommunityPage() {
                   style={resolveCardBackground(mapItem)}
                 />
               ) : (
-                <div className="w-full h-full bg-sky-200 flex items-center justify-center text-4xl">🗺️</div>
+                <div className="w-full h-full bg-brand-light flex items-center justify-center text-4xl">🗺️</div>
               )}
-              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <span className="bg-amber-400 border-2 border-black px-3 py-1 text-xs font-black text-black uppercase rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="absolute inset-0 bg-brand-dark/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <span className="bg-amber-400 px-4 py-1.5 text-xs font-bold text-brand-dark uppercase rounded-full shadow">
                   {t('community.trackOverlay')}
                 </span>
               </div>
               
               {/* Rarity Tag Badge */}
-              <div className={`absolute top-3 right-3 px-3 py-1 border-2 border-black font-black text-[10px] uppercase rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${mapItem.rarityColor}`}>
+              <div className={`absolute top-3 right-3 px-3 py-1 font-semibold text-[10px] uppercase rounded-full shadow ${mapItem.rarityColor}`}>
                 {mapItem.rarity}
               </div>
             </div>
 
             {/* Content Info */}
-            <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+            <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
               <div>
                 <h3
-                  className="text-lg font-black uppercase tracking-tight leading-snug line-clamp-2 mb-2"
+                  className="text-lg font-bold text-brand-dark tracking-tight leading-snug line-clamp-2 mb-2"
                   title={mapItem.title}
                 >
                   {mapItem.title}
@@ -219,13 +220,13 @@ export default function CommunityPage() {
                       const meta = presetTagMeta[tag];
                       const Icon = meta?.icon;
                       return (
-                        <span key={tag} className={`px-2 py-0.5 border-2 border-black text-[9px] font-black uppercase flex items-center gap-1 rounded ${meta ? 'bg-gray-100' : 'bg-amber-100'}`}>
+                        <span key={tag} className={`px-2.5 py-1 text-[9px] font-semibold uppercase flex items-center gap-1 rounded-full ${meta ? 'bg-brand-light text-brand-dark/70' : 'bg-amber-100 text-amber-800'}`}>
                           {Icon && <Icon className="w-3 h-3" />} {meta ? t(meta.labelKey) : tag}
                         </span>
                       );
                     })}
                     {mapItem.tags.length > 3 && (
-                      <span className="px-2 py-0.5 border-2 border-black text-[9px] font-black uppercase rounded bg-white text-slate-600 dark:text-slate-300">
+                      <span className="px-2.5 py-1 text-[9px] font-semibold uppercase rounded-full bg-white border border-brand-dark/[0.06] text-brand-dark/50">
                         +{mapItem.tags.length - 3}
                       </span>
                     )}
@@ -233,14 +234,14 @@ export default function CommunityPage() {
                 )}
                 
                 {/* Author Info & Role */}
-                <div className="flex items-center justify-between gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <div className="flex items-center justify-between gap-2 text-xs font-medium text-brand-dark/60 mb-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-3 h-3 border border-black shrink-0 ${mapItem.authorBadgeColor}`}></div>
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${mapItem.authorBadgeColor}`}></div>
                     <div className="truncate">
-                      {t('community.discoveredBy')} <strong className="font-black text-black dark:text-white">{mapItem.discoveredBy}</strong>
+                      {t('community.discoveredBy')} <strong className="font-bold text-brand-dark">{mapItem.discoveredBy}</strong>
                     </div>
                   </div>
-                  <span className="text-[9px] bg-amber-100 border border-black px-1.5 py-0.5 rounded font-black uppercase text-amber-900 shrink-0">
+                  <span className="px-2.5 py-0.5 bg-brand-light rounded-full text-brand-dark/60 text-[9px] font-semibold shrink-0">
                     {mapItem.authorRole || t('common.cartographer')}
                   </span>
                 </div>
@@ -251,7 +252,7 @@ export default function CommunityPage() {
                     ? rawRegion
                     : '';
                   return displayCountry ? (
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase">
+                    <div className="flex items-center gap-1.5 text-brand-dark/40 text-[10px] font-semibold uppercase">
                       <MapPin className="w-3 h-3 shrink-0" /> {displayCountry}
                     </div>
                   ) : null;
@@ -261,18 +262,18 @@ export default function CommunityPage() {
 
               {/* Action Buttons */}
               <div className="space-y-2 pt-2">
-                <button
+<button
                   onClick={() => openDetails(mapItem)}
-                  className="w-full bg-slate-800 dark:bg-black text-white hover:bg-slate-700 dark:hover:bg-gray-800 font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors cursor-pointer text-center"
+                  className="w-full bg-brand-dark hover:bg-brand-green dark:bg-slate-800 dark:hover:bg-slate-700 text-white font-semibold py-2.5 px-4 rounded-full text-xs uppercase transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {t('community.viewDetails')}
                 </button>
 
-                <button
+<button
                   onClick={() => trackMapOnWorldMap(mapItem)}
-                  className="w-full bg-white hover:bg-amber-100 text-black font-black py-2.5 px-4 border-2 border-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-brand-light/70 dark:bg-slate-700/70 hover:bg-brand-light dark:hover:bg-slate-700/60 text-brand-dark dark:text-slate-100 font-semibold py-2.5 px-4 rounded-full text-xs uppercase transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Eye className="w-4 h-4 text-black" /> {t('community.trackOnMap')}
+                  <Eye className="w-4 h-4" /> {t('community.trackOnMap')}
                 </button>
 
                 {canDeleteMap(mapItem) && (
@@ -281,7 +282,7 @@ export default function CommunityPage() {
                       setDeleteReason('');
                       setDeleteTarget(mapItem);
                     }}
-                    className="w-full bg-white hover:bg-red-50 text-red-700 font-black py-2.5 px-4 border-2 border-red-700 text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full bg-white hover:bg-red-50 text-red-700 font-semibold py-2.5 px-4 rounded-full text-xs uppercase transition-colors flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" /> {isAdminLoggedIn ? t('community.deleteThisUserMap') : t('community.deleteMyMap')}
                   </button>
@@ -295,27 +296,27 @@ export default function CommunityPage() {
       </div>
 
       {filteredMaps.length === 0 && (
-        <div className="text-center py-16 space-y-3 font-mono">
+        <div className="text-center py-16 space-y-3 font-thai">
           <div className="text-5xl">🗺️</div>
-          <div className="text-lg font-black uppercase tracking-tight">{t('community.noMaps')}</div>
-          <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{t('community.noMapsHint')}</p>
+          <div className="text-lg font-bold text-brand-dark">{t('community.noMaps')}</div>
+          <p className="text-sm font-medium text-brand-dark/50">{t('community.noMapsHint')}</p>
         </div>
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border-4 border-black rounded-2xl w-full max-w-sm shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
-            <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-sm border border-brand-dark/10 shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)]">
+            <div className="bg-brand-dark text-white p-5 rounded-t-3xl flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              <h2 className="font-black uppercase tracking-wide">Delete from Community?</h2>
+              <h2 className="font-bold uppercase tracking-wide">{t('community.deleteThisUserMap')}</h2>
             </div>
-            <div className="p-5">
-              <p className="text-sm font-bold text-gray-800">
-                {t('community.deleteConfirm', { title: deleteTarget.title })} This cannot be undone.
+            <div className="p-6">
+              <p className="text-sm font-medium text-brand-dark/80">
+                {t('community.deleteConfirm', { title: deleteTarget.title })} {t('admin.cannotUndo')}
               </p>
 
               <div className="mt-4">
-                <label className="block text-[11px] font-black uppercase text-gray-500 mb-1.5">
+                <label className="block text-[11px] font-semibold uppercase text-brand-dark/50 mb-1.5">
                   {t('community.deleteReasonLabel')}
                 </label>
                 <textarea
@@ -323,10 +324,10 @@ export default function CommunityPage() {
                   onChange={(e) => setDeleteReason(e.target.value)}
                   placeholder={t('community.deleteReasonPh')}
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-50 border-2 border-black rounded-lg text-xs font-bold focus:outline-none focus:bg-amber-50"
+                  className="w-full px-3 py-2.5 bg-brand-light/60 border border-brand-dark/10 rounded-2xl text-xs font-medium focus:outline-none focus:border-brand-green/40"
                 />
                 {!deleteReason.trim() && (
-                  <p className="mt-1 text-[10px] font-black uppercase text-red-600">
+                  <p className="mt-1 text-[10px] font-semibold uppercase text-red-600">
                     {t('community.deleteReasonRequired')}
                   </p>
                 )}
@@ -335,9 +336,9 @@ export default function CommunityPage() {
               <div className="mt-6 flex justify-end gap-2">
                 <button
                   onClick={() => setDeleteTarget(null)}
-                  className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase cursor-pointer"
+                  className="px-5 py-2.5 bg-white border border-brand-dark/15 rounded-full font-semibold text-xs uppercase cursor-pointer"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   disabled={!deleteReason.trim()}
@@ -352,9 +353,9 @@ export default function CommunityPage() {
                     setDeleteTarget(null);
                     setDeleteReason('');
                   }}
-                  className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 bg-[#b40000] text-white rounded-full font-semibold text-xs uppercase flex items-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" /> Delete
+                  <Trash2 className="w-4 h-4" /> {t('common.delete')}
                 </button>
               </div>
             </div>

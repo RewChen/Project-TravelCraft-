@@ -353,7 +353,7 @@ export default {
     supportBody: '問題が発生しましたか？ サポート窓口はこちら — 連絡先は近日公開予定です。',
     trainerClubTitle: 'トレーナークラブ',
     trainerClubBody: 'トレーナークラブの特典・ランク・会員情報はここに掲載予定です。',
-    copyright: '© 2026 TravelCraft - 全部探検しよう！',
+    copyright: '© 2026 TravelCraft - 全部 Travel しよう！',
   },
   theme: {
     lightMode: 'ライトモードに切替',

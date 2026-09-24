@@ -52,34 +52,34 @@ export default function ForgotPassForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 py-2">
+    <form onSubmit={handleSubmit} className="space-y-4 py-2 font-thai text-brand-dark">
       <div className="text-center">
-        <div className="inline-block text-red-600 font-bold text-lg mb-1">{t('auth.recoveryTitle')}</div>
-        <p className="text-[11px] text-gray-600 font-sans">{t('auth.recoveryDesc')}</p>
+        <div className="inline-block text-[#cc0000] font-bold text-lg mb-1">{t('auth.recoveryTitle')}</div>
+        <p className="text-[11px] text-brand-dark/60">{t('auth.recoveryDesc')}</p>
       </div>
 
       {errorMsg && (
-        <div className="bg-red-100 border-2 border-black text-red-700 p-2 rounded text-[10px] font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+        <div className="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded-2xl text-[10px] font-semibold flex items-center gap-1.5">
           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-bold text-black mb-1">{t('auth.trainerEmail2')}</label>
+        <label className="block text-xs font-semibold text-brand-dark mb-1">{t('auth.trainerEmail2')}</label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t('auth.emailPh')}
-          className="w-full px-3 py-1.5 border-2 border-black rounded bg-gray-50 text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] focus:outline-none focus:bg-amber-50"
+          className="w-full px-3 py-2.5 border border-brand-dark/15 rounded-full bg-brand-light/40 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
           required
         />
       </div>
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-[#cc0000] text-white font-bold py-2 px-4 rounded border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-[#cc0000] text-white font-semibold py-3 px-4 rounded-full text-xs uppercase flex items-center justify-center gap-2 cursor-pointer hover:bg-[#b30000] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_10px_30px_-15px_rgba(204,0,0,0.6)]"
       >
         {loading ? t('auth.sendingResetLink') : t('auth.sendResetLink')} {!loading && <Play className="w-3 h-3 fill-white" />}
       </button>
@@ -87,14 +87,14 @@ export default function ForgotPassForm() {
         <button
           type="button"
           onClick={() => setAuthMode('login')}
-          className="block w-full text-xs font-bold underline text-black cursor-pointer"
+          className="block w-full text-xs font-semibold underline text-brand-dark cursor-pointer"
         >
           {t('auth.backToLogin')}
         </button>
         <button
           type="button"
           onClick={() => setAuthMode('register')}
-          className="block w-full text-xs font-bold underline text-black cursor-pointer"
+          className="block w-full text-xs font-semibold underline text-brand-dark cursor-pointer"
         >
           {t('auth.newTrainer')}
         </button>

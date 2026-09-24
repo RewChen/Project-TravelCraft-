@@ -106,7 +106,7 @@ export default function SocialAuthButtons({ mode = 'login' }) {
       type="button"
       onClick={() => demoLogin(provider)}
       disabled={!!oAuthLoading}
-      className="flex items-center justify-center gap-1.5 text-[#cc0000] font-black py-1.5 px-2 rounded-lg border-2 border-dashed border-[#cc0000] text-[10px] uppercase hover:bg-[#cc0000] hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+      className="flex items-center justify-center gap-1.5 text-[#cc0000] font-semibold py-1.5 px-3 rounded-full border border-dashed border-[#cc0000]/60 text-[10px] uppercase hover:bg-[#cc0000] hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
     >
       🎮 {label}
     </button>
@@ -117,14 +117,14 @@ export default function SocialAuthButtons({ mode = 'login' }) {
   return (
     <div className="space-y-3">
       {oAuthError && (
-        <div className="bg-amber-50 border-2 border-black text-amber-900 p-2.5 rounded-xl text-[10px] font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] space-y-2 leading-tight">
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-2xl text-[10px] font-semibold space-y-2 leading-tight">
           <div className="flex items-start gap-1.5">
             <span className="text-[11px]">⚠️</span>
             <span className="flex-1">{oAuthError}</span>
           </div>
           {oAuthDemoProvider && (
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-amber-700 font-sans flex-1">{t('auth.oauthDemoNote')}</span>
+              <span className="text-[9px] text-amber-700 flex-1">{t('auth.oauthDemoNote')}</span>
               {demoButton(oAuthDemoProvider, t('auth.oauthDemoLogin', { provider: oAuthDemoProvider.charAt(0).toUpperCase() + oAuthDemoProvider.slice(1) }))}
             </div>
           )}
@@ -136,11 +136,11 @@ export default function SocialAuthButtons({ mode = 'login' }) {
           type="button"
           onClick={() => handleOAuth('google')}
           disabled={!!oAuthLoading}
-          className="flex items-center justify-center gap-1.5 bg-white text-black font-black py-2 px-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 text-[11px] uppercase hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center justify-center gap-1.5 bg-white text-brand-dark font-semibold py-2.5 px-2 rounded-full border border-brand-dark/15 text-[11px] uppercase hover:bg-brand-light/60 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
           aria-label={t('auth.continueWithGoogle')}
         >
           {oAuthLoading === 'google' ? (
-            <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+            <span className="w-3.5 h-3.5 border-2 border-brand-dark border-t-transparent rounded-full animate-spin" />
           ) : (
             <GoogleIcon />
           )}
@@ -149,8 +149,8 @@ export default function SocialAuthButtons({ mode = 'login' }) {
       </div>
 
       {!isSupabaseConfigured && (
-        <div className="bg-amber-50 border-2 border-black rounded-xl p-2.5 space-y-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <p className="text-[9px] text-amber-800 font-bold flex items-center gap-1"><span>🔄</span> {t('auth.oauthDemoNote')}</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-2.5 space-y-1.5">
+          <p className="text-[9px] text-amber-800 font-semibold flex items-center gap-1"><span>🔄</span> {t('auth.oauthDemoNote')}</p>
           <div className="grid grid-cols-2 gap-2">
             {demoProviders.map((p) => demoButton(p.id, t('auth.oauthDemoLogin', { provider: p.label })))}
           </div>
@@ -158,9 +158,9 @@ export default function SocialAuthButtons({ mode = 'login' }) {
       )}
 
       <div className="flex items-center gap-2 py-1">
-        <div className="flex-1 h-0.5 bg-black/15 rounded" />
-        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">{t('auth.orDivider')}</span>
-        <div className="flex-1 h-0.5 bg-black/15 rounded" />
+        <div className="flex-1 h-0.5 bg-brand-dark/10 rounded" />
+        <span className="text-[10px] font-semibold text-brand-dark/50 uppercase tracking-widest px-1">{t('auth.orDivider')}</span>
+        <div className="flex-1 h-0.5 bg-brand-dark/10 rounded" />
       </div>
     </div>
   );

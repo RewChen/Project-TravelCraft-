@@ -14,22 +14,22 @@ export default function AuthPage() {
   const [infoSection, setInfoSection] = useState(null);
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-[#e8ecef]'} flex flex-col items-center justify-center p-4 font-mono transition-colors duration-200`}>
+    <div className={`min-h-screen ${isDark ? 'bg-slate-900' : 'bg-brand-cream'} flex flex-col items-center justify-center p-4 font-thai transition-colors duration-200`}>
       <button
         onClick={() => navigateTo('home')}
-        className={`mb-4 text-xs font-bold px-4 py-2 border-2 rounded-lg flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors ${
-          isDark ? 'text-white bg-gray-800 hover:bg-gray-700 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : 'text-slate-800 bg-white hover:bg-gray-50 border-black'
+        className={`mb-4 text-xs font-semibold px-4 py-2 rounded-full border flex items-center gap-2 cursor-pointer transition-colors ${
+          isDark ? 'text-white bg-gray-800 hover:bg-gray-700 border-white/20' : 'text-brand-dark bg-white hover:bg-brand-light border-brand-dark/15'
         }`}
       >
         {t('auth.back')}
       </button>
 
-      <div className="w-full max-w-sm bg-[#d8d8d8] border-4 border-black rounded-[36px] p-6 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.85)] relative">
-        <div className="bg-[#111111] p-3 rounded-t-2xl rounded-b-xl border-4 border-black mb-5 shadow-[inset_0_0_8px_rgba(0,0,0,0.6)]">
-          <div className="bg-white dark:bg-slate-800 dark:text-slate-100 border-4 border-black rounded-lg overflow-hidden relative shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+      <div className="w-full max-w-sm bg-white border border-brand-dark/10 rounded-[32px] p-6 shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] relative">
+        <div className="bg-brand-dark/5 p-3 rounded-3xl rounded-b-2xl mb-5">
+          <div className="bg-white dark:bg-slate-800 dark:text-slate-100 border border-brand-dark/10 rounded-2xl overflow-hidden relative shadow-[0_10px_30px_-25px_rgba(45,58,46,0.3)]">
 
             {/* Red Header Banner */}
-            <div className="bg-[#cc0000] text-white py-2.5 px-3 border-b-4 border-black text-center font-black tracking-wider text-xs uppercase flex items-center justify-center gap-2">
+            <div className="bg-[#cc0000] text-white py-2.5 px-3 text-center font-semibold tracking-wider text-xs uppercase flex items-center justify-center gap-2">
               <span>{authMode === 'login' && t('auth.loginHeader')}</span>
               <span>{authMode === 'register' && t('auth.registerHeader')}</span>
               <span>{authMode === 'forgot' && t('auth.recoveryHeader')}</span>
@@ -47,27 +47,13 @@ export default function AuthPage() {
 
           </div>
         </div>
-
-        {/* Game Boy D-Pad and Action Buttons */}
-        <div className="flex items-center justify-between px-3 pt-1 pb-2">
-          <div className="relative w-14 h-14">
-            <div className="absolute top-0 left-4 w-5 h-14 bg-black rounded-sm"></div>
-            <div className="absolute top-4 left-0 w-14 h-5 bg-black rounded-sm"></div>
-            <div className="absolute top-4 left-4 w-5 h-5 bg-[#222222] rounded-full"></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-red-600 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-            <div className="w-6 h-6 bg-amber-400 border-2 border-black rounded-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-          </div>
-        </div>
-
       </div>
 
-      <footer className={`text-center text-xs mt-6 space-y-1 font-sans ${isDark ? 'text-white/60' : 'text-slate-500'}`}>
-        <div className="flex justify-center gap-4 font-bold underline">
-          <button type="button" onClick={() => setInfoSection('legal')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.legal')}</button>
-          <button type="button" onClick={() => setInfoSection('support')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.support')}</button>
-          <button type="button" onClick={() => setInfoSection('trainerClub')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>{t('footer.trainerClub')}</button>
+      <footer className={`text-center text-xs mt-6 space-y-1 ${isDark ? 'text-white/60' : 'text-brand-dark/50'}`}>
+        <div className="flex justify-center gap-4 font-semibold underline">
+          <button type="button" onClick={() => setInfoSection('legal')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-brand-dark'}`}>{t('footer.legal')}</button>
+          <button type="button" onClick={() => setInfoSection('support')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-brand-dark'}`}>{t('footer.support')}</button>
+          <button type="button" onClick={() => setInfoSection('trainerClub')} className={`cursor-pointer ${isDark ? 'hover:text-white' : 'hover:text-brand-dark'}`}>{t('footer.trainerClub')}</button>
         </div>
         <p className="text-[10px]">{t('footer.copyright')}</p>
       </footer>

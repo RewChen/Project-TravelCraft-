@@ -31,31 +31,31 @@ const DeleteAllConfirmModal = ({ isOpen, onClose, onConfirm, count, t }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-in fade-in duration-150">
-      <div className="w-full max-w-md bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in zoom-in-95 fade-in duration-150">
-        <div className="bg-[#cc0000] border-b-4 border-black p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-600 border-2 border-black rounded-lg flex items-center justify-center shrink-0">
+      <div className="w-full max-w-md bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] overflow-hidden animate-in zoom-in-95 fade-in duration-150">
+        <div className="bg-[#cc0000] border-b border-white/20 p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/15 rounded-full flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-white font-black text-lg uppercase">{t('admin.deleteAllConfirmTitle')}</h3>
+          <h3 className="text-white font-bold text-lg uppercase">{t('admin.deleteAllConfirmTitle')}</h3>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm font-bold text-gray-800 leading-relaxed">
+          <p className="text-sm font-semibold text-brand-dark leading-relaxed">
             {t('admin.confirmDeleteAll', { count })}
           </p>
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl p-3">
-            <p className="text-xs font-black text-red-800 uppercase tracking-wider">{t('admin.bulkDeleteWarning')}</p>
+          <div className="bg-red-50 ring-1 ring-red-200 rounded-2xl p-3">
+            <p className="text-xs font-bold text-red-800 uppercase tracking-wider">{t('admin.bulkDeleteWarning')}</p>
             <p className="text-[10px] text-red-700 font-sans mt-1">{t('admin.bulkDeleteDesc')}</p>
           </div>
           <div className="flex gap-2 pt-2">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-black bg-white text-gray-700 hover:bg-gray-100 text-sm font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+              className="flex-1 px-4 py-2.5 rounded-full ring-1 ring-brand-dark/10 bg-white text-brand-dark/70 hover:bg-brand-light text-sm font-semibold uppercase transition-transform active:translate-y-0.5 cursor-pointer"
             >
               {t('common.cancel')}
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-4 py-2.5 rounded-lg border-2 border-black bg-[#cc0000] hover:bg-red-700 text-white text-sm font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+              className="flex-1 px-4 py-2.5 rounded-full bg-[#cc0000] hover:bg-red-700 text-white text-sm font-semibold uppercase transition-transform active:translate-y-0.5 cursor-pointer"
             >
               {t('admin.deleteAllConfirmBtn')}
             </button>
@@ -138,17 +138,17 @@ export default function ReviewsTab() {
   };
 
   const tabs = [
-    { id: 'all', label: t('admin.allReviews'), count: (reviews || []).length, style: 'bg-emerald-600 text-white border-emerald-800' },
-    { id: 'unchecked', label: t('admin.uncheckedReviews'), count: uncheckedCount, style: 'bg-sky-400 text-black border-black' },
-    { id: 'pending', label: t('admin.pendingReview'), count: pendingCount, style: 'bg-amber-400 text-black border-black' },
-    { id: 'approved', label: t('admin.approvedReviews'), count: approvedCount, style: 'bg-white text-black border-black' },
-    { id: 'reported', label: t('admin.reportedReviews'), count: reportedCount, style: 'bg-[#cc0000] text-white border-black' },
+    { id: 'all', label: t('admin.allReviews'), count: (reviews || []).length, style: 'bg-emerald-600 text-white ring-emerald-800' },
+    { id: 'unchecked', label: t('admin.uncheckedReviews'), count: uncheckedCount, style: 'bg-sky-400 text-brand-dark ring-sky-600' },
+    { id: 'pending', label: t('admin.pendingReview'), count: pendingCount, style: 'bg-amber-400 text-brand-dark ring-amber-600' },
+    { id: 'approved', label: t('admin.approvedReviews'), count: approvedCount, style: 'bg-white text-brand-dark ring-brand-dark/20' },
+    { id: 'reported', label: t('admin.reportedReviews'), count: reportedCount, style: 'bg-[#cc0000] text-white ring-red-700' },
   ];
 
   const allSelected = visible.length > 0 && selectedIds.length === visible.length;
 
   return (
-    <div className="space-y-4 font-mono">
+    <div className="space-y-4 font-thai">
       {/* Filter tabs + filters + batch ops */}
       <div className="flex flex-wrap items-center gap-2">
         {tabs.map((tab) => (
@@ -156,16 +156,16 @@ export default function ReviewsTab() {
             key={tab.id}
             type="button"
             onClick={() => { setQueue(tab.id); setSelectedIds([]); }}
-            className={`px-3 py-1.5 rounded-lg border-2 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer ${queue === tab.id ? tab.style + ' ring-2 ring-offset-1 ring-black' : 'bg-white text-gray-700 border-black hover:bg-gray-50'}`}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase shadow-[0_4px_20px_-10px_rgba(45,58,46,0.15)] cursor-pointer ${queue === tab.id ? tab.style + ' ring-2 ring-offset-1 ring-offset-brand-cream' : 'bg-white text-brand-dark/60 ring-1 ring-brand-dark/[0.06] hover:bg-brand-light'}`}
           >
-            {tab.label} <span className="ml-1 px-1.5 py-0.5 rounded-full bg-black/15 text-[10px]">{tab.count}</span>
+            {tab.label} <span className="ml-1 px-1.5 py-0.5 rounded-full bg-black/10 text-[10px]">{tab.count}</span>
           </button>
         ))}
 
         <select
           value={ratingFilter}
           onChange={(e) => setRatingFilter(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border-2 border-black bg-white text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          className="px-3 py-1.5 rounded-full ring-1 ring-brand-dark/[0.06] bg-white text-xs font-semibold shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)]"
         >
           <option value="all">{t('admin.ratingFilter')}: {t('admin.allRatings')}</option>
           {[5, 4, 3, 2, 1].map((s) => (
@@ -176,7 +176,7 @@ export default function ReviewsTab() {
         <select
           value={locationFilter}
           onChange={(e) => setLocationFilter(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border-2 border-black bg-white text-xs font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] max-w-56"
+          className="px-3 py-1.5 rounded-full ring-1 ring-brand-dark/[0.06] bg-white text-xs font-semibold shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] max-w-56"
         >
           <option value="all">{t('admin.locationFilter')}: {t('admin.allLocations')} ({locations.length})</option>
           {locations.map((name) => (
@@ -187,26 +187,26 @@ export default function ReviewsTab() {
         <button
           type="button"
           onClick={() => setPhotoOnly((v) => !v)}
-          className={`px-2.5 py-1.5 rounded-lg border-2 border-black text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 cursor-pointer ${photoOnly ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700'}`}
+          className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] flex items-center gap-1.5 cursor-pointer ${photoOnly ? 'bg-indigo-600 text-white' : 'bg-white text-brand-dark/60 ring-1 ring-brand-dark/[0.06] hover:bg-brand-light'}`}
         >
           <ImageIcon className="w-3.5 h-3.5" /> {t('admin.photoOnly')}
         </button>
 
-        <div className="flex items-center gap-2 ml-auto bg-gray-100 p-1.5 rounded-xl border-2 border-dashed border-gray-300">
+        <div className="flex items-center gap-2 ml-auto bg-brand-light/40 p-1.5 rounded-full ring-1 ring-brand-dark/10">
           <button
             type="button"
             onClick={toggleSelectAll}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-black uppercase cursor-pointer ${allSelected ? 'text-emerald-700' : 'text-gray-500 hover:text-black'}`}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold uppercase cursor-pointer ${allSelected ? 'text-emerald-700' : 'text-brand-dark/40 hover:text-brand-dark'}`}
           >
             {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             SELECT ALL
           </button>
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <div className="w-px h-6 bg-brand-dark/10 mx-1"></div>
           <button
             type="button"
             onClick={batchApprove}
             disabled={!selectedIds.length}
-            className="px-3 py-1.5 rounded-lg border-2 border-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+            className="px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold uppercase flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <Check className="w-4 h-4" /> {t('admin.approveSelected')} ({selectedIds.length})
           </button>
@@ -214,7 +214,7 @@ export default function ReviewsTab() {
             type="button"
             onClick={batchCheck}
             disabled={!selectedIds.length}
-            className="px-3 py-1.5 rounded-lg border-2 border-black bg-sky-400 hover:bg-sky-500 text-black text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+            className="px-3 py-1.5 rounded-full bg-sky-400 hover:bg-sky-500 text-brand-dark text-xs font-semibold uppercase flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <ShieldCheck className="w-4 h-4" /> {t('admin.markCheckedSelected')} ({selectedIds.length})
           </button>
@@ -222,7 +222,7 @@ export default function ReviewsTab() {
             type="button"
             onClick={batchReject}
             disabled={!selectedIds.length}
-            className="px-3 py-1.5 rounded-lg border-2 border-black bg-red-100 hover:bg-red-200 text-[#cc0000] text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+            className="px-3 py-1.5 rounded-full bg-red-100 hover:bg-red-200 text-[#cc0000] text-xs font-semibold uppercase flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <EyeOff className="w-4 h-4" /> HIDE SELECTED
           </button>
@@ -230,19 +230,19 @@ export default function ReviewsTab() {
             type="button"
             onClick={handleDeleteAllClick}
             disabled={visible.length === 0}
-            className="px-3 py-1.5 rounded-lg border-2 border-black bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
+            className="px-3 py-1.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold uppercase flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-transform active:translate-y-0.5 disabled:active:translate-y-0"
           >
             <Trash2 className="w-4 h-4" /> {t('admin.deleteAllVisible')} ({visible.length})
           </button>
         </div>
       </div>
 
-      <p className="text-xs text-gray-500 font-bold pl-1 border-l-4 border-emerald-700">{t('admin.reviewsDesc')}</p>
+      <p className="text-xs text-brand-dark/50 font-medium pl-1 border-l-4 border-emerald-500">{t('admin.reviewsDesc')}</p>
 
       {/* Review cards */}
       <div className="space-y-4">
         {visible.length === 0 && (
-          <div className="bg-white border-4 border-black rounded-2xl p-10 text-center text-sm font-black text-gray-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div className="bg-white rounded-3xl ring-1 ring-brand-dark/[0.06] shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-10 text-center text-sm font-semibold text-brand-dark/40">
             {t('admin.noReviewsQueue')}
           </div>
         )}
@@ -250,13 +250,13 @@ export default function ReviewsTab() {
         {visible.map((review) => {
           const checked = selectedIds.includes(review.id);
           return (
-            <article key={review.id} className={`bg-white border-2 ${checked ? 'border-emerald-600 bg-emerald-50/30' : 'border-gray-200'} rounded-2xl p-4 sm:p-5 shadow-sm flex gap-4 transition-colors`}>
+            <article key={review.id} className={`bg-white rounded-3xl ring-1 ${checked ? 'ring-emerald-500 bg-emerald-50/40' : 'ring-brand-dark/[0.06]'} shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] p-4 sm:p-5 flex gap-4 transition-colors`}>
               {/* Select */}
               <button
                 type="button"
                 onClick={() => toggleSelect(review.id)}
                 aria-label="select review"
-                className={`w-6 h-6 rounded-md border-2 shrink-0 mt-1 flex items-center justify-center cursor-pointer transition-colors ${checked ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-white border-gray-300 hover:border-black'}`}
+                className={`w-6 h-6 rounded-lg ring-1 shrink-0 mt-1 flex items-center justify-center cursor-pointer transition-colors ${checked ? 'bg-emerald-600 ring-emerald-600 text-white' : 'bg-white ring-brand-dark/15 hover:ring-brand-dark/40'}`}
               >
                 {checked && <Check className="w-4 h-4" strokeWidth={4} />}
               </button>
@@ -355,7 +355,7 @@ export default function ReviewsTab() {
                   <button
                     type="button"
                     onClick={() => approveReview(review.id)}
-                    className="w-full px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                    className="w-full px-3 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_4px_20px_-10px_rgba(45,58,46,0.2)] transition-transform active:translate-y-0.5"
                   >
                     <Check className="w-4 h-4" strokeWidth={3} /> {t('admin.approve')}
                   </button>
@@ -365,7 +365,7 @@ export default function ReviewsTab() {
                   <button
                     type="button"
                     onClick={() => checkReview(review.id)}
-                    className="w-full px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-xs font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                    className="w-full px-3 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[0_4px_20px_-10px_rgba(45,58,46,0.2)] transition-transform active:translate-y-0.5"
                   >
                     <ShieldCheck className="w-4 h-4" strokeWidth={3} /> {t('admin.markChecked')}
                   </button>
@@ -375,7 +375,7 @@ export default function ReviewsTab() {
                   <button
                     type="button"
                     onClick={() => unhideReview(review.id)}
-                    className="w-full px-3 py-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-2 border-emerald-800 text-xs font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                    className="w-full px-3 py-2 rounded-full bg-emerald-50 text-emerald-800 ring-1 ring-emerald-300 text-xs font-semibold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-transform active:translate-y-0.5"
                   >
                     <Eye className="w-4 h-4" /> {t('admin.unhideReview')}
                   </button>
@@ -386,7 +386,7 @@ export default function ReviewsTab() {
                   <button
                     type="button"
                     onClick={() => hideReview(review.id)}
-                    className="w-full px-3 py-2 rounded-lg bg-white border-2 border-black text-gray-700 hover:bg-gray-100 hover:text-black text-[10px] font-black uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                    className="w-full px-3 py-2 rounded-full bg-white ring-1 ring-brand-dark/10 text-brand-dark/60 hover:bg-brand-light hover:text-brand-dark text-[10px] font-semibold uppercase flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <EyeOff className="w-3.5 h-3.5" /> {review.status === 'pending' ? 'Reject' : t('admin.hideReview')}
                   </button>
@@ -396,7 +396,7 @@ export default function ReviewsTab() {
                   <button
                     type="button"
                     onClick={() => togglePinReview(review.id)}
-                    className={`flex-1 py-1.5 rounded-lg border-2 border-black text-xs font-black flex items-center justify-center cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)] ${review.pinned ? 'bg-amber-400 text-black' : 'bg-white text-gray-400 hover:text-black hover:bg-gray-50'}`}
+                    className={`flex-1 py-1.5 rounded-full text-xs font-semibold flex items-center justify-center cursor-pointer transition-transform active:translate-y-0.5 ${review.pinned ? 'bg-amber-400 text-brand-dark' : 'bg-white text-brand-dark/40 hover:bg-brand-light hover:text-brand-dark ring-1 ring-brand-dark/10'}`}
                     title={review.pinned ? t('admin.unpinReview') : t('admin.pinReview')}
                   >
                     {review.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
@@ -405,7 +405,7 @@ export default function ReviewsTab() {
                     type="button"
                     onClick={() => setDeleting(review)}
                     title="Delete"
-                    className="flex-1 py-1.5 rounded-lg border-2 border-black bg-red-50 text-red-500 hover:bg-[#cc0000] hover:text-white text-xs font-black flex items-center justify-center cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-transform active:translate-y-0.5 active:shadow-[0px_0px_0px_0px_rgba(0,0,0,1)]"
+                    className="flex-1 py-1.5 rounded-full bg-red-50 text-red-500 hover:bg-[#cc0000] hover:text-white text-xs font-semibold flex items-center justify-center cursor-pointer"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

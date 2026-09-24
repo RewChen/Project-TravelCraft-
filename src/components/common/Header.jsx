@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Settings, User, X, CheckCheck, Trash2, ChevronRight, Map as MapIcon, ExternalLink, Shield } from 'lucide-react';
+import { Bell, Settings, User, X, CheckCheck, Trash2, Map as MapIcon, ExternalLink, Shield, Languages } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
-const activeNav = 'bg-[#fce4c7] text-amber-800 px-3.5 py-1.5 rounded-full dark:bg-amber-900/30 dark:text-amber-200';
-const inactiveNav = 'text-gray-500 hover:text-gray-800 px-3 py-1.5 rounded-full hover:bg-white/60 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10 transition-colors';
-
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps, language, setLanguage } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, language, setLanguage, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [easterEggCount, setEasterEggCount] = useState(0);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
@@ -139,170 +138,227 @@ export default function Header() {
   }, [showNotifications, selectedNotification]);
 
   return (
-    <header className="font-thai bg-[#f0f1f3] dark:bg-slate-800 px-4 sm:px-5 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-40 rounded-2xl mb-6">
-      {/* ── Brand ── */}
-      <div
-        onClick={() => {
-          navigateTo('home');
-          const nextCount = easterEggCount + 1;
-          if (nextCount >= 10) {
-            setShowEasterEgg(true);
-            setEasterEggCount(0);
-          } else {
-            setEasterEggCount(nextCount);
-          }
-        }}
-        className="flex items-center gap-2.5 cursor-pointer select-none shrink-0"
-      >
-        <img src="/logo.png" alt="TravelCraft Logo" className="w-9 h-9 object-contain" />
-        <span className="font-extrabold text-[15px] tracking-wide text-[#9b1c1c] dark:text-red-400 hidden sm:block">TRAVELCRAFT</span>
-      </div>
+    <header className="font-thai sticky top-0 z-40 w-full bg-brand-cream/90 backdrop-blur-md shadow-[0_1px_0_0_rgba(45,58,46,0.08),0_8px_24px_-18px_rgba(45,58,46,0.25)] dark:bg-slate-800/90 dark:shadow-none" >
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center h-16 md:h-[72px]">
 
-      {/* ── Navigation ── */}
-      <nav className="flex items-center gap-1 text-[13px] font-semibold">
-        <button
-          onClick={() => navigateTo('home')}
-          className={currentPage === 'home' ? activeNav : inactiveNav}
-        >
-          {t('nav.home')}
-        </button>
-
-        <button
-          onClick={() => navigateTo('community')}
-          className={currentPage === 'community' ? activeNav : inactiveNav}
-        >
-          {t('nav.community')}
-        </button>
-
-        <button
-          onClick={() => navigateTo('mymaps')}
-          className={currentPage === 'mymaps' ? activeNav : inactiveNav}
-        >
-          {t('nav.myMaps')}
-        </button>
-
-        {isLoggedIn && isAdminLoggedIn && (
+        {/* Desktop left links */}
+        <div className="hidden md:flex items-center gap-7">
           <button
-            onClick={() => navigateTo('admin')}
-            className="ml-1 bg-[#cc0000] text-white px-4 py-1.5 rounded-full flex items-center gap-1.5 hover:bg-[#b30000] transition-colors text-[13px] font-bold"
+            onClick={() => navigateTo('home')}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'home' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
           >
-            <Shield className="w-3.5 h-3.5" />
-            {t('nav.admin')}
+            {t('nav.home')}
           </button>
-        )}
-
-
-      </nav>
-
-      {/* ── Right Icons ── */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Notification Bell */}
-        <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setShowNotifications((v) => !v)}
-            title={t('notifications.title')}
-            aria-label={t('notifications.title')}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/60 dark:hover:bg-white/10 transition-colors cursor-pointer relative"
+            onClick={() => navigateTo('community')}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'community' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
           >
-            <Bell className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#cc0000] text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
+            {t('nav.community')}
           </button>
-
-          {/* Notification Dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl shadow-lg overflow-hidden z-[60] font-mono">
-              <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 dark:border-slate-600 flex items-center justify-between">
-                <span className="text-xs font-black uppercase flex items-center gap-1.5"><Bell className="w-3.5 h-3.5" /> {t('notifications.title')} {unreadCount > 0 ? `(${unreadCount})` : ''}</span>
-                <button onClick={() => setShowNotifications(false)} className="w-6 h-6 bg-white/20 hover:bg-white/40 text-white border-0 rounded flex items-center justify-center"><X className="w-3 h-3" /></button>
-              </div>
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center">
-                    <div className="text-2xl mb-2">🔕</div>
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('notifications.empty')}</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 dark:divide-slate-700">
-                    {notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => handleNotificationClick(n)}
-                        role="button"
-                        tabIndex={0}
-                        title={getNotificationTitle(n)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(n); } }}
-                        className={`p-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer group ${!n.read ? 'bg-orange-50/60 dark:bg-slate-700/50' : 'bg-white dark:bg-slate-800'}`}
-                      >
-                        <div className="w-8 h-8 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-sm shrink-0">{n.icon || '🔔'}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black leading-tight truncate dark:text-slate-100">
-                            {getNotificationTitle(n)}
-                          </p>
-                          <p className="text-[11px] text-gray-600 dark:text-gray-400 font-sans leading-tight line-clamp-2">
-                            {getNotificationMessage(n)}
-                          </p>
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold mt-1 flex items-center gap-1">
-                            <span>{n.time}</span>
-                            <span className="text-gray-300 dark:text-gray-600">•</span>
-                            <span className="text-[#cc0000] dark:text-red-400 flex items-center gap-0.5 group-hover:underline">
-                              <ExternalLink className="w-2.5 h-2.5" /> {getDestinationLabel(n)}
-                            </span>
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end justify-start gap-1.5 shrink-0">
-                          {!n.read && <span className="w-2 h-2 bg-[#cc0000] rounded-full mt-1.5" />}
-                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 group-hover:text-black dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {notifications.length > 0 && (
-                <div className="p-2 bg-gray-50 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex gap-2">
-                  <button onClick={markAllNotificationsRead} className="flex-1 py-1.5 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-gray-100 dark:hover:bg-slate-600 transition-colors"><CheckCheck className="w-3 h-3" /> {t('notifications.markAllRead')}</button>
-                  <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#cc0000] text-white border-0 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1 hover:bg-[#b30000] transition-colors"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
-                </div>
-              )}
-            </div>
+          <button
+            onClick={() => navigateTo('mymaps')}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'mymaps' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
+          >
+            {t('nav.myMaps')}
+          </button>
+          {isLoggedIn && isAdminLoggedIn && (
+            <button
+              onClick={() => navigateTo('admin')}
+              className="flex items-center gap-1.5 text-sm text-[#cc0000] tracking-wide uppercase hover:opacity-75 transition-opacity cursor-pointer"
+            >
+              <Shield className="w-3.5 h-3.5" /> {t('nav.admin')}
+            </button>
           )}
         </div>
 
-        {/* Settings */}
-        <button
-          onClick={() => navigateTo('settings')}
-          title={t('nav.settings')}
-          aria-label={t('nav.settings')}
-          className="w-9 h-9 rounded-full items-center justify-center hover:bg-white/60 dark:hover:bg-white/10 transition-colors hidden sm:flex cursor-pointer"
+        {/* Center logo */}
+        <div
+          onClick={() => {
+            navigateTo('home');
+            const nextCount = easterEggCount + 1;
+            if (nextCount >= 10) {
+              setShowEasterEgg(true);
+              setEasterEggCount(0);
+            } else {
+              setEasterEggCount(nextCount);
+            }
+          }}
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 cursor-pointer select-none"
         >
-          <Settings className="w-[18px] h-[18px] text-gray-500 dark:text-gray-400" />
-        </button>
+          <img src="/logo.png" alt="TravelCraft Logo" className="w-8 h-8 md:w-9 md:h-9 object-contain" />
+          <span className="text-xl text-brand-dark tracking-tight font-extrabold dark:text-red-300 hidden sm:block">TRAVELCRAFT</span>
+        </div>
 
-        {/* Profile */}
-        {isLoggedIn ? (
-          <div
-            onClick={() => navigateTo('profile')}
-            className="w-9 h-9 rounded-full border-[2.5px] border-amber-400 overflow-hidden cursor-pointer hover:border-amber-500 transition-colors shrink-0"
-            title={t('nav.goToProfile')}
+        {/* Desktop right actions */}
+        <div className="hidden md:flex items-center ml-auto gap-2">
+          {/* Language toggle */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
+            title={t('settings.language')}
+            aria-label={t('settings.language')}
+            className="h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-semibold uppercase text-brand-dark/60 hover:text-brand-dark hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
-            {isAvatarImage(avatar) ? (
-              <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-sm font-black">{avatar}</div>
+            <Languages className="w-4 h-4" /> {language === 'en' ? 'ไทย' : 'EN'}
+          </button>
+
+          {/* Notification Bell */}
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setShowNotifications((v) => !v)}
+              title={t('notifications.title')}
+              aria-label={t('notifications.title')}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-brand-dark/60 hover:text-brand-dark hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer relative"
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-[#cc0000] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white dark:bg-slate-800 border border-brand-dark/10 dark:border-slate-600 rounded-2xl shadow-[0_20px_50px_-20px_rgba(45,58,46,0.3)] overflow-hidden z-[60]">
+                <div className="bg-brand-dark text-white px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <Bell className="w-4 h-4" /> {t('notifications.title')} {unreadCount > 0 ? `(${unreadCount})` : ''}
+                  </span>
+                  <button onClick={() => setShowNotifications(false)} className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/30 flex items-center justify-center cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <div className="text-2xl mb-2">🔕</div>
+                      <p className="text-xs font-medium text-brand-dark/50 dark:text-gray-400">{t('notifications.empty')}</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-brand-light dark:divide-slate-700">
+                      {notifications.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleNotificationClick(n)}
+                          role="button"
+                          tabIndex={0}
+                          title={getNotificationTitle(n)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNotificationClick(n); } }}
+                          className={`w-full text-left p-3 flex gap-3 hover:bg-brand-light/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${!n.read ? 'bg-brand-light/50 dark:bg-slate-700/50' : 'bg-white dark:bg-slate-800'}`}
+                        >
+                          <div className="w-8 h-8 border border-brand-dark/10 dark:border-slate-600 rounded-lg bg-brand-light dark:bg-slate-700 flex items-center justify-center text-sm shrink-0">{n.icon || '🔔'}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold leading-tight truncate text-brand-dark dark:text-slate-100">{getNotificationTitle(n)}</p>
+                            <p className="text-[11px] text-brand-dark/50 dark:text-gray-400 mt-0.5 line-clamp-2">{getNotificationMessage(n)}</p>
+                            <p className="text-[10px] font-medium text-brand-dark/35 dark:text-gray-500 mt-1 flex items-center gap-1">
+                              <span>{n.time}</span>
+                              {getDestinationLabel(n) && (
+                                <>
+                                  <span className="text-brand-dark/20 dark:text-gray-600">•</span>
+                                  <span className="text-[#cc0000] dark:text-red-400 flex items-center gap-0.5">
+                                    <ExternalLink className="w-2.5 h-2.5" /> {getDestinationLabel(n)}
+                                  </span>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          {!n.read && <span className="w-2 h-2 bg-[#cc0000] rounded-full mt-2 shrink-0" />}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <div className="p-2 bg-brand-light/60 dark:bg-slate-900 flex gap-2">
+                    <button onClick={markAllNotificationsRead} className="flex-1 py-1.5 bg-white dark:bg-slate-700 border border-brand-dark/10 dark:border-slate-600 rounded-lg text-[10px] font-semibold uppercase flex items-center justify-center gap-1 hover:bg-brand-light dark:hover:bg-slate-600 transition-colors cursor-pointer"><CheckCheck className="w-3 h-3" /> {t('notifications.markAllRead')}</button>
+                    <button onClick={clearNotifications} className="px-3 py-1.5 bg-[#cc0000] text-white rounded-lg text-[10px] font-semibold uppercase flex items-center justify-center gap-1 hover:bg-[#b30000] transition-colors cursor-pointer"><Trash2 className="w-3 h-3" /> {t('notifications.clear')}</button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        ) : (
+
+          {/* Settings */}
           <button
-            onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500 transition-colors cursor-pointer shrink-0"
+            onClick={() => navigateTo('settings')}
+            title={t('nav.settings')}
+            aria-label={t('nav.settings')}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-brand-dark/60 hover:text-brand-dark hover:bg-white/70 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
           >
-            <User className="w-4 h-4 text-gray-500 dark:text-gray-300" />
+            <Settings className="w-[18px] h-[18px]" />
           </button>
-        )}
+
+          {/* Profile */}
+          {isLoggedIn ? (
+            <div
+              onClick={() => navigateTo('profile')}
+              className="w-9 h-9 rounded-full border-2 border-brand-green overflow-hidden cursor-pointer hover:border-brand-dark transition-colors shrink-0"
+              title={t('nav.goToProfile')}
+            >
+              {isAvatarImage(avatar) ? (
+                <img src={avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-brand-light dark:bg-amber-900/40 flex items-center justify-center text-sm font-bold">{avatar}</div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
+              className="w-9 h-9 rounded-full flex items-center justify-center bg-brand-dark text-white hover:bg-brand-green transition-colors cursor-pointer shrink-0"
+              title={t('nav.profile')}
+            >
+              <User className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden ml-auto w-10 h-10 relative flex items-center justify-center cursor-pointer"
+          aria-label="Toggle menu"
+          onClick={() => setMenuOpen((p) => !p)}
+        >
+          <span className={`absolute w-6 h-[2px] bg-brand-dark rounded transition-all duration-300 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)] ${menuOpen ? 'rotate-45 translate-y-0' : '-translate-y-[3.5px]'}`} />
+          <span className={`absolute w-6 h-[2px] bg-brand-dark rounded transition-all duration-300 ease-[cubic-bezier(0.68,-0.6,0.32,1.6)] ${menuOpen ? '-rotate-45 translate-y-0' : 'translate-y-[3.5px]'}`} />
+        </button>
+      </div>
+
+      {/* Mobile overlay */}
+      <div
+        className={`md:hidden fixed inset-0 bg-brand-cream dark:bg-slate-900 z-40 transition duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${menuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        <div className={`flex flex-col items-center justify-center h-full gap-7 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] delay-100 ${menuOpen ? 'translate-y-0 opacity-100' : '-translate-y-8 opacity-0'}`}>
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/logo.png" alt="TravelCraft Logo" className="w-9 h-9 object-contain" />
+            <span className="text-2xl font-extrabold text-brand-dark dark:text-red-300 tracking-tight">TRAVELCRAFT</span>
+          </div>
+          {[
+            { page: 'home', label: t('nav.home') },
+            { page: 'community', label: t('nav.community') },
+            { page: 'mymaps', label: t('nav.mymaps') },
+          ].map((item) => (
+            <button key={item.page} onClick={() => { closeMenu(); navigateTo(item.page); }} className="text-3xl text-brand-dark dark:text-gray-200 tracking-tight hover:opacity-70 cursor-pointer">
+              {item.label}
+            </button>
+          ))}
+          {isLoggedIn && isAdminLoggedIn && (
+            <button onClick={() => { closeMenu(); navigateTo('admin'); }} className="flex items-center gap-2 text-2xl text-[#cc0000] tracking-tight cursor-pointer">
+              <Shield className="w-6 h-6" /> {t('nav.admin')}
+            </button>
+          )}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
+            className="mt-1 inline-flex items-center gap-2 text-sm font-semibold uppercase text-brand-dark/60 dark:text-gray-400 cursor-pointer"
+          >
+            <Languages className="w-4 h-4" /> {language === 'en' ? 'ไทย' : 'EN'}
+          </button>
+          <button
+            onClick={() => { closeMenu(); if (!isLoggedIn) { setAuthMode('login'); navigateTo('auth'); return; } navigateTo('profile'); }}
+            className="mt-2 inline-flex items-center px-8 py-3.5 bg-brand-dark text-white text-lg font-semibold tracking-wide rounded-full cursor-pointer"
+          >
+            {isLoggedIn ? t('nav.profile') : t('auth.submitLogin')}
+          </button>
+        </div>
       </div>
 
       {/* Notification Detail Modal */}
@@ -315,9 +371,9 @@ export default function Header() {
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-2xl shadow-xl overflow-hidden font-mono"
+            className="w-full max-w-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-3xl shadow-xl overflow-hidden font-thai"
           >
-            <div className="bg-[#cc0000] text-white px-4 py-3 border-b border-gray-200 dark:border-slate-600 flex items-center justify-between">
+            <div className="bg-brand-dark text-white px-4 py-3 border-b border-gray-200 dark:border-slate-600 flex items-center justify-between">
               <span className="text-xs font-black uppercase flex items-center gap-1.5">
                 <Bell className="w-3.5 h-3.5" /> {t('notifications.title')}
               </span>

@@ -20,10 +20,10 @@ export default function DetailsPage() {
   }, [selectedLocation, trackLocationView]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pb-12 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark">
       <button
         onClick={() => navigateTo('map')}
-        className="text-xs font-black bg-white hover:bg-gray-100 border-2 border-black rounded-lg px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 cursor-pointer"
+        className="text-xs font-semibold bg-white hover:bg-brand-light text-brand-dark rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer transition-colors shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]"
       >
         <ArrowLeft className="w-4 h-4" /> {t('details.backToMap')}
       </button>
@@ -68,7 +68,7 @@ export default function DetailsPage() {
           }
           setShowReport(true);
         }}
-        className="fixed bottom-6 right-6 z-50 bg-[#cc0000] hover:bg-red-700 text-white font-black px-4 py-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-xs uppercase flex items-center gap-2 cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5"
+        className="fixed bottom-6 right-6 z-50 bg-[#cc0000] hover:bg-[#b30000] text-white font-semibold px-5 py-3 rounded-full text-xs uppercase flex items-center gap-2 cursor-pointer transition-colors shadow-[0_10px_30px_-15px_rgba(204,0,0,0.6)]"
       >
         <AlertTriangle className="w-4 h-4" /> {t('details.reportLocation')}
       </button>

@@ -99,9 +99,9 @@ export default function LocationHero() {
   }, [resetZoom, setCoverPreviewOpen]);
 
   return (
-    <div className="bg-white border-4 border-black rounded-2xl overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+    <div className="bg-white rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
       {showHeroMedia && (
-      <div className="h-64 bg-slate-200 dark:bg-slate-900 relative overflow-hidden">
+      <div className="h-64 bg-brand-light dark:bg-slate-900 relative overflow-hidden">
         {showVideo ? (
           isFileVideo ? (
             <video src={videoSrc} controls className="absolute inset-0 w-full h-full object-cover bg-black" />
@@ -121,7 +121,7 @@ export default function LocationHero() {
         ) : null}
         {!showVideo && hasCover && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
         {displayRegion && (
-          <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-indigo-500/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold border border-white/20 w-fit">
+          <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-brand-dark/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-semibold w-fit">
             <MapPin className="w-3 h-3" /> {displayRegion}
           </div>
         )}
@@ -131,14 +131,14 @@ export default function LocationHero() {
             <button
               type="button"
               onClick={() => setMediaTab('photo')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 text-[10px] font-black uppercase cursor-pointer ${!showVideo ? 'bg-white text-black border-black' : 'bg-black/60 text-white border-white/40 hover:bg-black/80'}`}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-semibold uppercase cursor-pointer backdrop-blur ${!showVideo ? 'bg-white text-brand-dark' : 'bg-black/60 text-white hover:bg-black/80'}`}
             >
               <Images className="w-3.5 h-3.5" /> {t('details.mediaPhotos')}
             </button>
             <button
               type="button"
               onClick={() => setMediaTab('video')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border-2 text-[10px] font-black uppercase cursor-pointer ${showVideo ? 'bg-white text-black border-black' : 'bg-black/60 text-white border-white/40 hover:bg-black/80'}`}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-semibold uppercase cursor-pointer backdrop-blur ${showVideo ? 'bg-white text-brand-dark' : 'bg-black/60 text-white hover:bg-black/80'}`}
             >
               <Clapperboard className="w-3.5 h-3.5" /> {t('details.mediaVideo')}
             </button>
@@ -148,18 +148,18 @@ export default function LocationHero() {
       </div>
       )}
       
-      <div className="bg-[#cc0000] text-white p-5 border-t-4 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tight drop-shadow-md">
+      <div className="bg-[#cc0000] text-white p-5 py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight drop-shadow-md">
           {selectedLocation.title}
         </h1>
         <div className="flex flex-wrap gap-2">
-          <span className={`border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${rarityColorForTier(tier)}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm ${rarityColorForTier(tier)}`}>
             ◆ {t(rarityLabelKey(tier))}
           </span>
-          <span className="bg-amber-400 text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <span className="bg-amber-400 text-brand-dark px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm">
             ★ {selectedLocation.type || 'Landmark'}
           </span>
-          <span className="bg-white text-black border-2 border-black px-3 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <span className="bg-white text-brand-dark px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm">
             📷 {selectedLocation.tag || 'Scenic'}
           </span>
         </div>
@@ -172,24 +172,24 @@ export default function LocationHero() {
           onWheel={handleWheel}
         >
           <div
-            className="w-full max-w-5xl bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col"
+            className="w-full max-w-5xl bg-white rounded-3xl shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] overflow-hidden flex flex-col"
             onClick={(event) => event.stopPropagation()}
             onDoubleClick={handleDoubleClick}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black bg-white shrink-0">
-              <h3 className="font-black text-sm uppercase truncate mr-4">{selectedLocation.title}</h3>
+            <div className="flex items-center justify-between px-4 py-3 bg-white shrink-0">
+              <h3 className="font-bold text-sm uppercase truncate mr-4">{selectedLocation.title}</h3>
               <div className="flex items-center gap-1 shrink-0">
-                <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((p) => Math.max(0.5, p - 0.25)); }} className="w-7 h-7 flex items-center justify-center rounded border-2 border-black hover:bg-gray-100" title="Zoom out">
+                <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((p) => Math.max(0.5, p - 0.25)); }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-brand-light" title="Zoom out">
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-[10px] font-black w-10 text-center">{Math.round(zoom * 100)}%</span>
-                <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((p) => Math.min(5, p + 0.25)); }} className="w-7 h-7 flex items-center justify-center rounded border-2 border-black hover:bg-gray-100" title="Zoom in">
+                <span className="text-[10px] font-semibold w-10 text-center">{Math.round(zoom * 100)}%</span>
+                <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((p) => Math.min(5, p + 0.25)); }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-brand-light" title="Zoom in">
                   <Plus className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={(e) => { e.stopPropagation(); resetZoom(); }} className="w-7 h-7 flex items-center justify-center rounded border-2 border-black hover:bg-gray-100" title="Reset">
+                <button type="button" onClick={(e) => { e.stopPropagation(); resetZoom(); }} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-brand-light" title="Reset">
                   <Maximize className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={closePreview} className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100 ml-1">
+                <button type="button" onClick={closePreview} className="w-7 h-7 flex items-center justify-center rounded-full bg-[#cc0000] text-white hover:bg-[#b30000] ml-1">
                   <X className="w-4 h-4" />
                 </button>
               </div>

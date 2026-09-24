@@ -50,9 +50,9 @@ html {
 
 body {
   margin: 0;
-  background-color: #e8ecef;
+  background-color: #faf8f5; /* brand-cream - new TravelCraft light theme */
   color: #1e293b; /* slate-800 - primary light-theme font, softer than pure black */
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: "Noto Sans Thai", "Helvetica Neue Light", Helvetica, Arial, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
@@ -289,5 +289,57 @@ html.dark body {
   }
   ::selection {
     background-color: rgba(248, 113, 113, 0.3);
+  }
+
+  /* ——— Light theme: modern TravelCraft "Palomar" surfaces ———
+     Remap the old grey-blue chrome to warm cream so every page inherits
+     the new palette even before per-component restyles happen. */
+  .bg-\[\#e8ecef\] {
+    background-color: #faf8f5 !important; /* brand-cream */
+  }
+  .bg-\[\#f0f1f3\],
+  .bg-\[\#f0f0f0\],
+  .bg-\[\#f0f2f5\],
+  .bg-\[\#d8d8d8\],
+  .bg-\[\#f5f5f5\] {
+    background-color: #f5f3ef !important; /* brand-light */
+  }
+
+  /* New warm text palette on cream: reduce cold slate off-blacks a touch */
+  .text-slate-900,
+  .text-gray-900 {
+    color: #2d3a2e !important; /* brand-dark */
+  }
+
+  /* Soften neo-brutalist offset shadows so cards feel airy (light only) */
+  :root:not(.dark) [class*="shadow-[10px_10px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[8px_8px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[6px_6px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[5px_5px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[4px_4px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[3px_3px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[2px_2px_0px_0px"],
+  :root:not(.dark) [class*="shadow-[1px_1px_0px_0px"] {
+    box-shadow: 0 10px 30px -14px rgba(45, 58, 46, 0.18);
+  }
+
+  /* Thin out the chunky 4px borders for a cleaner, lighter card look */
+  :root:not(.dark) [class*="border-4"] {
+    border-width: 1px;
+  }
+  :root:not(.dark) [class*="border-4"] {
+    border-color: #e5e0d8;
+  }
+  :root:not(.dark) [class*="border-[3px]"] {
+    border-width: 1px;
+  }
+
+  /* Light mode: pure black borders (border-2/border-black) are softened to the
+     warm light ring so neo-brutalist chrome no longer reads as "black". */
+  :root:not(.dark) .border-black {
+    border-color: #e5e0d8;
+  }
+  :root:not(.dark) [class*="border-2"] {
+    border-width: 1px;
   }
 }

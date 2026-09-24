@@ -1894,7 +1894,7 @@ if (updates.privacy === 'private') {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-[#f0f0f0] flex flex-col font-mono text-black overflow-hidden selection:bg-red-200">
+    <div className="h-screen w-full bg-brand-light flex flex-col font-thai text-brand-dark overflow-hidden selection:bg-red-200">
       <style>{`
         .editor-anim-wave { animation: editorWave 1.2s ease-in-out infinite; transform-origin: 50% 50%; }
         @keyframes editorWave { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-8px); } }

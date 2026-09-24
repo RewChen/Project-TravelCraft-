@@ -78,18 +78,18 @@ export default function ProfilePage() {
 
   if (!isLoggedIn || !userProfile) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center font-mono">
-        <div className="bg-white border-4 border-black rounded-2xl p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] space-y-4">
-          <div className="w-16 h-16 bg-red-100 border-4 border-black rounded-full mx-auto flex items-center justify-center text-3xl">
+      <div className="max-w-md mx-auto px-4 py-16 text-center font-thai text-brand-dark">
+        <div className="bg-white rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] space-y-4">
+          <div className="w-16 h-16 bg-red-50 rounded-full mx-auto flex items-center justify-center text-3xl">
             🔒
           </div>
-          <h2 className="text-xl font-black uppercase">{t('profile.lockedTitle')}</h2>
-          <p className="text-xs text-gray-600 font-sans">
+          <h2 className="text-xl font-bold uppercase">{t('profile.lockedTitle')}</h2>
+          <p className="text-xs text-brand-dark/60">
             {t('profile.lockedDesc')}
           </p>
           <button
             onClick={() => { setAuthMode('login'); navigateTo('auth'); }}
-            className="w-full bg-[#cc0000] text-white font-black py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs uppercase cursor-pointer hover:bg-red-700"
+            className="w-full bg-[#cc0000] hover:bg-[#b30000] text-white font-semibold py-3 rounded-full text-xs uppercase cursor-pointer transition-colors"
           >
             {t('profile.loginNow')}
           </button>
@@ -99,18 +99,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pb-12 space-y-6 font-mono">
+    <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark">
 
       {/* Profile Card */}
-      <div className="bg-white border-4 border-black rounded-2xl p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white rounded-3xl p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Avatar Column */}
-        <div className="flex flex-col items-center justify-center border-b-4 md:border-b-0 md:border-r-4 border-black pb-6 md:pb-0 md:pr-6">
+        <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-brand-dark/[0.06] pb-6 md:pb-0 md:pr-6">
           <div className="relative mb-3">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="group relative w-24 h-24 bg-amber-400 border-4 border-black rounded-full flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden transition-transform hover:scale-105"
+              className="group relative w-24 h-24 bg-brand-dark rounded-full flex items-center justify-center text-4xl overflow-hidden transition-transform hover:scale-105"
               title={t('profile.changeImage')}
             >
               {isAvatarImage(userProfile.avatar) ? (
@@ -118,22 +118,22 @@ export default function ProfilePage() {
               ) : (
                 userProfile.avatar || '🏃'
               )}
-              <span className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
                 <Camera className="w-5 h-5 text-white" />
               </span>
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
           </div>
           {avatarStatus === 'saving' && (
-            <span className="text-[10px] text-slate-500 font-bold mb-1">{t('profile.avatarUploading')}</span>
+            <span className="text-[10px] text-brand-dark/50 font-medium mb-1">{t('profile.avatarUploading')}</span>
           )}
           {avatarStatus === 'success' && (
-            <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mb-1">
+            <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mb-1">
               <Check className="w-3 h-3 stroke-[3]" /> {t('profile.avatarUpdated')}
             </span>
           )}
           {avatarStatus === 'error' && (
-            <span className="text-[10px] text-red-600 font-bold mb-1">{t('profile.avatarUpdatedFailed')}</span>
+            <span className="text-[10px] text-red-600 font-semibold mb-1">{t('profile.avatarUpdatedFailed')}</span>
           )}
           {editingUsername ? (
             <form onSubmit={handleUsernameSave} className="flex items-center gap-1.5 mb-1">
@@ -146,32 +146,32 @@ export default function ProfilePage() {
                 autoFocus
                 placeholder={t('profile.usernamePlaceholder')}
                 aria-label={t('profile.editUsername')}
-                className="w-40 text-center text-sm font-black border-2 border-black rounded-lg px-2 py-1 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-40 text-center text-sm font-semibold border border-brand-dark/20 rounded-full px-3 py-1 bg-white text-brand-dark focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
               <button
                 type="submit"
-                className="bg-amber-400 hover:bg-amber-300 text-black font-black px-2.5 py-1.5 border-2 border-black rounded-lg shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-[10px] uppercase cursor-pointer"
+                className="bg-amber-400 hover:bg-amber-300 text-brand-dark font-semibold px-3 py-1.5 rounded-full text-[10px] uppercase cursor-pointer transition-colors"
               >
                 {t('profile.saveUsername')}
               </button>
               <button
                 type="button"
                 onClick={() => setEditingUsername(false)}
-                className="bg-gray-100 hover:bg-gray-200 text-slate-700 font-bold px-2.5 py-1.5 border-2 border-black rounded-lg text-[10px] uppercase cursor-pointer"
+                className="bg-brand-light text-brand-dark font-semibold px-3 py-1.5 rounded-full text-[10px] uppercase cursor-pointer transition-colors"
               >
                 {t('profile.cancel')}
               </button>
               {usernameError && (
-                <span className="text-[10px] text-red-600 font-bold">{usernameError}</span>
+                <span className="text-[10px] text-red-600 font-semibold">{usernameError}</span>
               )}
             </form>
           ) : (
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-black text-slate-900 dark:text-slate-100">{userProfile.name}</h2>
+              <h2 className="text-xl font-bold text-brand-dark">{userProfile.name}</h2>
               <button
                 type="button"
                 onClick={startEditUsername}
-                className="bg-gray-100 hover:bg-amber-100 text-slate-700 border-2 border-black rounded-lg p-1.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] cursor-pointer transition-colors"
+                className="bg-brand-light hover:bg-amber-100 text-brand-dark rounded-full p-1.5 cursor-pointer transition-colors"
                 title={t('profile.editUsername')}
                 aria-label={t('profile.editUsername')}
               >
@@ -180,14 +180,14 @@ export default function ProfilePage() {
             </div>
           )}
           {usernameUpdatedMsg && (
-            <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1 mb-1">
+            <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mb-1">
               <Check className="w-3 h-3 stroke-[3]" /> {t('profile.usernameUpdated')}
             </span>
           )}
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-bold mb-2">{userProfile.email}</p>
+          <p className="text-xs text-brand-dark/50 font-medium mb-2">{userProfile.email}</p>
 
           {/* Active Trainer Role Badge */}
-          <span className="bg-[#cc0000] text-white text-[10px] font-black px-3 py-1 border-2 border-black rounded-full uppercase flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <span className="bg-[#cc0000] text-white text-[10px] font-semibold px-3 py-1 rounded-full uppercase flex items-center gap-1">
             <Sparkles className="w-3 h-3 fill-white" /> {userProfile.role || t('auth.roleNovice')}
           </span>
         </div>
@@ -197,14 +197,14 @@ export default function ProfilePage() {
 
           {/* Maps Created Stat */}
           <div>
-            <h3 className="text-base font-black uppercase mb-3 flex items-center gap-2">
-              <Map className="w-5 h-5 text-indigo-600" /> {t('profile.myCreatedMaps')}
+            <h3 className="text-base font-bold uppercase mb-3 flex items-center gap-2">
+              <Map className="w-5 h-5 text-brand-green" /> {t('profile.myCreatedMaps')}
             </h3>
-            <div className="bg-indigo-50 border-2 border-black rounded-xl p-4 flex items-center gap-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-              <div className="text-4xl font-black text-indigo-700">{myPublishedMaps.length}</div>
+            <div className="bg-brand-light/60 dark:bg-slate-700/60 rounded-2xl p-4 flex items-center gap-4">
+              <div className="text-4xl font-bold text-brand-green">{myPublishedMaps.length}</div>
               <div>
-                <div className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">{t('profile.mapsPublished')}</div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-300 font-sans mt-0.5">
+                <div className="text-xs font-semibold text-brand-dark/60 uppercase">{t('profile.mapsPublished')}</div>
+                <div className="text-[11px] text-brand-dark/50 mt-0.5">
                   {myPublishedMaps.length === 0
                     ? t('profile.noPublishedMaps')
                     : myPublishedMaps.length > 1
@@ -218,9 +218,9 @@ export default function ProfilePage() {
             {myPublishedMaps.length > 0 && (
               <ul className="mt-3 space-y-1.5">
                 {myPublishedMaps.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2 bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                     🗺️ <span className="text-slate-800 truncate min-w-0">{m.title}</span>
-                     <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400 font-normal">{m.rarity}</span>
+                  <li key={m.id} className="flex items-center gap-2 bg-brand-light/40 dark:bg-slate-700/40 rounded-xl px-3 py-2 text-xs font-semibold">
+                     🗺️ <span className="text-brand-dark truncate min-w-0">{m.title}</span>
+                     <span className="ml-auto text-[10px] text-brand-dark/40 font-normal">{m.rarity}</span>
                   </li>
                 ))}
               </ul>
@@ -230,11 +230,11 @@ export default function ProfilePage() {
           {/* Change Trainer Role */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-black uppercase flex items-center gap-1">
+              <h4 className="text-xs font-semibold uppercase flex items-center gap-1">
                 <UserIcon className="w-3.5 h-3.5" /> {t('profile.changeRole')}
               </h4>
               {roleUpdatedMsg && (
-                <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
                   <Check className="w-3 h-3 stroke-[3]" /> {t('profile.roleUpdated')}
                 </span>
               )}
@@ -245,10 +245,10 @@ export default function ProfilePage() {
                   key={r.name}
                   type="button"
                   onClick={() => handleRoleChange(r.name)}
-                  className={`p-2 border-2 border-black rounded-lg text-left text-[10px] font-black uppercase transition-all cursor-pointer flex flex-col justify-between h-14 ${
+                  className={`p-2.5 rounded-2xl text-left text-[10px] font-semibold uppercase transition-all cursor-pointer flex flex-col justify-between h-14 ${
                     selectedRole === r.name
-                      ? 'bg-amber-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] scale-105'
-                      : 'bg-gray-50 hover:bg-gray-100'
+                      ? 'bg-amber-400 text-brand-dark scale-[1.02]'
+                      : 'bg-brand-light/40 dark:bg-slate-700/40 hover:bg-brand-light/80 dark:hover:bg-slate-700/70 dark:text-slate-200'
                   }`}
                 >
                   <span className="text-xs">{r.badge}</span>
@@ -263,7 +263,7 @@ export default function ProfilePage() {
             {isAdminLoggedIn && (
               <button
                 onClick={() => navigateTo('admin')}
-                className="bg-amber-400 hover:bg-amber-300 text-black font-black px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer uppercase"
+                className="bg-amber-400 hover:bg-amber-300 text-brand-dark font-semibold px-4 py-2.5 rounded-full text-xs flex items-center gap-2 cursor-pointer uppercase transition-colors"
               >
                 {t('profile.openCommandCenter')}
               </button>
@@ -271,7 +271,7 @@ export default function ProfilePage() {
 
             <button
               onClick={logout}
-              className="bg-gray-100 hover:bg-red-50 text-red-600 font-bold px-4 py-2 border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs flex items-center gap-2 cursor-pointer"
+              className="bg-white hover:bg-red-50 text-red-600 font-semibold px-4 py-2.5 rounded-full border border-red-300 text-xs flex items-center gap-2 cursor-pointer transition-colors"
             >
               <LogOut className="w-4 h-4" /> {t('profile.logoutSession')}
             </button>

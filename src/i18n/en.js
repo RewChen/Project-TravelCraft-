@@ -372,7 +372,7 @@ export default {
     supportBody: 'Having trouble? Contact support — contact details will live here soon.',
     trainerClubTitle: 'Trainer Club',
     trainerClubBody: 'Perks, tiers, and membership info for the Trainer Club will live here soon.',
-    copyright: '© 2026 TravelCraft - Gotta Explore \'Em All',
+    copyright: '© 2026 TravelCraft - Gotta Travel \'Em All',
   },
   theme: {
     lightMode: 'Switch to light mode',

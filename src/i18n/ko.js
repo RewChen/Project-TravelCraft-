@@ -353,7 +353,7 @@ export default {
     supportBody: '문제가 있으신가요? 고객 지원팀에 문의하세요 — 연락처가 곧 여기에 표시됩니다.',
     trainerClubTitle: '트레이너 클럽',
     trainerClubBody: '트레이너 클럽의 혜택, 등급, 멤버십 정보가 곧 여기에 표시됩니다.',
-    copyright: '© 2026 TravelCraft - 전부 탐험하자!',
+    copyright: '© 2026 TravelCraft - 전부 Travel 하자!',
   },
   theme: {
     lightMode: '라이트 모드로 전환',

@@ -120,37 +120,37 @@ export default function LocationReviews() {
   const canDeleteReview = (review) => isAdminLoggedIn === true || isOwnReview(review);
 
   const actionsBlock = (review, compact) => (
-    <div className={`flex items-center justify-between ${compact ? 'mt-3 pt-2.5 border-t-2 border-black' : 'mt-4 pt-3 border-t-2 border-black'}`}>
-      <button
-        type="button"
-        onClick={() => handleHelpful(review.id)}
-        disabled={votedIds.includes(review.id)}
-        className={`text-[11px] font-bold flex items-center gap-1.5 ${votedIds.includes(review.id) ? 'text-red-600 cursor-default' : 'text-gray-500 hover:text-red-600 cursor-pointer'}`}
-      >
-        <Heart className={`w-3.5 h-3.5 ${votedIds.includes(review.id) ? 'fill-red-500 text-red-500' : ''}`} />
-        {t('details.like')} ({review.helpful || 0})
-      </button>
-      <div className="flex items-center gap-2 min-w-0">
+    <div className={`flex items-center justify-between ${compact ? 'mt-3 pt-2.5 border-t border-brand-dark/[0.06]' : 'mt-4 pt-3 border-t border-brand-dark/[0.06]'}`}>
+<button
+                  type="button"
+                  onClick={() => handleHelpful(review.id)}
+                  disabled={votedIds.includes(review.id)}
+                  className={`text-[11px] font-semibold flex items-center gap-1.5 ${votedIds.includes(review.id) ? 'text-[#cc0000] cursor-default' : 'text-brand-dark/50 hover:text-[#cc0000] cursor-pointer'}`}
+                >
+                  <Heart className={`w-3.5 h-3.5 ${votedIds.includes(review.id) ? 'fill-[#cc0000] text-[#cc0000]' : ''}`} />
+                  {t('details.like')} ({review.helpful || 0})
+                </button>
+<div className="flex items-center gap-2 min-w-0">
         {canDeleteReview(review) && (
           <button
             type="button"
             onClick={() => setDeleting(review)}
             title={t('details.deleteReview')}
-            className="text-[10px] font-bold text-gray-300 hover:text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            className="text-[10px] font-semibold text-brand-dark/30 hover:text-[#cc0000] hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             <Trash2 className="w-3 h-3" />
           </button>
         )}
         {review.gpsVerified ? (
-          <span className="text-[10px] font-black tracking-widest text-amber-700 uppercase whitespace-nowrap">Verified check-in</span>
+          <span className="text-[10px] font-semibold tracking-widest text-amber-700 uppercase whitespace-nowrap">Verified check-in</span>
         ) : (
           reportedIds.includes(review.id) ? (
-            <span className="text-[10px] font-bold text-gray-400">{t('details.reportedReview')}</span>
+            <span className="text-[10px] font-medium text-brand-dark/40">{t('details.reportedReview')}</span>
           ) : (
             <button
               type="button"
               onClick={() => setReporting(review)}
-              className="text-[10px] font-bold text-gray-300 hover:text-red-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
+              className="text-[10px] font-medium text-brand-dark/40 hover:text-[#cc0000] hover:underline inline-flex items-center gap-1 cursor-pointer"
             >
               <Flag className="w-3 h-3" /> {t('details.reportReview')}
             </button>
@@ -164,58 +164,58 @@ export default function LocationReviews() {
     <div className="flex items-center gap-1.5">
       <span className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
-          <Star key={star} className={`${size} ${star <= Math.round(Number(review.rating)) ? 'fill-amber-400 text-amber-500' : 'text-gray-300'}`} strokeWidth={2} />
+          <Star key={star} className={`${size} ${star <= Math.round(Number(review.rating)) ? 'fill-amber-400 text-amber-500' : 'text-brand-dark/20'}`} strokeWidth={2} />
         ))}
       </span>
-      <span className="text-sm font-black">{Number(review.rating).toFixed(1)}</span>
+      <span className="text-sm font-bold">{Number(review.rating).toFixed(1)}</span>
     </div>
   );
 
   return (
     <section>
       <Reveal>
-      <div className="bg-white border-4 border-black rounded-xl p-5 sm:p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
-          <h3 className="text-lg font-black flex items-center gap-2 text-indigo-700 min-w-0">
-            <BookOpen className="w-5 h-5 shrink-0" /> {t('details.reviewsTitle')} <span className="text-xs text-gray-500 font-black whitespace-nowrap">{t('details.reviewsCountParen', { count: approved.length })}</span>
+      <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
+        <div className="flex items-center justify-between border-b border-brand-dark/[0.06] pb-3 mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2 text-brand-dark min-w-0">
+            <BookOpen className="w-5 h-5 shrink-0" /> {t('details.reviewsTitle')} <span className="text-xs text-brand-dark/50 font-medium whitespace-nowrap">{t('details.reviewsCountParen', { count: approved.length })}</span>
           </h3>
           <button
             type="button"
             onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
-            className="shrink-0 bg-[#cc0000] hover:bg-red-700 text-white text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all"
+            className="shrink-0 bg-[#cc0000] hover:bg-[#b30000] text-white text-xs font-semibold px-4 py-2.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors"
           >
             <PenLine className="w-4 h-4" /> {t('details.writeReview')}
           </button>
         </div>
 
         {reviewStatus === 'approved' && (
-          <p className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border-2 border-emerald-600 rounded-lg px-3 py-2 mb-4">
+          <p className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-2xl px-3 py-2 mb-4">
             {t('details.reviewLiveNotice')}
           </p>
         )}
 
         {approved.length === 0 ? (
-          <div className="border-2 border-dashed border-black rounded-xl p-10 text-center space-y-4 bg-gray-50">
+          <div className="border border-dashed border-brand-dark/25 rounded-3xl p-10 text-center space-y-4 bg-brand-light/40">
             <div className="text-5xl">📓</div>
-            <p className="text-sm font-black uppercase text-gray-500 max-w-md mx-auto">{t('details.noReviews')}</p>
+            <p className="text-sm font-semibold uppercase text-brand-dark/50 max-w-md mx-auto">{t('details.noReviews')}</p>
             <button
               type="button"
               onClick={() => { setReviewStatus(null); setReviewOpen(true); }}
-              className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white font-black px-4 py-2 rounded-xl border-2 border-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-brand-dark hover:bg-brand-green text-white font-semibold px-4 py-2.5 rounded-full text-[10px] uppercase transition-colors cursor-pointer"
             >
               <PenLine className="w-3.5 h-3.5" /> {t('details.writeReview')}
             </button>
           </div>
         ) : (
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black rounded-xl bg-gray-50 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-light/40 dark:bg-slate-700/40 p-3">
               <div className="flex flex-wrap gap-2">
                 {[5, 4, 3, 2, 1].map((stars) => (
                   <button
                     key={stars}
                     type="button"
                     onClick={() => handleStarFilter(starFilter === String(stars) ? 'all' : String(stars))}
-                    className={`px-2.5 py-1.5 rounded-lg border-2 border-black flex items-center gap-1 text-[11px] font-black transition-all cursor-pointer ${starFilter === String(stars) ? 'bg-[#cc0000] text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-yellow-50 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]'}`}
+                    className={`px-3 py-1.5 rounded-full border flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer ${starFilter === String(stars) ? 'bg-[#cc0000] text-white border-[#cc0000]' : 'bg-white border-brand-dark/15 hover:bg-amber-50'}`}
                   >
                     <Star className={`w-3.5 h-3.5 ${starFilter === String(stars) ? 'fill-white' : 'fill-amber-400 text-amber-500'}`} />
                     {stars} <span className="opacity-80">({starCounts[stars]})</span>
@@ -226,7 +226,7 @@ export default function LocationReviews() {
                 <select
                   value={starFilter}
                   onChange={(e) => handleStarFilter(e.target.value)}
-                  className="appearance-none bg-white border-2 border-black rounded-xl pl-3 pr-8 py-2 text-xs font-black cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] focus:outline-none"
+                  className="appearance-none bg-white border border-brand-dark/15 rounded-full pl-3 pr-8 py-2 text-xs font-semibold cursor-pointer focus:outline-none"
                 >
                   <option value="all">{t('details.allRatings')} ({approved.length})</option>
                   {[5, 4, 3, 2, 1].map((stars) => (
@@ -238,26 +238,26 @@ export default function LocationReviews() {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="border-2 border-dashed border-black rounded-xl p-8 text-center bg-gray-50 mt-4">
-                <p className="text-sm font-black uppercase text-gray-500">{t('details.noReviews')}</p>
+              <div className="border border-dashed border-brand-dark/25 rounded-3xl p-8 text-center bg-brand-light/40 mt-4">
+                <p className="text-sm font-semibold uppercase text-brand-dark/50">{t('details.noReviews')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
                 {visible.map((review, idx) => (
                   <Reveal key={review.id} delay={Math.min(idx, 5) * 70} className="h-full">
-                  <article className="bg-white border-2 border-black rounded-xl p-4 flex flex-col h-full shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <article className="bg-brand-light/40 dark:bg-slate-700/40 rounded-3xl p-4 flex flex-col h-full">
                   <div>
                   <div className="flex justify-end mb-2">
-                    <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{timeAgo(review.createdAt, language)}</span>
+                    <span className="text-[11px] font-medium text-brand-dark/50 whitespace-nowrap">{timeAgo(review.createdAt, language)}</span>
                   </div>
                   <div className="flex items-center gap-2.5">
                     {avatarBlock(review)}
                     <div className="min-w-0">
-                      <div className="text-sm font-black truncate flex items-center gap-1">
+                      <div className="text-sm font-bold truncate flex items-center gap-1">
                         {review.authorName}
                         {review.gpsVerified && <BadgeCheck className="w-4 h-4 text-amber-600 shrink-0" />}
                       </div>
-                      <div className="text-[11px] font-bold text-amber-700 truncate">
+                      <div className="text-[11px] font-medium text-amber-700 truncate">
                         {roleLabel(roleOf(review), t)}
                       </div>
                     </div>
@@ -267,15 +267,15 @@ export default function LocationReviews() {
                   <div className="mt-2.5">{starRow(review, 'w-4 h-4')}</div>
 
                   <div className="mt-2">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-white/70 border border-gray-200 rounded-full px-2.5 py-1">
-                      <span className="text-gray-400 font-black">#</span> {review.locationName}
+                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark/60 bg-white rounded-full px-2.5 py-1">
+                      <span className="text-brand-dark/40 font-bold">#</span> {review.locationName}
                     </span>
                   </div>
 
                   {review.text && (
                     <p
                       onClick={() => setFullReview(review)}
-                      className="text-[13px] font-sans leading-relaxed text-gray-700 mt-2.5 break-words line-clamp-2 cursor-pointer"
+                      className="text-[13px] leading-relaxed text-brand-dark/75 mt-2.5 break-words line-clamp-2 cursor-pointer"
                     >
                       {review.text}
                     </p>
@@ -288,7 +288,7 @@ export default function LocationReviews() {
                           key={idx}
                           type="button"
                           onClick={() => setPhotoView({ review, idx })}
-                          className="aspect-square w-full overflow-hidden rounded-lg cursor-zoom-in bg-gray-100"
+                          className="aspect-square w-full overflow-hidden rounded-xl cursor-zoom-in bg-brand-light"
                         >
                           <img src={url} alt={`review-${idx}`} loading="lazy" className="w-full h-full object-cover" />
                         </button>
@@ -300,7 +300,7 @@ export default function LocationReviews() {
                     <button
                       type="button"
                       onClick={() => setFullReview(review)}
-                      className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-brand-dark hover:bg-brand-green text-white text-[10px] font-semibold uppercase px-3 py-1.5 rounded-full transition-colors cursor-pointer"
                     >
                       <BookOpen className="w-3.5 h-3.5" /> {t('details.viewFullReview')}
                     </button>
@@ -318,7 +318,7 @@ export default function LocationReviews() {
                 <button
                   type="button"
                   onClick={() => setVisibleCount((c) => c + 9)}
-                  className="inline-flex items-center gap-1.5 bg-white hover:bg-gray-100 text-black font-black border-2 border-black rounded-xl px-5 py-2.5 text-xs uppercase tracking-wide shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 bg-white hover:bg-brand-light text-brand-dark font-semibold border border-brand-dark/15 rounded-full px-5 py-2.5 text-xs uppercase tracking-wide transition-colors cursor-pointer"
                 >
                   <ChevronDown className="w-4 h-4" /> {t('details.loadMore', { count: remaining })}
                 </button>
@@ -331,17 +331,17 @@ export default function LocationReviews() {
       </Reveal>
 
       {fullReview && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setFullReview(null)}>
-          <div className="bg-white border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] w-full max-w-lg max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-2 border-b-2 border-black pb-3">
+        <div className="fixed inset-0 z-[100] bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setFullReview(null)}>
+          <div className="bg-white rounded-3xl shadow-[0_25px_60px_-25px_rgba(45,58,46,0.4)] w-full max-w-lg max-h-[85vh] overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-2 border-b border-brand-dark/[0.06] pb-3">
               <div className="flex items-center gap-2.5 min-w-0">
                 {avatarBlock(fullReview)}
                 <div className="min-w-0">
-                  <div className="text-sm font-black truncate flex items-center gap-1">
+                  <div className="text-sm font-bold truncate flex items-center gap-1">
                     {fullReview.authorName}
                     {fullReview.gpsVerified && <BadgeCheck className="w-4 h-4 text-amber-600 shrink-0" />}
                   </div>
-                  <div className="text-[11px] font-bold text-amber-700 truncate">
+                  <div className="text-[11px] font-medium text-amber-700 truncate">
                     {roleLabel(roleOf(fullReview), t)}
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default function LocationReviews() {
                     type="button"
                     onClick={() => setDeleting(fullReview)}
                     title={t('details.deleteReview')}
-                    className="bg-[#cc0000] hover:bg-red-700 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                    className="bg-[#cc0000] hover:bg-[#b30000] text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -360,7 +360,7 @@ export default function LocationReviews() {
                 <button
                   type="button"
                   onClick={() => setFullReview(null)}
-                  className="shrink-0 bg-slate-800 hover:bg-slate-700 dark:bg-black dark:hover:bg-gray-800 text-white w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer"
+                  className="shrink-0 bg-brand-dark hover:bg-brand-green text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer"
                 >
                 <X className="w-4 h-4" />
               </button>
@@ -369,17 +369,17 @@ export default function LocationReviews() {
 
             <div className="flex items-center justify-between gap-2 mt-3">
               <div>{starRow(fullReview, 'w-4 h-4')}</div>
-              <span className="text-[11px] font-bold text-gray-500 whitespace-nowrap">{timeAgo(fullReview.createdAt, language)}</span>
+              <span className="text-[11px] font-medium text-brand-dark/50 whitespace-nowrap">{timeAgo(fullReview.createdAt, language)}</span>
             </div>
 
             <div className="mt-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-600 bg-white/70 border border-gray-200 rounded-full px-2.5 py-1">
-                <span className="text-gray-400 font-black">#</span> {fullReview.locationName}
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-dark/60 bg-brand-light/70 rounded-full px-2.5 py-1">
+                <span className="text-brand-dark/40 font-bold">#</span> {fullReview.locationName}
               </span>
             </div>
 
             {fullReview.text && (
-              <p className="text-[14px] font-sans leading-relaxed text-gray-800 mt-3 break-words">{fullReview.text}</p>
+              <p className="text-[14px] leading-relaxed text-brand-dark/80 mt-3 break-words">{fullReview.text}</p>
             )}
 
             {fullReview.images?.length > 0 && (
@@ -389,7 +389,7 @@ export default function LocationReviews() {
                     key={idx}
                     type="button"
                     onClick={() => setPhotoView({ review: fullReview, idx })}
-                    className="aspect-square w-full overflow-hidden rounded-lg border border-gray-200 cursor-zoom-in bg-gray-100"
+                    className="aspect-square w-full overflow-hidden rounded-xl border border-brand-dark/10 cursor-zoom-in bg-brand-light"
                   >
                     <img src={url} alt={`review-${idx}`} loading="lazy" className="w-full h-full object-cover" />
                   </button>

@@ -439,17 +439,8 @@ export const AppProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState('home');
   const [editorSetup, setEditorSetup] = useState(null);
   const [authMode, setAuthMode] = useState('login');
-  const [themeMode, setThemeMode] = useState(() => {
-    try {
-      const storedTheme = localStorage.getItem('project_travelcraft_themeMode');
-      if (!storedTheme) return 'light';
-      // persistSnapshot stores JSON.stringify(themeMode); tolerate legacy raw values too.
-      const parsed = JSON.parse(storedTheme);
-      return parsed === 'dark' ? 'dark' : 'light';
-    } catch {
-      return 'light';
-    }
-  });
+  // Always boot in light mode (dark is a session choice; the toggle still works).
+  const [themeMode, setThemeMode] = useState('light');
 
   const [language, setLanguageState] = useState(() => {
     try {
