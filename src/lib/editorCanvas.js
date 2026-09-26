@@ -253,6 +253,12 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         fee: details.fee || null,
         bestTime: details.bestTime || null,
         travel: details.travel || null,
+        // ฟิลด์ระดับ locationDetails ที่หน้า Details อ่าน — ติดมากับ pin ด้วย
+        region: details.region || null,
+        tags: Array.isArray(details.tags) ? details.tags : [],
+        rarity: details.rarity || null,
+        popularity: details.popularity ?? null,
+        visitors: details.visitors || null,
         selfieUrl: locationSelfies[0] || null,
         selfieUrls: locationSelfies.length ? [...locationSelfies] : null
       };

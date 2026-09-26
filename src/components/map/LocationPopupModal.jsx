@@ -9,7 +9,7 @@ const VIEWPORT_MARGIN = 16;
 const PIN_GAP = 14;
 
 export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel = 1, pan = { x: 0, y: 0 } }) {
-  const { t, navigateTo, deleteCustomPin, isLoggedIn, setAuthMode, locationLikes, loadLocationLikes, toggleLocationLike } = useApp();
+  const { t, navigateTo, deleteCustomPin, isLoggedIn, setAuthMode, locationLikes, loadLocationLikes, toggleLocationLike, activeCommunityMap } = useApp();
   const [showReport, setShowReport] = useState(false);
   const [pos, setPos] = useState(() => ({ left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, placeRight: true, placeBelow: false, caretTop: 0 }));
   const [photoIdx, setPhotoIdx] = useState(0);
@@ -134,6 +134,41 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
       return;
     }
     toggleLocationLike(locationKey);
+  };
+
+  // ส่งข้อมูลชุดเต็มเข้าหน้า Details: pin ของจุดนี้ + ข้อมูลระดับแผนที่
+  // (region/tags/rarity/popularity/visitors/logs รายละเอียดต่าง ๆ ที่ pin ไม่มี)
+  const buildDetailsPayload = () => {
+    const mapItem = activeCommunityMap;
+    const nested = mapItem?.details && typeof mapItem.details === 'object' ? mapItem.details : null;
+    const base = mapItem ? (nested ? { ...mapItem, ...nested } : { ...mapItem }) : {};
+    const pick = (...values) => values.find((value) => value !== undefined && value !== null && value !== '') ?? null;
+    const logs = (Array.isArray(pin.logs) && pin.logs.length)
+      ? pin.logs
+      : (Array.isArray(mapItem?.logs) && mapItem.logs.length
+        ? mapItem.logs
+        : (Array.isArray(nested?.logs) ? nested.logs : []));
+    return {
+      ...base,
+      ...pin,
+      // pin ที่ไม่มีค่า (null) ไม่ควรกลบข้อมูลระดับแผนที่ — เติมจาก map แทน
+      imageUrl: pick(pin.imageUrl, nested?.imageUrl, mapItem?.imageUrl),
+      region: pick(pin.region, nested?.region, mapItem?.region, mapItem?.locationCity),
+      tags: (Array.isArray(pin.tags) && pin.tags.length) ? pin.tags : (Array.isArray(base.tags) ? base.tags : []),
+      rarity: pick(pin.rarity, nested?.rarity, mapItem?.rarity),
+      popularity: pick(pin.popularity, nested?.popularity),
+      visitors: pick(pin.visitors, nested?.visitors),
+      hours: pick(pin.hours, nested?.hours),
+      fee: pick(pin.fee, nested?.fee),
+      bestTime: pick(pin.bestTime, nested?.bestTime),
+      travel: pick(pin.travel, nested?.travel),
+      lore: pick(pin.lore, nested?.lore, mapItem?.lore, mapItem?.description),
+      type: pick(pin.type, nested?.type),
+      tag: pick(pin.tag, nested?.tag),
+      logs,
+      // merge ที่นี่ครบแล้ว — กัน navigateTo นำ details มากองทับค่าของ pin
+      details: undefined
+    };
   };
 
   return (
@@ -290,7 +325,7 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
               )}
             </button>
             <button
-              onClick={() => navigateTo('details', pin)}
+              onClick={() => navigateTo('details', buildDetailsPayload())}
               className="flex-1 bg-[#cc0000] hover:bg-red-700 text-white text-[10px] font-black px-2.5 py-1.5 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] uppercase flex items-center justify-center gap-1 transition-all cursor-pointer"
             >
               {t('common.details')} →
