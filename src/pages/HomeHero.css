@@ -1,0 +1,511 @@
+/* ============================================================
+   TravelCraft — SpaceHero (Earth) scoped styles
+   Layout is measured from the 1353x1163 reference using --u,
+   one design pixel. No raw px substitutions.
+   ============================================================ */
+
+.tc-hero {
+  --dw: 1353;
+  --dh: 1163;
+  --gutter: 25;
+  --u: max(min(.72px, calc(100vh / 700)), min(calc(100vw / 1353), calc(100vh / 1163)));
+  --dh-px: calc(1163 * var(--u));
+  --vshift: calc(max(0px, (100vh - var(--dh-px))) * .42);
+  --ink: #ffffff;
+  --cyan: #79dce8;
+  --rule: rgba(255, 255, 255, .23);
+  --font-serif: 'Prata', Georgia, serif;
+  --font-body: 'Hanken Grotesk', 'Noto Sans Thai', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  position: relative;
+  height: 100vh;
+  min-height: 620px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #04101f;
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+@supports (height: 100dvh) {
+  .tc-hero {
+    height: 100dvh;
+    --u: max(min(.72px, calc(100dvh / 700)), min(calc(100vw / 1353), calc(100dvh / 1163)));
+    --vshift: calc(max(0px, (100dvh - var(--dh-px))) * .42);
+  }
+}
+
+/* ---------- Backdrop ---------- */
+.tc-sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.tc-sky::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(4, 16, 31, .05) 0%, rgba(4, 16, 31, .28) 100%);
+}
+.tc-sky video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0;
+  transition: opacity .22s linear;
+}
+.tc-sky video.is-active {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tc-sky video {
+    display: none;
+  }
+}
+
+/* ---------- Copy layer ---------- */
+.tc-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+.tc-copy {
+  position: absolute;
+  inset: 0;
+  transform: translateY(var(--vshift));
+  pointer-events: none;
+}
+.tc-copy a,
+.tc-copy .tc-scroll {
+  pointer-events: auto;
+}
+.tc-col {
+  position: absolute;
+  left: 0;
+  right: calc(var(--gutter) * var(--u));
+  text-align: center;
+}
+
+/* Headline */
+.tc-title {
+  top: calc(208 * var(--u));
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: min(calc(112.4 * var(--u)), calc(100vw / 10.5));
+  line-height: 1.06;
+  letter-spacing: calc(2 * var(--u));
+  text-indent: calc(2 * var(--u));
+  color: #fff;
+  text-wrap: balance;
+}
+.tc-title .tc-red {
+  color: #cc0000;
+}
+
+/* Rule */
+.tc-rule {
+  top: calc(350 * var(--u));
+  height: calc(5 * var(--u));
+  font-size: 0;
+  line-height: 0;
+  padding-right: calc(2 * var(--u));
+}
+.tc-rule span {
+  display: inline-block;
+  vertical-align: top;
+  width: calc(100 * var(--u));
+  height: 100%;
+  border-radius: calc(2.5 * var(--u));
+  background: var(--cyan);
+}
+
+/* Lede */
+.tc-lede {
+  top: calc(374 * var(--u));
+  font-size: calc(18.36 * var(--u));
+  font-weight: 400;
+  line-height: calc(30 * var(--u));
+  color: rgba(255, 255, 255, .95);
+}
+
+/* CTA — single big centered brand pill (portal trigger) */
+.tc-cta {
+  top: calc(522 * var(--u));
+  height: calc(88 * var(--u));
+  isolation: isolate;
+}
+.tc-cta a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(15 * var(--u));
+  min-width: calc(322 * var(--u));
+  height: calc(88 * var(--u));
+  border-radius: calc(44 * var(--u));
+  padding: 0 calc(30 * var(--u));
+  font-family: var(--font-body);
+  font-size: calc(21 * var(--u));
+  font-weight: 700;
+  letter-spacing: calc(.4 * var(--u));
+  line-height: 1;
+  color: #0b1f3a;
+  text-decoration: none;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .99) 0%, rgba(242, 247, 251, .99) 100%);
+  border: calc(1 * var(--u)) solid rgba(255, 255, 255, .9);
+  box-shadow:
+    0 calc(16 * var(--u)) calc(40 * var(--u)) calc(-16 * var(--u)) rgba(2, 10, 25, .55),
+    inset 0 calc(1.5 * var(--u)) 0 rgba(255, 255, 255, .95),
+    inset 0 calc(-2 * var(--u)) calc(6 * var(--u)) rgba(90, 135, 170, .18);
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s ease;
+}
+.tc-cta a .tc-cta-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(46 * var(--u));
+  height: calc(46 * var(--u));
+  border-radius: 50%;
+  background: linear-gradient(180deg, #0c2238 0%, #16385a 100%);
+  box-shadow:
+    inset 0 calc(1 * var(--u)) 0 rgba(255, 255, 255, .22),
+    0 calc(3 * var(--u)) calc(10 * var(--u)) calc(-4 * var(--u)) rgba(2, 10, 25, .45);
+  flex-shrink: 0;
+}
+.tc-cta a .tc-cta-icon svg {
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  fill: #ffffff;
+}
+.tc-cta a:hover {
+  transform: translateY(calc(-3 * var(--u)));
+  box-shadow:
+    0 calc(26 * var(--u)) calc(54 * var(--u)) calc(-18 * var(--u)) rgba(2, 10, 25, .6),
+    inset 0 calc(1.5 * var(--u)) 0 rgba(255, 255, 255, .95),
+    inset 0 calc(-2 * var(--u)) calc(6 * var(--u)) rgba(90, 135, 170, .18);
+}
+.tc-cta a:hover .tc-cta-icon {
+  background: linear-gradient(180deg, #122a47 0%, #1e4a73 100%);
+}
+.tc-cta a:active {
+  transform: translateY(calc(1 * var(--u)));
+}
+
+/* Scroll control */
+.tc-scroll {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  margin-left: calc((-48 - (var(--gutter) / 2)) * var(--u));
+  bottom: calc(68 * var(--u));
+  width: calc(96 * var(--u));
+  height: calc(96 * var(--u));
+  border-radius: 50%;
+  background: rgba(24, 30, 42, .70);
+  -webkit-backdrop-filter: blur(calc(6 * var(--u)));
+  backdrop-filter: blur(calc(6 * var(--u)));
+  border: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tc-scroll svg {
+  width: calc(20 * var(--u));
+  height: calc(25 * var(--u));
+  display: block;
+}
+
+/* Focus */
+.tc-scroll:focus-visible,
+.tc-cta a:focus-visible {
+  outline: calc(2 * var(--u)) solid var(--cyan);
+  outline-offset: calc(3 * var(--u));
+}
+
+/* ============================================================
+   Responsive — same tier order as the spec, adapted (no side
+   planets, no in-hero nav since the app Header stays)
+   ============================================================ */
+@media (min-width: 580px) and (max-width: 1030px) and (min-height: 621px) {
+  .tc-hero {
+    --gutter: 0;
+    --u: min(max(min(.85px, calc(100vh / 780)), min(calc(100vw / 900), calc(100vh / 1163))), 1.15px);
+    --dh-px: calc(1120 * var(--u));
+    --vshift: calc(max(0px, (100vh - var(--dh-px))) * .38);
+  }
+  @supports (height: 100dvh) {
+    .tc-hero {
+      --u: min(max(min(.85px, calc(100dvh / 780)), min(calc(100vw / 900), calc(100dvh / 1163))), 1.15px);
+      --vshift: calc(max(0px, (100dvh - var(--dh-px))) * .38);
+    }
+  }
+  .tc-lede {
+    max-width: calc(620 * var(--u));
+    margin-left: auto;
+    margin-right: auto;
+    text-wrap: pretty;
+  }
+}
+
+@media (max-width: 579px), (max-height: 620px) {
+  .tc-hero {
+    --gutter: 0;
+    --u: max(min(.92px, calc(100vh / 620)), min(calc(100vw / 430), calc(100vh / 880)));
+    --dh-px: calc(880 * var(--u));
+    --vshift: calc(max(0px, (100vh - var(--dh-px))) * .34);
+  }
+  @supports (height: 100dvh) {
+    .tc-hero {
+      --u: max(min(.92px, calc(100dvh / 620)), min(calc(100vw / 430), calc(100dvh / 880)));
+      --vshift: calc(max(0px, (100dvh - var(--dh-px))) * .34);
+    }
+  }
+  .tc-copy {
+    top: calc(76 * var(--u));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: calc(56 * var(--u)) calc(26 * var(--u)) 0;
+  }
+  .tc-col {
+    position: static;
+    width: 100%;
+    right: auto;
+  }
+  .tc-title {
+    font-size: min(calc(60 * var(--u)), calc(100vw / 6.5));
+    margin-top: calc(15 * var(--u));
+    line-height: 1.08;
+  }
+  .tc-rule {
+    margin-top: calc(20 * var(--u));
+    height: calc(5 * var(--u));
+    padding-right: 0;
+  }
+  .tc-rule span {
+    width: calc(84 * var(--u));
+  }
+  .tc-lede {
+    margin-top: calc(19 * var(--u));
+    font-size: calc(15.5 * var(--u));
+    line-height: calc(26 * var(--u));
+    max-width: calc(400 * var(--u));
+    text-wrap: pretty;
+  }
+  .tc-cta {
+    top: auto;
+    margin-top: calc(32 * var(--u));
+    height: calc(70 * var(--u));
+    position: relative;
+  }
+  .tc-cta a {
+    min-width: calc(252 * var(--u));
+    height: calc(70 * var(--u));
+    border-radius: calc(35 * var(--u));
+    font-size: calc(17.5 * var(--u));
+    gap: calc(12 * var(--u));
+    padding: 0 calc(22 * var(--u));
+  }
+  .tc-cta a .tc-cta-icon {
+    width: calc(42 * var(--u));
+    height: calc(42 * var(--u));
+  }
+  .tc-cta a .tc-cta-icon svg {
+    width: calc(16 * var(--u));
+    height: calc(16 * var(--u));
+  }
+}
+
+@media (max-height: 660px) {
+  .tc-scroll {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) {
+  .tc-hero {
+    --u: max(min(.85px, calc(100vh / 470)), min(calc(100vw / 640), calc(100vh / 560)));
+    --dh-px: calc(560 * var(--u));
+    --vshift: 0px;
+  }
+  .tc-copy {
+    padding-top: calc(26 * var(--u));
+  }
+  .tc-title {
+    font-size: min(calc(52 * var(--u)), calc(100vw / 6.5));
+    margin-top: calc(8 * var(--u));
+  }
+  .tc-rule {
+    margin-top: calc(12 * var(--u));
+  }
+  .tc-lede {
+    margin-top: calc(12 * var(--u));
+  }
+  .tc-cta {
+    margin-top: calc(20 * var(--u));
+  }
+}
+
+@media (min-width: 821px) and (max-height: 660px) {
+  .tc-copy {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Entrance — runs once then removes itself
+   ============================================================ */
+@keyframes tc-ent-reveal {
+  from { transform: translateY(115%); }
+  to   { transform: translateY(0); }
+}
+@keyframes tc-ent-rise {
+  from { opacity: 0; transform: translateY(var(--tc-rise, 10px)); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tc-ent-settle {
+  from { opacity: 0; transform: translateY(var(--tc-rise, 8px)) scale(.965); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tc-ent-draw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes tc-ent-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.tc-hero.anim {
+  --tc-e-expo: cubic-bezier(.16, 1, .3, 1);
+  --tc-e-quint: cubic-bezier(.22, 1, .36, 1);
+  --tc-e-slow: cubic-bezier(.4, 0, .2, 1);
+}
+.tc-hero.anim .ent-mask,
+.tc-hero.anim .ent-line {
+  display: block;
+}
+.tc-hero.anim .ent-mask {
+  overflow: hidden;
+  padding-top: .18em;
+  margin-top: -.18em;
+}
+.tc-hero.anim .ent-line {
+  transform: translateY(115%);
+  will-change: transform;
+}
+.tc-hero.anim .tc-rule span {
+  transform: scaleX(0);
+}
+.tc-hero.anim .tc-lede,
+.tc-hero.anim .tc-cta a,
+.tc-hero.anim .tc-scroll,
+.tc-hero.anim .tc-sky {
+  opacity: 0;
+}
+.tc-hero.anim .tc-sky {
+  will-change: opacity;
+}
+
+.tc-hero.anim.play .tc-sky {
+  animation: tc-ent-fade 1.6s var(--tc-e-slow) .25s both;
+}
+.tc-hero.anim.play .tc-title .ent-line {
+  animation: tc-ent-reveal .95s var(--tc-e-expo) .44s both;
+}
+.tc-hero.anim.play .tc-rule span {
+  animation: tc-ent-draw .65s var(--tc-e-expo) .78s both;
+}
+.tc-hero.anim.play .tc-lede {
+  --tc-rise: calc(12 * var(--u));
+  animation: tc-ent-rise .7s var(--tc-e-quint) .86s both;
+}
+.tc-hero.anim.play .tc-cta a {
+  --tc-rise: calc(8 * var(--u));
+  animation: tc-ent-settle .7s var(--tc-e-quint) 1.14s both;
+}
+.tc-hero.anim.play .tc-scroll {
+  --tc-rise: calc(8 * var(--u));
+  animation: tc-ent-settle .6s var(--tc-e-quint) 1.42s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-hero.anim .ent-line,
+  .tc-hero.anim .tc-rule span,
+  .tc-hero.anim .tc-lede,
+  .tc-hero.anim .tc-cta a,
+  .tc-hero.anim .tc-scroll,
+  .tc-hero.anim .tc-sky {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ============================================================
+   Portal zoom — the single Explore button expands a rounded
+   window over the Earth clip to fill the viewport (travel).
+   ============================================================ */
+.tc-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+.tc-portal.is-running {
+  opacity: 1;
+}
+
+/* Hidden <video> that feeds the savanna clip to the portal canvas.
+   Kept out of normal flow so it never flashes or interferes. */
+.tc-portal-feed {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* While the portal runs, blur the app chrome behind it so the
+   growing window is the focus (header, hero text, scroll cue). */
+body.tc-portaling header {
+  opacity: 0;
+  filter: blur(8px);
+  pointer-events: none;
+}
+body.tc-portaling .tc-copy,
+body.tc-portaling .tc-scroll {
+  filter: blur(8px);
+  opacity: 0;
+}
+.tc-hero {
+  transition: filter .45s ease;
+}
+body.tc-portaling .tc-hero {
+  filter: blur(6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tc-portal,
+  .tc-portal.is-running {
+    opacity: 0 !important;
+    transition: none;
+  }
+}

@@ -6,6 +6,10 @@ import Reveal from '../components/motion/Reveal';
 import { resolveCardBackground, isDefaultCover } from '../lib/imageUtils';
 import { PRESET_TAG_META as presetTagMeta } from '../lib/tags';
 
+// Savanna field still — fixed background image of the Community Discoveries page
+// (extracted as the last frame of the approach clip).
+const SAVANNA_STILL = '/community-bg.jpg';
+
 // Older maps may carry placeholder region values (never display those).
 const placeholderRegions = new Set([
   'Custom Traveler Realm',
@@ -96,16 +100,26 @@ export default function CommunityPage() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-16 font-thai text-brand-dark dark:text-slate-100">
+    <div className="relative isolate font-thai text-brand-dark dark:text-slate-100">
+      {/* Savanna field — fixed background image + soft overlay for legibility */}
+      <div
+        className="fixed inset-0 -z-10 overflow-hidden bg-brand-cream bg-cover bg-center"
+        style={{ backgroundImage: `url(${SAVANNA_STILL})` }}
+        aria-hidden="true"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-dark/55 via-brand-dark/35 to-brand-dark/70" />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto px-4 pt-10 md:pt-14 pb-16">
       
       {/* Main Title Section */}
       <Reveal>
-      <div className="text-center mb-8 space-y-3">
-        <p className="text-xs uppercase tracking-[0.3em] text-brand-green font-semibold">{t('home.featured')}</p>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-brand-dark">
+      <div className="text-center mb-8 space-y-3 text-white">
+        <p className="text-xs uppercase tracking-[0.3em] text-amber-300 font-semibold">{t('home.featured')}</p>
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
           {t('community.title')}
         </h1>
-        <p className="text-sm font-medium text-brand-dark/60">
+        <p className="text-sm font-medium text-white/85">
           {t('community.subtitle')}
         </p>
       </div>
@@ -115,13 +129,13 @@ export default function CommunityPage() {
       <Reveal delay={80}>
       <div className="max-w-2xl mx-auto mb-6">
         <div className="relative">
-          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-brand-dark/40" />
+          <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-white/60" />
           <input 
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('community.searchPh')} 
-            className="w-full pl-12 pr-4 py-3.5 rounded-full border border-brand-dark/10 text-sm font-semibold tracking-wide bg-white focus:outline-none focus:border-brand-green/40 shadow-[0_10px_30px_-25px_rgba(45,58,46,0.3)] uppercase placeholder:normal-case"
+            className="w-full pl-12 pr-4 py-3.5 rounded-full border border-white/25 text-sm font-semibold tracking-wide bg-white/10 text-white placeholder:text-white/55 backdrop-blur-md focus:outline-none focus:border-amber-300/60 shadow-[0_10px_30px_-25px_rgba(0,0,0,0.6)] uppercase placeholder:normal-case"
           />
         </div>
       </div>
@@ -132,10 +146,10 @@ export default function CommunityPage() {
         <button
           onClick={searchBySelectedTag}
           title={t('community.searchByTag')}
-          className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+          className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md ${
             activeTags.length > 0
-              ? 'bg-brand-dark text-white hover:bg-brand-green'
-              : 'bg-white border border-brand-dark/10 hover:bg-brand-light'
+              ? 'bg-amber-400 text-brand-dark hover:bg-amber-300'
+              : 'bg-white/15 text-white border border-white/25 hover:bg-white/25'
           }`}
         >
           <Search className="w-3 h-3" /> {t('community.searchByTag')}
@@ -146,10 +160,10 @@ export default function CommunityPage() {
             <button
               key={tagKey}
               onClick={() => toggleTag(tagKey)}
-              className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-4 py-2 rounded-full text-[10px] font-semibold uppercase transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-md border border-white/25 ${
                 isActive
-                  ? 'bg-brand-green text-white'
-                  : 'bg-white hover:bg-brand-light border border-brand-dark/10'
+                  ? 'bg-amber-400 text-brand-dark hover:bg-amber-300'
+                  : 'bg-white/15 text-white hover:bg-white/25'
               }`}
             >
               <span className="text-sm leading-none">{meta.emoji}</span>
@@ -363,6 +377,7 @@ export default function CommunityPage() {
         </div>
       )}
 
+      </div>
     </div>
   );
 }
