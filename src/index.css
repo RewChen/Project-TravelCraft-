@@ -249,6 +249,147 @@ html.dark body {
   .dark .bg-\[\#111\] {
     background-color: #0f172a !important;
   }
+  .dark .bg-\[\#ffffff\],
+  .dark .bg-\[\#e2f0d9\],
+  .dark .bg-\[\#f5f5f5\],
+  .dark .bg-\[\#f0f1f3\] {
+    background-color: #1e293b !important;
+  }
+
+  /* ——— Dark theme font fixes ———
+     TravelCraft's primary ink is `text-brand-dark` (#2d3a2e), which is nearly
+     invisible on the dark slate background, and a few accents (#cc0000,
+     amber/blue-800, ...) are too dark for dark cards. Re-map the brand ink
+     onto the light slate scale above, keep dark ink on bright pills, and
+     lighten accents so every text/background pair stays readable (WCAG AA). */
+
+  /* Brand ink → light slate scale (opacity variants keep their hierarchy) */
+  .dark .text-brand-dark { color: #f1f5f9; }
+  .dark .text-brand-dark\/20 { color: rgba(241, 245, 249, 0.45); }
+  .dark .text-brand-dark\/30,
+  .dark .text-brand-dark\/35 { color: rgba(241, 245, 249, 0.55); }
+  .dark .text-brand-dark\/40,
+  .dark .text-brand-dark\/50 { color: rgba(241, 245, 249, 0.68); }
+  .dark .text-brand-dark\/60,
+  .dark .text-brand-dark\/70,
+  .dark .text-brand-dark\/75 { color: rgba(241, 245, 249, 0.78); }
+  .dark .text-brand-dark\/80 { color: rgba(241, 245, 249, 0.88); }
+  .dark .hover\:text-brand-dark:hover { color: #f1f5f9; }
+  .dark .text-brand-green,
+  .dark .hover\:text-brand-green:hover { color: #6ee7b7; }
+
+  /* Header wordmark opts into red via `dark:text-red-300` - keep that accent */
+  .dark .text-brand-dark.dark\:text-red-300 { color: #fca5a5; }
+
+  /* Bright pills (amber/sky/emerald/yellow) keep dark ink - same element and
+     descendants - because their surface stays light in dark mode too */
+  .dark :is(.bg-amber-200, .bg-amber-300, .bg-amber-400, .bg-sky-200, .bg-sky-400, .bg-emerald-200, .bg-emerald-400, .bg-yellow-200) {
+    color: #2d3a2e !important;
+  }
+  .dark :is(.bg-amber-200, .bg-amber-300, .bg-amber-400, .bg-sky-200, .bg-sky-400, .bg-emerald-200, .bg-emerald-400, .bg-yellow-200) [class*="text-"] {
+    color: #2d3a2e !important;
+  }
+
+  /* Accent text too dark for dark surfaces */
+  .dark .text-\[\#cc0000\] { color: #ff6b6b; }
+  .dark .fill-\[\#cc0000\] { fill: #ff6b6b; }
+  .dark .text-\[\#1677e8\] { color: #60a5fa; }
+  .dark .text-amber-800 { color: #fcd34d !important; }
+  .dark .text-emerald-600,
+  .dark .text-emerald-900 { color: #6ee7b7 !important; }
+  .dark .text-blue-600,
+  .dark .text-blue-800 { color: #93c5fd !important; }
+  .dark .text-indigo-800,
+  .dark .text-indigo-950 { color: #a5b4fc !important; }
+  .dark .text-red-500,
+  .dark .text-red-900 { color: #fca5a5 !important; }
+  .dark .text-sky-700,
+  .dark .text-sky-900 { color: #7dd3fc !important; }
+  .dark .text-violet-600 { color: #c4b5fd !important; }
+
+  /* Cream/brand panels → slate so the whole UI reads as one dark theme */
+  .dark .bg-brand-light { background-color: #334155; }
+  .dark .bg-brand-light\/40 { background-color: rgba(51, 65, 85, 0.4); }
+  .dark .bg-brand-light\/50 { background-color: rgba(51, 65, 85, 0.5); }
+  .dark .bg-brand-light\/60 { background-color: rgba(51, 65, 85, 0.6); }
+  .dark .bg-brand-light\/70 { background-color: rgba(51, 65, 85, 0.7); }
+  .dark .bg-brand-light\/80 { background-color: rgba(51, 65, 85, 0.8); }
+  .dark .bg-brand-cream { background-color: #1e293b; }
+  .dark .bg-brand-cream\/90 { background-color: rgba(30, 41, 59, 0.9); }
+
+  /* Pale light-only chips → dark surface (their text lightens above) */
+  .dark .bg-blue-100,
+  .dark .bg-sky-100,
+  .dark .bg-emerald-100,
+  .dark .bg-red-100,
+  .dark .bg-red-200,
+  .dark .bg-orange-50,
+  .dark .bg-violet-50,
+  .dark .bg-emerald-50\/40 {
+    background-color: #1e293b;
+  }
+  .dark .bg-gray-300,
+  .dark .bg-gray-400 {
+    background-color: #475569;
+  }
+  .dark .bg-blue-200\/60 {
+    background-color: rgba(100, 116, 139, 0.5);
+  }
+
+  /* Hover accents - the !important hover-surface rules below still win when a
+     pale/bright hover background applies, so ink always matches its surface */
+  .dark .hover\:text-black:hover { color: #f1f5f9 !important; }
+  .dark .hover\:text-\[\#cc0000\]:hover { color: #ff6b6b !important; }
+  .dark .hover\:text-red-600:hover,
+  .dark .hover\:text-red-800:hover,
+  .dark .group:hover .group-hover\:text-red-600 { color: #f87171 !important; }
+  .dark .hover\:text-amber-900:hover { color: #fde68a !important; }
+  .dark .hover\:text-slate-900:hover { color: #f1f5f9 !important; }
+
+  /* Pale hover states → slate with light ink (keeps inherited text readable) */
+  .dark :is(
+    .hover\:bg-white,
+    .hover\:bg-brand-light,
+    .hover\:bg-brand-light\/60,
+    .hover\:bg-brand-light\/70,
+    .hover\:bg-brand-light\/80,
+    .hover\:bg-amber-50,
+    .hover\:bg-amber-50\/50,
+    .hover\:bg-amber-100,
+    .hover\:bg-red-50,
+    .hover\:bg-red-100,
+    .hover\:bg-red-200,
+    .hover\:bg-emerald-50,
+    .hover\:bg-emerald-100,
+    .hover\:bg-blue-100,
+    .hover\:bg-sky-50,
+    .hover\:bg-sky-100,
+    .hover\:bg-indigo-50,
+    .hover\:bg-orange-50,
+    .hover\:bg-violet-50,
+    .hover\:bg-slate-200,
+    .hover\:bg-gray-50,
+    .hover\:bg-gray-100,
+    .hover\:bg-gray-200
+  ):hover {
+    background-color: #475569;
+    color: #f1f5f9 !important;
+  }
+
+  /* Bright hover states keep dark ink */
+  .dark :is(
+    .hover\:bg-amber-200,
+    .hover\:bg-amber-300,
+    .hover\:bg-amber-400,
+    .hover\:bg-amber-500,
+    .hover\:bg-sky-300,
+    .hover\:bg-emerald-300
+  ):hover {
+    color: #2d3a2e !important;
+  }
+
+  /* Explicit white hover (red brand buttons) wins over accent lightening */
+  .dark .hover\:text-white:hover { color: #fff !important; }
 
   /* ——— Light theme tuning: ensure muted text harmonizes with #e8ecef / white cards ———
      Light theme uses warm slate, not pure gray, for better harmony.
@@ -305,9 +446,10 @@ html.dark body {
     background-color: #f5f3ef !important; /* brand-light */
   }
 
-  /* New warm text palette on cream: reduce cold slate off-blacks a touch */
-  .text-slate-900,
-  .text-gray-900 {
+  /* New warm text palette on cream: reduce cold slate off-blacks a touch
+     (light theme only - the !important must never leak into dark mode) */
+  :root:not(.dark) .text-slate-900,
+  :root:not(.dark) .text-gray-900 {
     color: #2d3a2e !important; /* brand-dark */
   }
 
