@@ -28,7 +28,7 @@ import {
   uploadUserAssetFile,
   dataUrlToFile
 } from '../lib/supabaseUserAssets';
-import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps, buildRoutePaths } from '../lib/editorCanvas';
+import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps, buildRoutePaths, normalizeBackgroundSize } from '../lib/editorCanvas';
 import { fetchFavorites, insertFavorite, deleteFavorite } from '../lib/supabaseFavorites';
 import { fetchLikeInfo, insertLike, deleteLike } from '../lib/supabaseLikes';
 import { isSchemaMissing } from '../lib/schemaGuard';
@@ -441,8 +441,18 @@ export const AppProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState('home');
   const [editorSetup, setEditorSetup] = useState(null);
   const [authMode, setAuthMode] = useState('login');
-  // Always boot in light mode (dark is a session choice; the toggle still works).
-  const [themeMode, setThemeMode] = useState('light');
+// Rehydrate the persisted theme. index.html pre-applies the same class before
+// paint, so this keeps React in sync without a light-mode flash.
+const [themeMode, setThemeMode] = useState(() => {
+try {
+const stored = localStorage.getItem('project_travelcraft_themeMode');
+if (stored === 'dark' || stored === '"dark"') return 'dark';
+if (stored === 'light' || stored === '"light"') return 'light';
+if (document.documentElement.classList.contains('dark')) return 'dark';
+} catch { /* private mode - fall through to light */ }
+return 'light';
+});
+
 
   const [language, setLanguageState] = useState(() => {
     try {
@@ -918,6 +928,8 @@ export const AppProvider = ({ children }) => {
   const [mapCanvasStyle, setMapCanvasStyle] = useState(null);
   const [mapCanvasWidth, setMapCanvasWidth] = useState(null);
   const [mapCanvasHeight, setMapCanvasHeight] = useState(null);
+  // Uploaded background drawn at a custom pixel size (editor BACKGROUND tab).
+  const [mapBackgroundSize, setMapBackgroundSize] = useState(null);
   const [mapElements, setMapElements] = useState([]);
   const [mapRoutes, setMapRoutes] = useState([]);
   const [navStartId, setNavStartId] = useState(null);
@@ -1785,6 +1797,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
 
   const resetMapBackgroundImage = () => {
     setMapBackgroundImage(null);
+    setMapBackgroundSize(null);
     setMapCanvasStyle(null);
     setMapCanvasWidth(null);
     setMapCanvasHeight(null);
@@ -1846,6 +1859,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
     setMapPins([]);
     setSelectedPin(null);
     setMapBackgroundImage(null);
+    setMapBackgroundSize(null);
     setMapCanvasStyle(null);
     setMapCanvasWidth(null);
     setMapCanvasHeight(null);
@@ -1878,6 +1892,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         setMapCanvasStyle(cached.canvasStyle);
         setMapCanvasWidth(cached.canvasWidth || null);
         setMapCanvasHeight(cached.canvasHeight || null);
+        setMapBackgroundSize(cached.bgSize || null);
         setMapElements(cached.layerItems);
         setMapRoutes(cached.routes || []);
         setNavStartId(cached.navStartId || null);
@@ -1920,6 +1935,10 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       const canvasHeight = editor.canvasHeight || 4000;
       setMapCanvasWidth(canvasWidth);
       setMapCanvasHeight(canvasHeight);
+      // Custom background pixel size (editor BACKGROUND tab). Anything invalid
+      // falls back to filling the canvas in BackgroundLayer/WorldMapPage.
+      const bgSize = bg ? normalizeBackgroundSize(editor.backgroundSize, canvasWidth, canvasHeight) : null;
+      setMapBackgroundSize(bgSize);
       // Rebuild pins straight from the editor elements so the world map
       // shows exactly what the user placed (works for drafts too).
       const rawElements = Array.isArray(editor.elements) ? editor.elements : [];
@@ -2005,7 +2024,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       setNavEndId(editor.navEndId || null);
 
       // Remember the computed view so reopening this map is instant.
-      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, routes: computedRoutes, navStartId: editor.navStartId, navEndId: editor.navEndId, bg, canvasStyle, canvasWidth, canvasHeight });
+      sessionMapViewCache.set(mapId, { layerItems, pins: resolvedPins, routes: computedRoutes, navStartId: editor.navStartId, navEndId: editor.navEndId, bg, bgSize, canvasStyle, canvasWidth, canvasHeight });
     } finally {
       if (mapLoadToken.current === mapId) setMapViewLoading(false);
     }
@@ -2806,6 +2825,8 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         mapBackgroundImage,
         setMapBackgroundImage,
         resetMapBackgroundImage,
+        mapBackgroundSize,
+        setMapBackgroundSize,
         mapCanvasStyle,
         setMapCanvasStyle,
         mapCanvasWidth,

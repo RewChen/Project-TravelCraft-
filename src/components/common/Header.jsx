@@ -145,19 +145,19 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-7">
           <button
             onClick={() => navigateTo('home')}
-            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'home' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'home' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
           >
             {t('nav.home')}
           </button>
           <button
             onClick={() => navigateTo('community')}
-            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'community' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'community' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
           >
             {t('nav.community')}
           </button>
           <button
             onClick={() => navigateTo('mymaps')}
-            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'mymaps' ? 'text-brand-dark font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
+            className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'mymaps' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
           >
             {t('nav.myMaps')}
           </button>

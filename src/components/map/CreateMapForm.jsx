@@ -299,10 +299,10 @@ export default function CreateMapForm({ onSubmit, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="bg-white border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 border-4 border-black rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]">
         <div className="bg-[#b40000] text-white p-4 border-b-4 border-black flex items-center justify-between sticky top-0 z-10">
           <h2 className="font-black uppercase tracking-wide">{t('myMaps.createNewMap')}</h2>
-          <button type="button" onClick={onClose} title={t('common.close')} className="w-8 h-8 bg-white text-black border-2 border-black rounded flex items-center justify-center"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} title={t('common.close')} className="w-8 h-8 bg-white dark:bg-slate-800 text-black border-2 border-black rounded flex items-center justify-center"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 space-y-6">
@@ -351,15 +351,15 @@ export default function CreateMapForm({ onSubmit, onClose }) {
                   <button type="button" title={t('myMaps.changeCover')} onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1 px-2 py-1 bg-[#cc0000] text-white border-2 border-black rounded text-[9px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <ImagePlus className="w-3 h-3" /> {t('myMaps.changeCover')}
                   </button>
-                  <button type="button" title={t('myMaps.removeCover')} onClick={handleRemoveCover} className="flex items-center gap-1 px-2 py-1 bg-white text-red-600 border-2 border-black rounded text-[9px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <button type="button" title={t('myMaps.removeCover')} onClick={handleRemoveCover} className="flex items-center gap-1 px-2 py-1 bg-white dark:bg-slate-800 text-red-600 border-2 border-black rounded text-[9px] font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
-                  <button type="button" title={t('myMaps.zoomOut')} onClick={() => setZoomed(zoomRef.current - 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomOut className="w-3.5 h-3.5" /></button>
-                  <span className="text-[9px] font-black bg-white/80 border border-black px-1.5 py-0.5 rounded">{Math.round(coverZoom * 100)}%</span>
-                  <button type="button" title={t('myMaps.zoomIn')} onClick={() => setZoomed(zoomRef.current + 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomIn className="w-3.5 h-3.5" /></button>
-                  <button type="button" title={t('myMaps.resetCover')} onClick={resetCrop} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><RotateCcw className="w-3.5 h-3.5" /></button>
+                  <button type="button" title={t('myMaps.zoomOut')} onClick={() => setZoomed(zoomRef.current - 0.25)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomOut className="w-3.5 h-3.5" /></button>
+                  <span className="text-[9px] font-black bg-white/80 dark:bg-slate-800/80 border border-black px-1.5 py-0.5 rounded">{Math.round(coverZoom * 100)}%</span>
+                  <button type="button" title={t('myMaps.zoomIn')} onClick={() => setZoomed(zoomRef.current + 0.25)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomIn className="w-3.5 h-3.5" /></button>
+                  <button type="button" title={t('myMaps.resetCover')} onClick={resetCrop} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><RotateCcw className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             ) : (
@@ -390,7 +390,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
                 </button>
               </div>
               {showCountryList && (
-                <div className="absolute z-10 mt-1 w-full bg-white border-2 border-black max-h-52 overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-slate-800 border-2 border-black max-h-52 overflow-y-auto shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                   {filteredCountries.length === 0 ? (
                     <div className="p-3 text-[11px] font-bold text-gray-500 text-center">— {t('myMaps.noCountries')} —</div>
                   ) : filteredCountries.map((country) => (
@@ -530,7 +530,7 @@ export default function CreateMapForm({ onSubmit, onClose }) {
         </div>
 
         <div className="p-4 bg-gray-100 border-t-4 border-black flex justify-end gap-2 sticky bottom-0">
-          <button type="button" onClick={onClose} disabled={uploading} className="px-5 py-2.5 bg-white border-2 border-black font-black text-xs uppercase">{t('common.cancel')}</button>
+          <button type="button" onClick={onClose} disabled={uploading} className="px-5 py-2.5 bg-white dark:bg-slate-800 border-2 border-black font-black text-xs uppercase">{t('common.cancel')}</button>
           <button type="submit" disabled={uploading} className="px-5 py-2.5 bg-[#b40000] text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-black text-xs uppercase flex items-center gap-2 disabled:opacity-50">
             {uploading ? t('myMaps.uploading') : `🚀 ${t('myMaps.createMap')}`}
           </button>

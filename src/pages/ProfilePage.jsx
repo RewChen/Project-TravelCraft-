@@ -78,7 +78,7 @@ export default function ProfilePage() {
 
   if (!isLoggedIn || !userProfile) {
     return (
-      <div className="max-w-md mx-auto px-4 py-16 text-center font-thai text-brand-dark">
+      <div className="max-w-md mx-auto px-4 py-16 text-center font-thai text-brand-dark dark:text-slate-100">
         <div className="bg-white rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] space-y-4">
           <div className="w-16 h-16 bg-red-50 rounded-full mx-auto flex items-center justify-center text-3xl">
             🔒
@@ -99,7 +99,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark">
+    <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark dark:text-slate-100">
 
       {/* Profile Card */}
       <div className="bg-white rounded-3xl p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] grid grid-cols-1 md:grid-cols-3 gap-6">

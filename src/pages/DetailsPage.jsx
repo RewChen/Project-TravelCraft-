@@ -20,7 +20,7 @@ export default function DetailsPage() {
   }, [selectedLocation, trackLocationView]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark">
+    <div className="max-w-5xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark dark:text-slate-100">
       <button
         onClick={() => navigateTo('map')}
         className="text-xs font-semibold bg-white hover:bg-brand-light text-brand-dark rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer transition-colors shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]"

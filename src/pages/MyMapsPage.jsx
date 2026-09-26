@@ -138,7 +138,7 @@ const openMapInEditor = async (mapItem) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-8 font-thai text-brand-dark">
+    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-8 font-thai text-brand-dark dark:text-slate-100">
       
       {/* Header Banner */}
       <div className="bg-white rounded-3xl p-7 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

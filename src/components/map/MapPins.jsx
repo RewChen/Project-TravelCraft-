@@ -32,11 +32,11 @@ export default function MapPins({ hideElementPins = false }) {
             {pin.elementType ? (
               <div className="relative group">
                 {pin.elementType === 'image' || pin.previewUrl ? (
-                  <div className="w-11 h-11 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center">
+                  <div className="w-11 h-11 bg-white dark:bg-slate-800 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center">
                     <img src={pin.previewUrl || pin.imageUrl} alt={pin.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </div>
                 ) : pin.elementType === 'shape' ? (
-                  <div className="w-10 h-10 bg-white border-2 border-black rounded flex items-center justify-center p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="w-10 h-10 bg-white dark:bg-slate-800 border-2 border-black rounded flex items-center justify-center p-1 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                     <div className="w-full h-full pointer-events-none" style={getShapeStyle({ shape: pin.shape, color: pin.shapeColor })} />
                   </div>
                 ) : (
@@ -51,7 +51,7 @@ export default function MapPins({ hideElementPins = false }) {
               </div>
             ) : pin.isUserUploaded || pin.imageUrl ? (
               <div className="relative group">
-                <div className="w-11 h-11 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center bg-cover bg-center">
+                <div className="w-11 h-11 bg-white dark:bg-slate-800 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex items-center justify-center bg-cover bg-center">
                   {pin.imageUrl ? (
                     <img src={pin.imageUrl} alt={pin.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   ) : (

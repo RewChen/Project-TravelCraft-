@@ -7,10 +7,11 @@ import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
 import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X, Maximize2, Minimize2 } from 'lucide-react';
 import { cleanAssetName } from '../lib/imageUtils';
+import { normalizeBackgroundSize } from '../lib/editorCanvas';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapCanvasStyle, mapCanvasWidth, mapCanvasHeight, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapBackgroundSize, mapCanvasStyle, mapCanvasWidth, mapCanvasHeight, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -88,6 +89,25 @@ export default function WorldMapPage() {
     setTourActive(false);
     setTourIndex(0);
   }, [mapBackgroundImage, mapCanvasStyle, activeCommunityMap]);
+
+  // Uploaded background keeps the pixel size chosen in the editor's BACKGROUND
+  // tab, centered on the canvas. The canvas wrapper is percent-sized, so the
+  // px size is converted to the same percent space the elements use.
+  const backgroundRectStyle = useMemo(() => {
+    if (!mapBackgroundImage) return null;
+    const canvasW = mapCanvasWidth || 4000;
+    const canvasH = mapCanvasHeight || 4000;
+    const size = normalizeBackgroundSize(mapBackgroundSize, canvasW, canvasH);
+    return {
+      left: `${((canvasW - size.width) / 2 / canvasW) * 100}%`,
+      top: `${((canvasH - size.height) / 2 / canvasH) * 100}%`,
+      width: `${(size.width / canvasW) * 100}%`,
+      height: `${(size.height / canvasH) * 100}%`,
+      backgroundImage: `url("${mapBackgroundImage}")`,
+      backgroundSize: '100% 100%',
+      backgroundRepeat: 'no-repeat'
+    };
+  }, [mapBackgroundImage, mapBackgroundSize, mapCanvasWidth, mapCanvasHeight]);
 
   // Build tour stops ONLY from editor elements marked as locations.
     // Photo-upload pins and template pins are excluded so the tour count always
@@ -223,7 +243,7 @@ export default function WorldMapPage() {
   if (!mapViewLoading && !hasEverOpenedMap) return null;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 font-thai text-brand-dark">
+    <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 font-thai text-brand-dark dark:text-slate-100">
       {/* Top Control Header Bar */}
       <div className="bg-white rounded-3xl p-4 mb-4 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
@@ -302,10 +322,11 @@ export default function WorldMapPage() {
               </div>
             </div>
           ) : mapBackgroundImage ? (
-            <img 
-              src={mapBackgroundImage} 
-              alt={t('worldMap.bgAlt')} 
-              className="absolute inset-0 w-full h-full object-fill z-0" 
+            <div
+              className="absolute z-0"
+              style={backgroundRectStyle}
+              role="img"
+              aria-label={t('worldMap.bgAlt')}
             />
           ) : mapCanvasStyle ? (
             <div

@@ -45,6 +45,26 @@ export const scaleElementFontSizes = (elements, positions) => {
 
 export const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
 
+export const MIN_BACKGROUND_SIZE = 20;
+export const MAX_BACKGROUND_SIZE = 20000;
+
+// Background image size in canvas pixels. Anything missing/invalid falls back to
+// the canvas size so the image keeps filling the whole map.
+export const normalizeBackgroundSize = (value, canvasWidth, canvasHeight) => {
+  const fallback = {
+    width: canvasWidth || DEFAULT_CANVAS_WIDTH,
+    height: canvasHeight || DEFAULT_CANVAS_HEIGHT
+  };
+  if (!value || typeof value !== 'object') return fallback;
+  const width = Math.round(Number(value.width));
+  const height = Math.round(Number(value.height));
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return fallback;
+  return {
+    width: Math.round(clampValue(width, MIN_BACKGROUND_SIZE, MAX_BACKGROUND_SIZE)),
+    height: Math.round(clampValue(height, MIN_BACKGROUND_SIZE, MAX_BACKGROUND_SIZE))
+  };
+};
+
 // Push overlapping pins slightly apart so markers don't stack on top of each
 // other. Positions are kept as close as possible to the original placement.
 export const resolvePinOverlaps = (pins, gap = 8) => {

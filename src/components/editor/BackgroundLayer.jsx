@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Layer, Rect, Ellipse, Image as KonvaImage } from 'react-konva';
 import useImage from 'use-image';
-import { GRID_STEP } from '../../lib/editorCanvas';
+import { GRID_STEP, normalizeBackgroundSize } from '../../lib/editorCanvas';
 
 const createGridTile = (color) => {
   const canvas = document.createElement('canvas');
@@ -94,13 +94,24 @@ const templateLayouts = {
   }
 };
 
-export default function BackgroundLayer({ templateId, backgroundImage, width, height }) {
+export default function BackgroundLayer({ templateId, backgroundImage, backgroundSize, width, height }) {
   const [image, status] = useImage(backgroundImage || undefined, 'anonymous');
   const layout = templateLayouts[templateId] || templateLayouts.blank;
 
   const gridTile = useMemo(() => (
     layout.gridColor ? createGridTile(layout.gridColor) : null
   ), [layout.gridColor]);
+
+  // Uploaded backgrounds honor a custom pixel size and stay centered on the canvas.
+  const imageRect = useMemo(() => {
+    const size = normalizeBackgroundSize(backgroundSize, width, height);
+    return {
+      x: (width - size.width) / 2,
+      y: (height - size.height) / 2,
+      width: size.width,
+      height: size.height
+    };
+  }, [backgroundSize, width, height]);
 
   return (
     <Layer listening={false}>
@@ -147,7 +158,7 @@ export default function BackgroundLayer({ templateId, backgroundImage, width, he
           fillPatternRepeat="repeat"
         />
       )}
-      {image && status === 'loaded' && <KonvaImage image={image} x={0} y={0} width={width} height={height} listening={false} />}
+      {image && status === 'loaded' && <KonvaImage image={image} {...imageRect} listening={false} />}
     </Layer>
   );
 }

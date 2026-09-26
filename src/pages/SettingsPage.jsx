@@ -6,7 +6,7 @@ export default function SettingsPage() {
   const isDark = themeMode === 'dark';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-8 md:pt-10 pb-12 font-thai text-brand-dark">
+    <div className="max-w-2xl mx-auto px-4 pt-8 md:pt-10 pb-12 font-thai text-brand-dark dark:text-slate-100">
       {/* Header */}
       <div className="text-center mb-8 space-y-1">
         <div className="mx-auto w-12 h-12 bg-brand-dark rounded-2xl flex items-center justify-center text-white mb-3 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.3)]">

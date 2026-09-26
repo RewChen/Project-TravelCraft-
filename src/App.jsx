@@ -90,10 +90,10 @@ function AppContent() {
       );
     }
     return (
-      <>
+      <div className={`${isDarkMode ? 'dark' : ''} h-screen`}>
         <MapEditor onBack={() => navigateTo('mymaps')} />
         <GlobalToast />
-      </>
+      </div>
     );
   }
 

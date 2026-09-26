@@ -3,7 +3,7 @@ import { X, Upload, Map, RotateCcw, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export default function MapBackgroundModal({ onClose }) {
-  const { t, mapBackgroundImage, setMapBackgroundImage, resetMapBackgroundImage } = useApp();
+  const { t, mapBackgroundImage, setMapBackgroundImage, setMapBackgroundSize, resetMapBackgroundImage } = useApp();
 
   const [previewImage, setPreviewImage] = useState(mapBackgroundImage);
 
@@ -43,6 +43,9 @@ export default function MapBackgroundModal({ onClose }) {
 
   const handleApply = () => {
     setMapBackgroundImage(previewImage);
+    // A freshly picked background always fills the canvas (the editor's
+    // BACKGROUND tab is where a custom pixel size is configured).
+    setMapBackgroundSize(null);
     onClose();
   };
 
@@ -54,7 +57,7 @@ export default function MapBackgroundModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 font-mono">
-      <div className="bg-white border-4 border-black rounded-2xl w-full max-w-xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-white dark:bg-slate-800 border-4 border-black rounded-2xl w-full max-w-xl shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
         <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
@@ -66,7 +69,7 @@ export default function MapBackgroundModal({ onClose }) {
           </div>
           <button 
             onClick={onClose}
-            className="w-7 h-7 bg-white text-black border-2 border-black rounded-md flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+            className="w-7 h-7 bg-white dark:bg-slate-800 text-black border-2 border-black rounded-md flex items-center justify-center hover:bg-gray-200 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

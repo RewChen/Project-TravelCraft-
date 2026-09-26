@@ -222,8 +222,8 @@ export default function EditableCover({ value, onApply, onRemove }) {
         <div className="relative border-2 border-black rounded overflow-hidden bg-gray-50">
           <img src={value} alt={t('editor.coverPreviewAlt')} className="w-full aspect-video object-cover pointer-events-none" />
           <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
-            <button type="button" onClick={() => beginCrop(value)} title={t('editor.adjustCover')} className="w-7 h-7 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-amber-50 opacity-90 cursor-pointer"><Pencil className="w-3.5 h-3.5 text-blue-600" /></button>
-            <button type="button" onClick={onRemove} title={t('editor.removeCover')} className="w-7 h-7 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+            <button type="button" onClick={() => beginCrop(value)} title={t('editor.adjustCover')} className="w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-amber-50 opacity-90 cursor-pointer"><Pencil className="w-3.5 h-3.5 text-blue-600" /></button>
+            <button type="button" onClick={onRemove} title={t('editor.removeCover')} className="w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90 cursor-pointer"><X className="w-3.5 h-3.5" /></button>
           </div>
         </div>
         <div className="mt-2">
@@ -271,14 +271,14 @@ export default function EditableCover({ value, onApply, onRemove }) {
           </button>
         </div>
         <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
-          <button type="button" title={t('myMaps.zoomOut')} onClick={() => setZoomed(zoomRef.current - 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomOut className="w-3.5 h-3.5" /></button>
-          <span className="text-[9px] font-black bg-white/80 border border-black px-1.5 py-0.5 rounded">{Math.round(zoom * 100)}%</span>
-          <button type="button" title={t('myMaps.zoomIn')} onClick={() => setZoomed(zoomRef.current + 0.25)} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomIn className="w-3.5 h-3.5" /></button>
-          <button type="button" title={t('myMaps.resetCover')} onClick={resetCrop} className="flex items-center justify-center w-7 h-7 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><RotateCcw className="w-3.5 h-3.5" /></button>
+          <button type="button" title={t('myMaps.zoomOut')} onClick={() => setZoomed(zoomRef.current - 0.25)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomOut className="w-3.5 h-3.5" /></button>
+          <span className="text-[9px] font-black bg-white/80 dark:bg-slate-800/80 border border-black px-1.5 py-0.5 rounded">{Math.round(zoom * 100)}%</span>
+          <button type="button" title={t('myMaps.zoomIn')} onClick={() => setZoomed(zoomRef.current + 0.25)} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><ZoomIn className="w-3.5 h-3.5" /></button>
+          <button type="button" title={t('myMaps.resetCover')} onClick={resetCrop} className="flex items-center justify-center w-7 h-7 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"><RotateCcw className="w-3.5 h-3.5" /></button>
         </div>
       </div>
       <div className="mt-4 flex items-center gap-2">
-        <button type="button" onClick={handleCancel} disabled={busy} className="flex-1 px-3 py-2 bg-white border-2 border-black rounded font-black text-[10px] uppercase disabled:opacity-40">{t('editor.cancel')}</button>
+        <button type="button" onClick={handleCancel} disabled={busy} className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border-2 border-black rounded font-black text-[10px] uppercase disabled:opacity-40">{t('editor.cancel')}</button>
         <button type="button" onClick={handleApply} disabled={busy || !imgEl} className="flex-1 px-3 py-2 bg-emerald-500 text-white border-2 border-black rounded font-black text-[10px] uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5 disabled:opacity-40">
           {busy ? '…' : (<><Check className="w-3.5 h-3.5" /> {t('editor.applyCrop')}</>)}
         </button>

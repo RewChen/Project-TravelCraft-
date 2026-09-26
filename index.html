@@ -10,6 +10,19 @@
     <link href="https://db.onlinewebfonts.com/c/0e6de1ec911a2e267ff136bbdd384a44?family=Helvetica+Neue+Light" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prata&family=Hanken+Grotesk:wght@400;500;600;700&family=Poppins:wght@500;600&display=swap" rel="stylesheet" />
     <title>TravelCraft - Gotta Travel 'Em All</title>
+    <script>
+      // Apply the persisted theme before first paint so dark mode never flashes light.
+      (function () {
+        try {
+          var stored = localStorage.getItem('project_travelcraft_themeMode');
+          var mode = stored === 'dark' || stored === '"dark"' ? 'dark' : 'light';
+          if (mode === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.dataset.theme = 'dark';
+          }
+        } catch (e) { /* private mode - default to light */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

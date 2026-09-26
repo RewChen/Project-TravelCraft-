@@ -78,7 +78,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 font-mono">
-      <div className="bg-white border-4 border-black rounded-2xl w-full max-w-lg shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-white dark:bg-slate-800 border-4 border-black rounded-2xl w-full max-w-lg shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
         <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
@@ -90,7 +90,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
           </div>
           <button 
             onClick={onClose}
-            className="w-7 h-7 bg-white text-black border-2 border-black rounded-md flex items-center justify-center hover:bg-gray-200 cursor-pointer"
+            className="w-7 h-7 bg-white dark:bg-slate-800 text-black border-2 border-black rounded-md flex items-center justify-center hover:bg-gray-200 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -139,7 +139,7 @@ export default function AddSpotModal({ onClose, defaultCoords }) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t('map.spotTitlePh')} 
               required
-              className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-bold bg-gray-50 focus:outline-none focus:bg-white focus:border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className="w-full px-3 py-2 border-2 border-black rounded-lg text-xs font-bold bg-gray-50 focus:outline-none focus:bg-white dark:bg-slate-800 focus:border-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
             />
           </div>
 

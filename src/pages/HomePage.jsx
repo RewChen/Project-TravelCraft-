@@ -37,6 +37,7 @@ export default function HomePage() {
   const portalBusy = useRef(false);
   const portalRaf = useRef(0);
   const portalTimeout = useRef(0);
+  const portalSafety = useRef(0);
   const portalTiltCleanup = useRef(() => {});
 
   // Entrance animation: compose the opening frame, play once, then remove itself.
@@ -92,6 +93,7 @@ export default function HomePage() {
     () => () => {
       cancelAnimationFrame(portalRaf.current);
       window.clearTimeout(portalTimeout.current);
+      window.clearTimeout(portalSafety.current);
       portalTiltCleanup.current();
       document.body.classList.remove('tc-portaling');
     },
@@ -237,6 +239,7 @@ export default function HomePage() {
         return;
       }
       if (performance.now() - startedAt > 2000) {
+        if (!portalBusy.current) return;
         canvas.classList.remove('is-running');
         document.body.classList.remove('tc-portaling');
         portalBusy.current = false;
@@ -293,7 +296,10 @@ export default function HomePage() {
         } else if (!land.ended && land.currentTime < (land.duration || 0) - 0.1) {
           portalRaf.current = requestAnimationFrame(frame);
         } else {
+          window.clearTimeout(portalSafety.current);
+          portalSafety.current = 0;
           portalTimeout.current = window.setTimeout(() => {
+            if (!portalBusy.current) return;
             canvas.classList.remove('is-running');
             document.body.classList.remove('tc-portaling');
             portalBusy.current = false;
@@ -309,7 +315,8 @@ export default function HomePage() {
       };
       portalRaf.current = requestAnimationFrame(frame);
       // Safety net: never let the button dead-end even if the clip errors out.
-      portalTimeout.current = window.setTimeout(() => {
+      portalSafety.current = window.setTimeout(() => {
+        if (!portalBusy.current) return;
         canvas.classList.remove('is-running');
         document.body.classList.remove('tc-portaling');
         portalBusy.current = false;
@@ -351,13 +358,14 @@ export default function HomePage() {
   }, [communityMaps, userProfile]);
 
   // Khun Korn Waterfall rows are hidden from the Home hero + featured strip (owner requested).
-  const featuredMaps = useMemo(
-    () =>
-      publicMaps.filter(
-        (m) => !isHiddenMap(m)
-      ).slice(0, 3),
-    [publicMaps]
-  );
+  // Jae Sawn National Park is pinned into the strip so its preview never drops
+  // out just because newer rows pushed it down the recency order.
+  const featuredMaps = useMemo(() => {
+    const eligible = publicMaps.filter((m) => !isHiddenMap(m));
+    const pinned = eligible.find(isNonNavigableMap);
+    const rest = eligible.filter((m) => !isNonNavigableMap(m));
+    return pinned ? [pinned, ...rest.slice(0, 2)] : rest.slice(0, 3);
+  }, [publicMaps]);
 
   const stats = useMemo(() => {
     const trainers = new Set();
@@ -532,24 +540,22 @@ const steps = [
                 <Reveal key={mapItem.id} delay={Math.min(idx, 5) * 90} className="h-full">
                   <div className="bg-white dark:bg-slate-800 border border-brand-dark/10 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_10px_30px_-22px_rgba(45,58,46,0.3)] flex flex-col justify-between hover:-translate-y-1 transition-transform h-full">
                     <div
-                      onClick={() => { if (!isNonNavigableMap(mapItem)) trackMapOnWorldMap(mapItem); }}
-                      className={`relative h-44 border-b border-brand-dark/10 dark:border-slate-700 overflow-hidden flex items-center justify-center group ${isNonNavigableMap(mapItem) ? 'cursor-default' : 'cursor-pointer'}`}
-                      title={isNonNavigableMap(mapItem) ? undefined : t('community.trackTooltip')}
+                      onClick={() => trackMapOnWorldMap(mapItem)}
+                      className="relative h-44 border-b border-brand-dark/10 dark:border-slate-700 overflow-hidden flex items-center justify-center group cursor-pointer"
+                      title={t('community.trackTooltip')}
                     >
                       {mapItem.imageUrl && !isDefaultCover(mapItem.imageUrl) ? (
-                        <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className={`w-full h-full object-cover transition-transform duration-300 ${isNonNavigableMap(mapItem) ? '' : 'group-hover:scale-105'}`} />
+                        <img src={mapItem.imageUrl} alt={mapItem.title} loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                       ) : resolveCardBackground(mapItem) ? (
-                        <div className={`w-full h-full transition-transform duration-300 ${isNonNavigableMap(mapItem) ? '' : 'group-hover:scale-105'}`} style={resolveCardBackground(mapItem)} />
+                        <div className="w-full h-full transition-transform duration-300 group-hover:scale-105" style={resolveCardBackground(mapItem)} />
                       ) : (
                         <div className="w-full h-full bg-brand-light dark:bg-slate-700 flex items-center justify-center text-4xl">🗺️</div>
                       )}
-                      {!isNonNavigableMap(mapItem) && (
                       <div className="absolute inset-0 bg-brand-dark/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                         <span className="bg-amber-400 px-4 py-1.5 text-xs font-bold text-brand-dark uppercase rounded-full shadow">
                           {t('home.trackNow')}
                         </span>
                       </div>
-                      )}
                       <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase shadow ${mapItem.rarityColor || 'bg-white/90 dark:bg-slate-700/90 text-brand-dark/60 dark:text-slate-200'}`}>
                         {mapItem.rarity}
                       </div>
@@ -580,14 +586,12 @@ const steps = [
                         >
                           {t('community.viewDetails')}
                         </button>
-                        {!isNonNavigableMap(mapItem) && (
                         <button
                           onClick={() => trackMapOnWorldMap(mapItem)}
                           className="w-full bg-white dark:bg-slate-800 hover:bg-brand-light dark:hover:bg-slate-700 border border-brand-dark/15 dark:border-slate-600 text-brand-dark dark:text-slate-100 font-semibold py-2.5 px-4 rounded-full text-xs uppercase transition-colors flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Eye className="w-4 h-4" /> {t('community.trackOnMap')}
                         </button>
-                        )}
                       </div>
                     </div>
                   </div>

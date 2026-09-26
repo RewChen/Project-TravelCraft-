@@ -6,6 +6,7 @@ export default function BaseMapsTab({ onOpenAddModal }) {
     baseMaps,
     setBaseMaps,
     setMapBackgroundImage,
+    setMapBackgroundSize,
     setMapBaseFlagFor,
     navigateTo,
     showAdminToast,
@@ -27,7 +28,10 @@ export default function BaseMapsTab({ onOpenAddModal }) {
 
   const handleLaunchInEditor = (baseMap) => {
     const bg = baseMap.image || baseMap.imageUrl;
-    if (bg) setMapBackgroundImage(bg);
+    if (bg) {
+      setMapBackgroundImage(bg);
+      setMapBackgroundSize(null);
+    }
     showAdminToast(`Loaded "${baseMap.name}" base terrain into Map Editor!`, 'success');
     navigateTo('editor');
   };

@@ -206,10 +206,10 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <form onSubmit={(event) => { event.preventDefault(); handleSubmit(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+      <form onSubmit={(event) => { event.preventDefault(); handleSubmit(); }} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg bg-white dark:bg-slate-800 border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
         <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
           <h2 className="font-black uppercase tracking-wide">{t('editor.publishTitle')}</h2>
-          <button type="button" onClick={onClose} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
+          <button type="button" onClick={onClose} title={t('editor.close')} className="w-7 h-7 bg-white dark:bg-slate-800 text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <div>
@@ -321,7 +321,7 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
                           <button
                             type="button"
                             onClick={() => removeSelfieAt(idx)}
-                            className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
+                            className="absolute top-1 right-1 w-5 h-5 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
                             title={t('editor.removeSelfie')}
                           >
                             <X className="w-3 h-3" />

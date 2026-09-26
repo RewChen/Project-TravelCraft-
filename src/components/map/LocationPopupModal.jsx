@@ -178,21 +178,21 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
         style={{ left: pos.left, top: pos.top }}
         onClick={(event) => event.stopPropagation()}
         onMouseDown={(event) => event.stopPropagation()}
-        className="fixed w-80 bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 max-h-[calc(100vh-2rem)] flex flex-col"
+        className="fixed w-80 bg-white dark:bg-slate-800 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 max-h-[calc(100vh-2rem)] flex flex-col"
       >
         {/* Anchor caret pointing at the pin */}
         {pos.placeBelow ? (
-          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-white border-t-4 border-l-4 border-black rotate-45" />
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-t-4 border-l-4 border-black rotate-45" />
         ) : pos.placeRight ? (
-          <div style={{ top: pos.caretTop }} className="absolute -left-3 -translate-y-1/2 w-5 h-5 bg-white border-t-4 border-l-4 border-black rotate-45" />
+          <div style={{ top: pos.caretTop }} className="absolute -left-3 -translate-y-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-t-4 border-l-4 border-black rotate-45" />
         ) : (
-          <div style={{ top: pos.caretTop }} className="absolute -right-3 -translate-y-1/2 w-5 h-5 bg-white border-b-4 border-r-4 border-black rotate-45" />
+          <div style={{ top: pos.caretTop }} className="absolute -right-3 -translate-y-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-b-4 border-r-4 border-black rotate-45" />
         )}
 
         {/* Header */}
         <div className="flex items-start justify-between gap-2 bg-[#cc0000] text-white p-3 border-b-4 border-black rounded-t-lg">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 bg-white/90 border-2 border-black rounded-lg flex items-center justify-center text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
+            <div className="w-8 h-8 bg-white/90 dark:bg-slate-800/90 border-2 border-black rounded-lg flex items-center justify-center text-black text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
               {pin.icon || '📍'}
             </div>
             <div className="min-w-0">
@@ -204,7 +204,7 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
           </div>
           <button
             onClick={onClose}
-            className="w-6 h-6 bg-white/20 hover:bg-white/40 border-2 border-white text-white rounded-md flex items-center justify-center text-xs font-bold cursor-pointer shrink-0"
+            className="w-6 h-6 bg-white/20 dark:bg-slate-800/20 hover:bg-white/40 dark:bg-slate-800/40 border-2 border-white text-white rounded-md flex items-center justify-center text-xs font-bold cursor-pointer shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -298,7 +298,7 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
           {detailFields.length > 0 && (
             <div className="grid grid-cols-2 gap-2 mb-3">
               {detailFields.map((field) => (
-                <div key={field.label} className="border-2 border-black rounded-lg p-2 bg-white min-w-0">
+                <div key={field.label} className="border-2 border-black rounded-lg p-2 bg-white dark:bg-slate-800 min-w-0">
                   <div className="flex items-center gap-1 mb-0.5">
                     <field.icon className="w-3 h-3 text-red-600 shrink-0" />
                     <span className="text-[9px] font-black uppercase text-red-600 truncate">{field.label}</span>

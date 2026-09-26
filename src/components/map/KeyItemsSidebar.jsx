@@ -7,7 +7,7 @@ export default function KeyItemsSidebar({ onOpenUpload, onOpenMapBgModal }) {
   const userPhotoCount = mapPins.filter((p) => p.isUserUploaded || p.category === 'photos').length;
 
   return (
-    <div className="absolute top-4 left-4 w-64 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 overflow-hidden font-mono">
+    <div className="absolute top-4 left-4 w-64 bg-white dark:bg-slate-800 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-20 overflow-hidden font-mono">
       <div className="bg-[#cc0000] text-white p-2.5 border-b-4 border-black font-black text-xs flex justify-between items-center uppercase tracking-wider">
         <span>{t('map.keyItemsFilters')}</span>
         <Calendar className="w-4 h-4" />

@@ -132,11 +132,50 @@ html.dark body {
     color: #94a3b8; /* slate-400 - muted/descriptive, still readable */
   }
 
-  /* Keep vibrant badge/pill contrast - black text on light amber/sky stays black */
+  /* ——— Brand ink: #2d3a2e is a dark green, invisible on the dark surfaces
+     above. Flip it (and every opacity step) to a light ink. Badges that sit on
+     genuinely light accents are restored further down. ——— */
+  .dark .text-brand-dark {
+    color: #f1f5f9; /* slate-100 - primary */
+  }
+  .dark .text-brand-dark\/80,
+  .dark .text-brand-dark\/75 {
+    color: #e2e8f0; /* slate-200 */
+  }
+  .dark .text-brand-dark\/70,
+  .dark .text-brand-dark\/60 {
+    color: #cbd5e1; /* slate-300 - secondary */
+  }
+  .dark .text-brand-dark\/50,
+  .dark .text-brand-dark\/40 {
+    color: #94a3b8; /* slate-400 - muted */
+  }
+  .dark .text-brand-dark\/35,
+  .dark .text-brand-dark\/30,
+  .dark .text-brand-dark\/20 {
+    color: #64748b; /* slate-500 - faint */
+  }
+  .dark .text-brand-green {
+    color: #a5b4a5;
+  }
+
+  /* Keep vibrant badge/pill contrast - dark text on light amber/sky stays dark.
+     Applies whether the ink sits on the accent element itself or inside it. */
   .dark .bg-amber-400.text-black,
   .dark .bg-sky-400.text-black,
   .dark .bg-emerald-400.text-black {
     color: #020617 !important;
+  }
+  .dark .bg-amber-400.text-brand-dark,
+  .dark .bg-sky-400.text-brand-dark,
+  .dark .bg-emerald-400.text-brand-dark,
+  .dark .bg-red-400.text-brand-dark,
+  .dark .bg-amber-300.text-brand-dark,
+  .dark .bg-amber-400 .text-brand-dark,
+  .dark .bg-sky-400 .text-brand-dark,
+  .dark .bg-emerald-400 .text-brand-dark,
+  .dark .bg-amber-300 .text-brand-dark {
+    color: #2d3a2e;
   }
 
   /* Tinted semantic text - lighten for dark cards (was dark brown/green on light bg) */
@@ -165,8 +204,31 @@ html.dark body {
   .dark .text-red-600 {
     color: #f87171 !important;
   }
+  .dark .text-red-900 {
+    color: #fecaca !important; /* red-200 - pairs with remapped bg-red-50 */
+  }
   .dark .text-sky-600 {
     color: #7dd3fc !important;
+  }
+  .dark .text-sky-900 {
+    color: #e0f2fe !important; /* pairs with the remapped bg-sky-50/100 */
+  }
+
+  /* ——— Brand surfaces: the warm Palomar palette stays on the light theme only ——— */
+  .dark .bg-brand-cream {
+    background-color: #020617; /* slate-950 - page */
+  }
+  .dark .bg-brand-light {
+    background-color: #0f172a; /* slate-900 - page/sunken */
+  }
+  .dark .bg-brand-light\/70,
+  .dark .bg-brand-light\/40,
+  .dark .bg-brand-light\/20 {
+    background-color: rgba(30, 41, 59, 0.7);
+  }
+  .dark .hover\:bg-brand-light:hover,
+  .dark .hover\:bg-brand-cream:hover {
+    background-color: #334155;
   }
 
   /* ——— Backgrounds: map light surfaces to slate-800/700 ——— */
@@ -188,13 +250,9 @@ html.dark body {
   .dark .bg-emerald-50,
   .dark .bg-amber-50,
   .dark .bg-sky-50,
-  .dark .bg-amber-100 {
+  .dark .bg-amber-100,
+  .dark .bg-emerald-100 {
     background-color: #1e293b;
-  }
-
-  /* Header translucent */
-  .dark .bg-white\/90 {
-    background-color: rgba(15, 23, 42, 0.9);
   }
 
   /* Search input focus state */
@@ -205,8 +263,12 @@ html.dark body {
   .dark .hover\:bg-gray-50:hover {
     background-color: #334155;
   }
+  .dark .hover\:bg-white\/70:hover,
+  .dark .hover\:bg-white\/60:hover {
+    background-color: rgba(15, 23, 42, 0.7);
+  }
 
-  /* Borders - soften pure black on dark bg */
+  /* Borders - soften pure black / brand-green on dark bg */
   .dark .border-black {
     border-color: #475569; /* slate-600 */
   }
@@ -215,33 +277,64 @@ html.dark body {
   .dark .border-gray-300 {
     border-color: #334155;
   }
+  .dark .border-brand-dark {
+    border-color: #475569;
+  }
+  .dark .border-brand-dark\/20,
+  .dark .border-brand-dark\/15,
+  .dark .border-brand-dark\/10,
+  .dark .border-brand-dark\/\[0\.06\] {
+    border-color: #334155;
+  }
+  .dark .border-\[\#e5e0d8\] {
+    border-color: #334155;
+  }
+  .dark .ring-brand-dark\/\[0\.06\] {
+    --tw-ring-color: #334155;
+  }
 
   /* Placeholder & form elements */
   .dark input::placeholder,
   .dark textarea::placeholder {
     color: #94a3b8;
   }
+  .dark {
+    color-scheme: dark; /* scrollbars, checkbox, default canvas */
+  }
   .dark input,
   .dark textarea,
   .dark select {
     color-scheme: dark;
+    /* Preflight does not set color:inherit, so dark forms would fall back to
+       the UA default and drift away from the surrounding card. */
+    color: inherit;
   }
   .dark .bg-white input,
   .dark .bg-white textarea {
     background-color: #0f172a;
     color: #f1f5f9;
   }
+  .dark ::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 
   /* Selection & scrollbar harmony */
   .dark ::selection {
     background-color: rgba(220, 38, 38, 0.4);
+  }
+  .dark * {
+    scrollbar-color: #334155 transparent;
   }
 
   /* Hard-coded light hex surfaces → dark slate in dark mode (prevents white-on-white) */
   .dark .bg-\[\#e8ecef\],
   .dark .bg-\[\#f0f0f0\],
   .dark .bg-\[\#f0f2f5\],
-  .dark .bg-\[\#d8d8d8\] {
+  .dark .bg-\[\#f0f1f3\],
+  .dark .bg-\[\#f5f5f5\],
+  .dark .bg-\[\#d8d8d8\],
+  .dark .bg-\[\#e2f0d9\],
+  .dark .bg-\[\#ffffff\] {
     background-color: #1e293b !important;
   }
   .dark .bg-\[\#202020\],
@@ -249,7 +342,7 @@ html.dark body {
   .dark .bg-\[\#111\] {
     background-color: #0f172a !important;
   }
-  .dark .bg-\[\#ffffff\],
+.dark .bg-\[\#ffffff\],
   .dark .bg-\[\#e2f0d9\],
   .dark .bg-\[\#f5f5f5\],
   .dark .bg-\[\#f0f1f3\] {
@@ -391,6 +484,114 @@ html.dark body {
   /* Explicit white hover (red brand buttons) wins over accent lightening */
   .dark .hover\:text-white:hover { color: #fff !important; }
 
+  .dark .bg-white\/90,
+  .dark .bg-white\/85,
+  .dark .bg-white\/80,
+  .dark .bg-white\/70 {
+    background-color: rgba(15, 23, 42, 0.9) !important;
+  }
+
+  /* Remaining pale tints that pair with (now lightened) semantic text */
+  .dark .bg-red-100,
+  .dark .bg-blue-100,
+  .dark .bg-violet-50,
+  .dark .bg-orange-50,
+  .dark .bg-green-100 {
+    background-color: #1e293b;
+  }
+  .dark .hover\:bg-red-100:hover,
+  .dark .hover\:bg-emerald-100:hover,
+  .dark .hover\:bg-violet-50:hover,
+  .dark .hover\:bg-blue-100:hover {
+    background-color: #334155;
+  }
+  .dark .hover\:bg-amber-100:hover,
+  .dark .hover\:bg-amber-50:hover,
+  .dark .hover\:bg-emerald-50:hover,
+  .dark .hover\:bg-sky-50:hover {
+    background-color: #334155;
+  }
+  .dark .focus\:bg-gray-100:focus,
+  .dark .focus\:bg-gray-50:focus,
+  .dark .focus\:bg-red-50:focus {
+    background-color: #334155;
+  }
+  .dark .focus-within\:bg-amber-50:focus-within {
+    background-color: #334155;
+  }
+  .dark .border-red-200,
+  .dark .border-emerald-200,
+  .dark .border-red-300 {
+    border-color: #7f1d1d;
+  }
+
+  /* Brand red / link blue sit too dark on a dark surface - lift them */
+  .dark .text-\[\#cc0000\] {
+    color: #f87171;
+  }
+  .dark .text-\[\#1677e8\] {
+    color: #7dd3fc;
+  }
+  .dark .text-blue-800,
+  .dark .text-blue-900 {
+    color: #93c5fd;
+  }
+  .dark .text-blue-700,
+  .dark .text-blue-600 {
+    color: #60a5fa;
+  }
+  .dark .text-orange-800,
+  .dark .text-orange-900 {
+    color: #fdba74;
+  }
+  .dark .text-amber-800 {
+    color: #fcd34d; /* pairs with the remapped bg-amber-50/100 */
+  }
+  .dark .text-emerald-600,
+  .dark .text-emerald-900 {
+    color: #6ee7b7;
+  }
+  .dark .text-violet-600,
+  .dark .text-violet-700 {
+    color: #c4b5fd;
+  }
+  .dark .text-violet-800,
+  .dark .text-violet-900 {
+    color: #c4b5fd;
+  }
+  .dark .text-green-800,
+  .dark .text-green-900 {
+    color: #86efac;
+  }
+
+  /* ——— Vivid accent surfaces stay "dark on light" in BOTH themes ———
+     These are saturated swatches/active states. Their ink must not follow the
+     page theme or it washes out against the accent. Placed last so it wins the
+     specificity tie against the brand-ink remap above. */
+  .dark .bg-amber-200,
+  .dark .bg-amber-300,
+  .dark .bg-amber-400,
+  .dark .bg-emerald-200,
+  .dark .bg-emerald-300,
+  .dark .bg-emerald-400,
+  .dark .bg-sky-200,
+  .dark .bg-sky-300,
+  .dark .bg-sky-400,
+  .dark .bg-yellow-200,
+  .dark .bg-yellow-300,
+  .dark .bg-blue-200,
+  .dark .bg-lime-200 {
+    color: #0f172a;
+  }
+  /* ...unless white was explicitly requested on the same element */
+  .dark .bg-amber-400.text-white,
+  .dark .bg-amber-300.text-white,
+  .dark .bg-emerald-400.text-white,
+  .dark .bg-sky-400.text-white,
+  .dark .bg-blue-200.text-white {
+    color: #ffffff;
+  }
+
   /* ——— Light theme tuning: ensure muted text harmonizes with #e8ecef / white cards ———
      Light theme uses warm slate, not pure gray, for better harmony.
      Without .dark, keep headings crisp and soften secondary text just enough. */
@@ -453,35 +654,89 @@ html.dark body {
     color: #2d3a2e !important; /* brand-dark */
   }
 
-  /* Soften neo-brutalist offset shadows so cards feel airy (light only) */
-  :root:not(.dark) [class*="shadow-[10px_10px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[8px_8px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[6px_6px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[5px_5px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[4px_4px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[3px_3px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[2px_2px_0px_0px"],
-  :root:not(.dark) [class*="shadow-[1px_1px_0px_0px"] {
+  /* Light-mode contrast floor for the brand-dark opacity ramp.
+     `text-brand-dark/40..60` compile to color-mix(... 50%, transparent), which
+     lands at 2.2-3.6:1 on white/cream -- too low to read. Re-state them as
+     solid tints so the muted hierarchy survives but nothing is illegible.
+     /80-/50 are body text (>=4.5:1); /40-/30 are icons only (>=3:1). */
+  .text-brand-dark\/80 {
+    color: #3d4a3f !important;
+  }
+  .text-brand-dark\/70 {
+    color: #4d5a4e !important;
+  }
+  .text-brand-dark\/60 {
+    color: #5c6a5d !important;
+  }
+  .text-brand-dark\/50 {
+    color: #66715f !important;
+  }
+  .text-brand-dark\/40 {
+    color: #6f7669 !important;
+  }
+  .text-brand-dark\/30 {
+    color: #8f988f !important;
+  }
+
+  /* ——— Neo-brutalist chrome, normalized identically in BOTH themes ———
+     The old design leaned on 4px black borders + hard offset shadows. Both are
+     unreadable on a dark surface (black border vanishes, offset shadow is
+     invisible), so soften them everywhere instead of light-only. */
+
+  /* Hard offset shadows → soft diffuse drop shadow */
+  [class*="shadow-[10px_10px_0px_0px"],
+  [class*="shadow-[8px_8px_0px_0px"],
+  [class*="shadow-[6px_6px_0px_0px"],
+  [class*="shadow-[5px_5px_0px_0px"],
+  [class*="shadow-[4px_4px_0px_0px"],
+  [class*="shadow-[3px_3px_0px_0px"],
+  [class*="shadow-[2px_2px_0px_0px"],
+  [class*="shadow-[1px_1px_0px_0px"] {
     box-shadow: 0 10px 30px -14px rgba(45, 58, 46, 0.18);
   }
+  .dark [class*="shadow-[10px_10px_0px_0px"],
+  .dark [class*="shadow-[8px_8px_0px_0px"],
+  .dark [class*="shadow-[6px_6px_0px_0px"],
+  .dark [class*="shadow-[5px_5px_0px_0px"],
+  .dark [class*="shadow-[4px_4px_0px_0px"],
+  .dark [class*="shadow-[3px_3px_0px_0px"],
+  .dark [class*="shadow-[2px_2px_0px_0px"],
+  .dark [class*="shadow-[1px_1px_0px_0px"] {
+    box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+  }
 
-  /* Thin out the chunky 4px borders for a cleaner, lighter card look */
-  :root:not(.dark) [class*="border-4"] {
+  /* Single-axis offset shadows (editor header/toolbar underlines) */
+  [class*="shadow-[0_4px_0_0_rgba(0,0,0"] {
+    box-shadow: 0 1px 0 0 #e5e0d8;
+  }
+  .dark [class*="shadow-[0_4px_0_0_rgba(0,0,0"] {
+    box-shadow: 0 1px 0 0 #334155;
+  }
+  [class*="shadow-[4px_0_0_0_rgba(0,0,0"],
+  [class*="shadow-[-4px_0_0_0_rgba(0,0,0"] {
+    box-shadow: 1px 0 0 0 #e5e0d8;
+  }
+  .dark [class*="shadow-[4px_0_0_0_rgba(0,0,0"],
+  .dark [class*="shadow-[-4px_0_0_0_rgba(0,0,0"] {
+    box-shadow: 1px 0 0 0 #334155;
+  }
+
+  /* Thin the chunky borders for a cleaner card look */
+  [class*="border-4"] {
     border-width: 1px;
   }
-  :root:not(.dark) [class*="border-4"] {
-    border-color: #e5e0d8;
+  [class*="border-[3px]"] {
+    border-width: 1px;
   }
-  :root:not(.dark) [class*="border-[3px]"] {
+  [class*="border-2"] {
     border-width: 1px;
   }
 
-  /* Light mode: pure black borders (border-2/border-black) are softened to the
-     warm light ring so neo-brutalist chrome no longer reads as "black". */
-  :root:not(.dark) .border-black {
+  /* Black borders read as a hairline ring: warm in light, slate in dark.
+     The .dark branch is already covered by the .dark .border-black remap
+     earlier in this layer, so both of these stay light-only. */
+  :root:not(.dark) .border-black,
+  :root:not(.dark) [class*="border-4"].border-black {
     border-color: #e5e0d8;
-  }
-  :root:not(.dark) [class*="border-2"] {
-    border-width: 1px;
   }
 }

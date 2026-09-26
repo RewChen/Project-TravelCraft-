@@ -18,7 +18,7 @@ import { uploadMapMedia } from '../lib/supabaseUploads';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
 import EditableCover from '../components/map/EditableCover';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, clampValue, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, MIN_BACKGROUND_SIZE, MAX_BACKGROUND_SIZE, clampValue, normalizeBackgroundSize, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 import { mapTemplates } from '../data/templates';
 
@@ -190,6 +190,7 @@ const { t, publishMapToCommunity, editorSetup, userProfile, communityMaps, baseM
   } = useCanvasControls({ canvasWidth, canvasHeight });
   const tourCameraRef = useRef(camera);
   const [backgroundImage, setBackgroundImage] = useState(() => (typeof savedEditorState?.backgroundImage === 'string' && savedEditorState.backgroundImage) || '');
+  const [backgroundSize, setBackgroundSize] = useState(() => normalizeBackgroundSize(savedEditorState?.backgroundSize, canvasWidth, canvasHeight));
   const [ready, setReady] = useState(false);
   const [elements, setElements] = useState(() => (Array.isArray(savedEditorState?.elements)
     ? scaleElementFontSizes(savedEditorState.elements, savedEditorState?.elementPositions).map((element) => normalizeElementFont(element))
@@ -279,6 +280,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     navEndId,
     selectedTemplate,
     backgroundImage,
+    backgroundSize,
     canvasWidth,
     canvasHeight,
     mapTitle,
@@ -855,6 +857,50 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     return () => clearTimeout(timer);
   }, [ready, viewportSize.width, viewportSize.height, fitView]);
 
+  // --- Background image size (px) ---
+  // The draft mirrors the committed size so typing is never interrupted; every
+  // place that changes the size goes through commitBackgroundSize().
+  const [bgSizeDraft, setBgSizeDraft] = useState(() => ({
+    width: String(backgroundSize.width),
+    height: String(backgroundSize.height)
+  }));
+  const [bgAspectLocked, setBgAspectLocked] = useState(true);
+  const backgroundAspectRef = useRef(null);
+
+  const commitBackgroundSize = (next, sizeCanvasWidth = canvasWidth, sizeCanvasHeight = canvasHeight) => {
+    const normalized = normalizeBackgroundSize(next, sizeCanvasWidth, sizeCanvasHeight);
+    setBackgroundSize(normalized);
+    setBgSizeDraft({ width: String(normalized.width), height: String(normalized.height) });
+    return normalized;
+  };
+
+  useEffect(() => {
+    if (!backgroundImage) {
+      backgroundAspectRef.current = null;
+      return undefined;
+    }
+    const probe = new Image();
+    probe.onload = () => {
+      backgroundAspectRef.current = probe.width && probe.height ? probe.width / probe.height : null;
+    };
+    probe.src = backgroundImage;
+    return () => { probe.onload = null; };
+  }, [backgroundImage]);
+
+  const fitBackgroundToCanvas = () => {
+    commitBackgroundSize(null);
+  };
+
+  const applyBackgroundSize = (axis, rawValue) => {
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isFinite(parsed) || parsed < MIN_BACKGROUND_SIZE) return;
+    const ratio = backgroundAspectRef.current || (backgroundSize.width / backgroundSize.height);
+    const next = axis === 'width'
+      ? { width: parsed, height: bgAspectLocked ? Math.round(parsed / ratio) : backgroundSize.height }
+      : { width: bgAspectLocked ? Math.round(parsed * ratio) : backgroundSize.width, height: parsed };
+    commitBackgroundSize(next);
+  };
+
   const handleBackgroundUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) {
@@ -878,6 +924,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
           setBackgroundImage(asset.url);
           setCanvasWidth(newWidth);
           setCanvasHeight(newHeight);
+          commitBackgroundSize(null, newWidth, newHeight);
         }
       });
     };
@@ -888,6 +935,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     setBackgroundImage('');
     setCanvasWidth(DEFAULT_CANVAS_WIDTH);
     setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+    commitBackgroundSize(null, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT);
   };
 
     const handleWorldPointerDown = (event) => {
@@ -946,6 +994,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         navEndId,
         selectedTemplate,
         backgroundImage,
+        backgroundSize,
         canvasWidth,
         canvasHeight,
         mapTitle,
@@ -960,7 +1009,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
       setAutosaveStatus('Saved');
     }, 500);
     return () => clearTimeout(timer);
-  }, [elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, backgroundImage, canvasWidth, canvasHeight, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
+  }, [elements, elementPositions, routes, navStartId, navEndId, selectedTemplate, backgroundImage, backgroundSize, canvasWidth, canvasHeight, mapTitle, publishDescription, publishTags, publishPrivacy, publishVideoUrl, publishSelfieUrls, publishCoverImage, mapId]);
 
   useEffect(() => {
     tourCameraRef.current = camera;
@@ -1824,6 +1873,7 @@ if (updates.privacy === 'private') {
     setBackgroundImage(canvas.toDataURL('image/png'));
     setCanvasWidth(DEFAULT_CANVAS_WIDTH);
     setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+    commitBackgroundSize(null, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT);
   };
 
   const getSavedProjects = () => {
@@ -1850,6 +1900,7 @@ if (updates.privacy === 'private') {
     setNavEndId(typeof state.navEndId === 'string' ? state.navEndId : null);
     if (typeof state.selectedTemplate === 'string') setSelectedTemplate(state.selectedTemplate);
     if (typeof state.backgroundImage === 'string') setBackgroundImage(state.backgroundImage);
+    commitBackgroundSize(state.backgroundSize);
     if (typeof state.mapTitle === 'string') setMapTitle(state.mapTitle);
     if (typeof state.publishDescription === 'string') setPublishDescription(state.publishDescription);
     if (typeof state.publishTags === 'string') setPublishTags(state.publishTags);
@@ -1886,6 +1937,7 @@ if (updates.privacy === 'private') {
     setBackgroundImage(template?.image || '');
     setCanvasWidth(DEFAULT_CANVAS_WIDTH);
     setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+    commitBackgroundSize(null, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT);
   };
 
   const selectBaseMapBackground = (baseMap) => {
@@ -1893,6 +1945,7 @@ if (updates.privacy === 'private') {
     setBackgroundImage(baseMap.image || baseMap.imageUrl || '');
     setCanvasWidth(DEFAULT_CANVAS_WIDTH);
     setCanvasHeight(DEFAULT_CANVAS_HEIGHT);
+    commitBackgroundSize(null, DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT);
   };
 
   const baseMapImageSelected = (baseMap) =>
@@ -1931,7 +1984,7 @@ if (updates.privacy === 'private') {
   }, []);
 
   return (
-    <div className="h-screen w-full bg-brand-light flex flex-col font-thai text-brand-dark overflow-hidden selection:bg-red-200">
+    <div className="h-screen w-full bg-brand-light dark:bg-slate-950 flex flex-col font-thai text-brand-dark dark:text-slate-100 overflow-hidden selection:bg-red-200">
       <style>{`
         .editor-anim-wave { animation: editorWave 1.2s ease-in-out infinite; transform-origin: 50% 50%; }
         @keyframes editorWave { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg) translateY(-8px); } }
@@ -1943,7 +1996,7 @@ if (updates.privacy === 'private') {
       `}</style>
       
       {/* TOP NAVBAR */}
-      <header className="h-14 bg-white border-b-4 border-black flex items-center justify-between px-4 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] z-20 relative">
+      <header className="h-14 bg-white dark:bg-slate-900 border-b-4 border-black flex items-center justify-between px-4 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] z-20 relative">
         <div className="flex items-center gap-4 h-full">
           <button onClick={onBack} className="hover:bg-gray-200 p-1 rounded transition-colors" title={t('editor.backToMyMaps')}>
             <ArrowLeft className="w-5 h-5 font-black" />
@@ -1988,14 +2041,14 @@ if (updates.privacy === 'private') {
       {/* SECONDARY TOOLBAR (TEXT FORMATTING) */}
       {selectedElement && selectedData?.type === 'text' && (
         <div className="relative shrink-0 z-20">
-        <div className="h-12 bg-white border-b-4 border-black flex items-center px-4 gap-2 z-10 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar">
+        <div className="h-12 bg-white dark:bg-slate-900 border-b-4 border-black flex items-center px-4 gap-2 z-10 shrink-0 shadow-[0_4px_0_0_rgba(0,0,0,1)] overflow-x-auto hide-scrollbar">
 
           {/* Font Family */}
           <div className="relative shrink-0 min-w-[120px]">
             <select
               value={selectedData.fontFamily || 'sans-serif'}
               onChange={(event) => updateSelectedTextStyle({ fontFamily: event.target.value })}
-              className="appearance-none w-full border-2 border-black rounded-lg px-3 py-1 bg-white hover:bg-gray-100 font-bold text-sm cursor-pointer pr-8"
+              className="appearance-none w-full border-2 border-black rounded-lg px-3 py-1 bg-white dark:bg-slate-800 hover:bg-gray-100 font-bold text-sm cursor-pointer pr-8"
             >
               <option value="sans-serif">Sans-serif</option>
               <option value="Garuda">Garuda</option>
@@ -2007,7 +2060,7 @@ if (updates.privacy === 'private') {
           </div>
 
           {/* Font Size */}
-          <div className="flex items-center border-2 border-black rounded-lg overflow-hidden h-8 bg-white shrink-0">
+          <div className="flex items-center border-2 border-black rounded-lg overflow-hidden h-8 bg-white dark:bg-slate-800 shrink-0">
             <button onClick={() => updateSelectedTextStyle({ fontSize: Math.max(20, (selectedData.fontSize || 160) - 4) })} className="px-2 h-full hover:bg-gray-200 font-bold">-</button>
             <input
               type="number"
@@ -2105,7 +2158,7 @@ if (updates.privacy === 'private') {
         </div>
 
         {showTextStyleMenu && (
-          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white dark:bg-slate-900 border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
             <div className="space-y-3">
               <div>
                 <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textGradient')}</label>
@@ -2117,25 +2170,25 @@ if (updates.privacy === 'private') {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => applyTextStyle({ textStroke: selectedData.textStroke ? undefined : 3 })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textStroke ? 'bg-amber-200' : 'bg-white hover:bg-gray-50'}`}>{t('editor.textStroke')}</button>
-                <button type="button" onClick={() => applyTextStyle({ textGlow: selectedData.textGlow ? undefined : '#f59e0b' })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textGlow ? 'bg-amber-200' : 'bg-white hover:bg-gray-50'}`}>{t('editor.textGlow')}</button>
+                <button type="button" onClick={() => applyTextStyle({ textStroke: selectedData.textStroke ? undefined : 3 })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textStroke ? 'bg-amber-200' : 'bg-white dark:bg-slate-800 hover:bg-gray-50'}`}>{t('editor.textStroke')}</button>
+                <button type="button" onClick={() => applyTextStyle({ textGlow: selectedData.textGlow ? undefined : '#f59e0b' })} className={`flex-1 border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${selectedData.textGlow ? 'bg-amber-200' : 'bg-white dark:bg-slate-800 hover:bg-gray-50'}`}>{t('editor.textGlow')}</button>
               </div>
               {(selectedData.textGradient || selectedData.textStroke || selectedData.textGlow) && (
-                <button type="button" onClick={() => applyTextStyle({ textGradient: undefined, textStroke: undefined, textGlow: undefined })} className="w-full border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase text-red-600 bg-white hover:bg-red-50">{t('editor.textStyleClear')}</button>
+                <button type="button" onClick={() => applyTextStyle({ textGradient: undefined, textStroke: undefined, textGlow: undefined })} className="w-full border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase text-red-600 bg-white dark:bg-slate-800 hover:bg-red-50">{t('editor.textStyleClear')}</button>
               )}
             </div>
           </div>
         )}
 
         {showTextAnimMenu && (
-          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white dark:bg-slate-900 border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
             <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textAnimate')}</label>
             <div className="grid grid-cols-2 gap-2">
               {textAnimations.map((anim) => (
                 <button key={anim.id} type="button" onClick={() => {
                   applyTextStyle({ textAnimation: anim.id === 'none' ? undefined : anim.id });
                   setShowTextAnimMenu(false);
-                }} className={`border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${(selectedData.textAnimation || 'none') === anim.id ? 'bg-emerald-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                }} className={`border-2 border-black rounded-lg px-2 py-1.5 font-black text-[10px] uppercase ${(selectedData.textAnimation || 'none') === anim.id ? 'bg-emerald-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white dark:bg-slate-800 hover:bg-gray-50'}`}>
                   {t(anim.labelKey)}
                 </button>
               ))}
@@ -2144,7 +2197,7 @@ if (updates.privacy === 'private') {
         )}
 
         {showTextPositionMenu && (
-          <div className="absolute left-4 top-full mt-2 z-40 bg-white border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
+          <div className="absolute left-4 top-full mt-2 z-40 bg-white dark:bg-slate-900 border-2 border-black rounded-xl p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-[300px]">
             <div className="space-y-3">
               <div>
                 <label className="text-[9px] font-black uppercase text-gray-400 block mb-1.5">{t('editor.textPositionH')}</label>
@@ -2153,7 +2206,7 @@ if (updates.privacy === 'private') {
                     <button key={align} type="button" onClick={() => {
                       applyTextStyle({ textAlign: align === 'center' ? undefined : align });
                       setShowTextPositionMenu(false);
-                    }} title={align} className={`flex-1 flex items-center justify-center border-2 border-black rounded-lg px-1 py-1.5 ${(selectedData.textAlign || 'center') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                    }} title={align} className={`flex-1 flex items-center justify-center border-2 border-black rounded-lg px-1 py-1.5 ${(selectedData.textAlign || 'center') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white dark:bg-slate-800 hover:bg-gray-50'}`}>
                       <Icon className="w-4 h-4" />
                     </button>
                   ))}
@@ -2166,7 +2219,7 @@ if (updates.privacy === 'private') {
                     <button key={align} type="button" onClick={() => {
                       applyTextStyle({ verticalAlign: align === 'middle' ? undefined : align });
                       setShowTextPositionMenu(false);
-                    }} className={`border-2 border-black rounded-lg px-1 py-1.5 font-black text-[10px] uppercase ${(selectedData.verticalAlign || 'middle') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white hover:bg-gray-50'}`}>
+                    }} className={`border-2 border-black rounded-lg px-1 py-1.5 font-black text-[10px] uppercase ${(selectedData.verticalAlign || 'middle') === align ? 'bg-sky-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'bg-white dark:bg-slate-800 hover:bg-gray-50'}`}>
                       {t(labelKey)}
                     </button>
                   ))}
@@ -2185,11 +2238,11 @@ if (updates.privacy === 'private') {
             <h2 className="font-black text-lg">{t('editor.shareModalTitle')}</h2>
             <button onClick={() => setShowShareModal(false)} title={t('editor.close')} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 rounded"><X className="w-5 h-5" /></button>
           </div>
-          <button onClick={nativeShare} className="mx-auto my-5 block bg-white text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">{t('editor.shareBtn')}</button>
+          <button onClick={nativeShare} className="mx-auto my-5 block bg-white dark:bg-slate-800 text-black rounded-full px-5 py-2 font-bold hover:bg-gray-200">{t('editor.shareBtn')}</button>
           <p className="text-center text-sm text-slate-600 dark:text-gray-300 mb-5">{t('editor.shareModalDesc')}</p>
           <div className="grid grid-cols-5 gap-3 mb-6">
             <button onClick={() => openShareLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`)} title={t('editor.facebook')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#1877f2] flex items-center justify-center font-black text-2xl">f</span><span className="text-[10px]">{t('editor.facebook')}</span></button>
-            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.messages')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">{t('editor.messages')}</span></button>
+            <button onClick={() => openShareLink(`sms:?body=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.messages')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-[#1677e8] flex items-center justify-center"><MessageCircle className="w-7 h-7 fill-current" /></span><span className="text-[10px]">{t('editor.messages')}</span></button>
             <button onClick={() => openShareLink(`https://wa.me/?text=${encodeURIComponent(`${shareTitle} ${shareUrl}`)}`)} title={t('editor.whatsapp')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-[#25d366] flex items-center justify-center"><Smartphone className="w-6 h-6" /></span><span className="text-[10px]">{t('editor.whatsapp')}</span></button>
             <button onClick={() => openShareLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`)} title={t('editor.x')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-black border border-white/30 flex items-center justify-center font-black text-xl">X</span><span className="text-[10px]">{t('editor.x')}</span></button>
             <button onClick={copyShareLink} title={t('editor.copyLink')} className="flex flex-col items-center gap-1"><span className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center"><Copy className="w-5 h-5" /></span><span className="text-[10px]">{copied ? t('editor.copied') : t('editor.copy')}</span></button>
@@ -2206,7 +2259,7 @@ if (updates.privacy === 'private') {
         if (!previewTemplate) return null;
         return (
           <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPreviewTemplateId(null)}>
-            <div className="w-full max-w-2xl bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
+            <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black">
                 <h3 className="font-black text-sm uppercase">{t(previewTemplate.labelKey)}</h3>
                 <button type="button" onClick={() => setPreviewTemplateId(null)} title={t('editor.close')} className="w-7 h-7 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
@@ -2220,7 +2273,7 @@ if (updates.privacy === 'private') {
                   <div className="w-full h-72" style={{ background: previewTemplate.preview }} />
                 )}
               </div>
-              <div className="flex items-center justify-end gap-2 px-4 py-3 border-t-2 border-black bg-white">
+              <div className="flex items-center justify-end gap-2 px-4 py-3 border-t-2 border-black bg-white dark:bg-slate-900">
                 <button type="button" onClick={() => setPreviewTemplateId(null)} className="border-2 border-black rounded-lg px-4 py-2 text-xs font-black uppercase hover:bg-gray-100">
                   {t('editor.close')}
                 </button>
@@ -2261,7 +2314,7 @@ if (updates.privacy === 'private') {
 
       {showBadgeCelebration && (
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowBadgeCelebration(false)}>
-          <div className="w-full max-w-sm bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 text-center" onClick={(event) => event.stopPropagation()}>
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 border-4 border-black rounded-2xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 text-center" onClick={(event) => event.stopPropagation()}>
             <div className="text-4xl mb-1">🎉</div>
             <h3 className="font-black uppercase text-sm">{t('editor.badgeUnlocked')}</h3>
             <div className="mt-4 space-y-2">
@@ -2289,7 +2342,7 @@ if (updates.privacy === 'private') {
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT MENU STRIP */}
-        <div className="w-20 bg-white border-r-4 border-black flex flex-col items-center py-4 gap-1 z-10 shrink-0 overflow-y-auto overflow-x-hidden">
+        <div className="w-20 bg-white dark:bg-slate-900 border-r-4 border-black flex flex-col items-center py-4 gap-1 z-10 shrink-0 overflow-y-auto overflow-x-hidden">
           {editorTabs.map((tab, idx) => {
             if (tab.isDivider) {
               return <div key={`divider-${idx}`} className="w-6 h-px bg-gray-200 my-2 shrink-0"></div>;
@@ -2325,7 +2378,7 @@ if (updates.privacy === 'private') {
 
         {/* LEFT PANEL CONTENT */}
         {panelOpen ? (
-        <div className="w-64 bg-white border-r-4 border-black flex flex-col z-10 shadow-[4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden md:flex">
+        <div className="w-64 bg-white dark:bg-slate-900 border-r-4 border-black flex flex-col z-10 shadow-[4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden md:flex">
           <div className="p-4 border-b-2 border-black flex items-center justify-between gap-2">
             <h2 className="font-black text-sm uppercase">
               {t(tabLabelKeys[activeTab]) || editorTabs.find(t => t.id === activeTab)?.defaultLabel}
@@ -2346,10 +2399,10 @@ if (updates.privacy === 'private') {
                         {!template.image && (
                           <div className="absolute inset-0 opacity-30 bg-[repeating-linear-gradient(90deg,transparent_0_15px,#1f2937_16px_17px),repeating-linear-gradient(0deg,transparent_0_15px,#1f2937_16px_17px)]"></div>
                         )}
-                        <span className="relative z-10 bg-white/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
+                        <span className="relative z-10 bg-white/90 dark:bg-slate-800/90 border border-black px-1 text-[8px] font-black uppercase">{t(template.labelKey)}</span>
                       </button>
                       {selectedTemplate === template.id && <span className="absolute top-1 right-1 z-10 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center pointer-events-none"><Check className="w-3 h-3 stroke-[4]" /></span>}
-                      <button type="button" onClick={(event) => { event.stopPropagation(); setPreviewTemplateId(template.id); }} title="ดูรูปตัวอย่าง" className="absolute bottom-1 left-1 z-10 w-6 h-6 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-amber-200">
+                      <button type="button" onClick={(event) => { event.stopPropagation(); setPreviewTemplateId(template.id); }} title="ดูรูปตัวอย่าง" className="absolute bottom-1 left-1 z-10 w-6 h-6 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-amber-200">
                         <Eye className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -2412,7 +2465,7 @@ if (updates.privacy === 'private') {
                 </div>
                 <div className="mt-2 space-y-2 border-t-2 border-black pt-3">
                   <input ref={elementImageInputRef} type="file" accept=".png,image/png" multiple onChange={handleElementUpload} className="hidden" />
-                  <button type="button" onClick={() => elementImageInputRef.current?.click()} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5">
+                  <button type="button" onClick={() => elementImageInputRef.current?.click()} className="w-full border-2 border-black bg-white dark:bg-slate-800 font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5">
                     <Upload className="w-3.5 h-3.5" /> {t('editor.uploadPngElement')}
                   </button>
                   {elementUploadError && (
@@ -2426,9 +2479,9 @@ if (updates.privacy === 'private') {
                           <div key={item.id} draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: item.label, content: item.url || item.content })} className="relative aspect-square border-2 border-black rounded overflow-hidden bg-gray-50 group">
                             <button type="button" draggable onDragStart={(event) => startPaletteDrag(event, { type: 'image', label: item.label, content: item.url || item.content })} onClick={() => addPaletteElement({ type: 'image', label: item.label, content: item.url || item.content })} title={item.label} className="w-full h-full cursor-pointer hover:bg-amber-100">
                               <img src={item.url || item.content} alt={item.label} className="w-full h-full object-contain" />
-                              <span className="absolute bottom-0 inset-x-0 bg-white/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
+                              <span className="absolute bottom-0 inset-x-0 bg-white/90 dark:bg-slate-800/90 border-t border-black text-[8px] font-black uppercase px-1 py-0.5 truncate">{item.label}</span>
                             </button>
-                            <button type="button" onClick={() => removeUserAsset(item)} className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
+                            <button type="button" onClick={() => removeUserAsset(item)} className="absolute top-1 right-1 w-5 h-5 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
                               <X className="w-3 h-3" />
                             </button>
                           </div>
@@ -2443,7 +2496,7 @@ if (updates.privacy === 'private') {
             {activeTab === 'TEXT' && (
               <div className="space-y-3">
                 {textPresets.map((preset) => (
-                  <button key={preset.labelKey} onClick={() => addElement({ type: 'text', labelKey: preset.labelKey, content: t(preset.contentKey), fontSize: preset.fontSize, fontWeight: preset.fontWeight })} className="w-full border-2 border-black bg-white px-3 py-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: `${Math.min(24, preset.fontSize)}px`, fontWeight: preset.fontWeight, lineHeight: 1.3 }}>{t(preset.contentKey)}</button>
+                  <button key={preset.labelKey} onClick={() => addElement({ type: 'text', labelKey: preset.labelKey, content: t(preset.contentKey), fontSize: preset.fontSize, fontWeight: preset.fontWeight })} className="w-full border-2 border-black bg-white dark:bg-slate-800 px-3 py-3 text-left hover:bg-amber-100 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ fontSize: `${Math.min(24, preset.fontSize)}px`, fontWeight: preset.fontWeight, lineHeight: 1.3 }}>{t(preset.contentKey)}</button>
                 ))}
               </div>
             )}
@@ -2466,7 +2519,7 @@ if (updates.privacy === 'private') {
                           {isSelected && (
                             <span className="absolute top-1 right-1 w-5 h-5 bg-[#4895ef] text-white border-2 border-black rounded-full flex items-center justify-center"><Check className="w-3 h-3 stroke-[4]" /></span>
                           )}
-                          <button type="button" onClick={() => removeUpload(file.id)} className="absolute top-1 left-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeUpload')}>
+                          <button type="button" onClick={() => removeUpload(file.id)} className="absolute top-1 left-1 w-5 h-5 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeUpload')}>
                             <X className="w-3 h-3" />
                           </button>
                         </div>
@@ -2486,7 +2539,7 @@ if (updates.privacy === 'private') {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   {drawingTools.map(([tool, Icon, labelKey]) => (
-                    <button key={tool} type="button" onClick={() => handleToolAction(tool)} className={`flex items-center gap-2 border-2 border-black rounded-lg px-3 py-2.5 font-black text-[10px] uppercase transition-colors ${activeTool === tool ? 'bg-[#cc0000] text-white' : 'bg-white hover:bg-amber-100'}`}>
+                    <button key={tool} type="button" onClick={() => handleToolAction(tool)} className={`flex items-center gap-2 border-2 border-black rounded-lg px-3 py-2.5 font-black text-[10px] uppercase transition-colors ${activeTool === tool ? 'bg-[#cc0000] text-white' : 'bg-white dark:bg-slate-800 hover:bg-amber-100'}`}>
                       <Icon className="w-4 h-4" />
                       {t(labelKey)}
                     </button>
@@ -2494,7 +2547,7 @@ if (updates.privacy === 'private') {
                 </div>
 <div className="border-t-2 border-black pt-3 space-y-2">
                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.color')}</label>
-                   <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                   <label className="flex items-center gap-2 rounded-xl border-2 border-black bg-white dark:bg-slate-800 px-3 py-2 cursor-pointer">
                      <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.chooseColor')}</span>
                      <input type="color" value={drawingColor} onChange={(event) => setDrawingColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
                    </label>
@@ -2517,11 +2570,11 @@ if (updates.privacy === 'private') {
                   <div className="border-2 border-black rounded-lg p-2 space-y-2 bg-sky-50">
                     <p className="font-black text-[11px]">🧭 {t('editor.navABTitle')}</p>
                     {locationElements.length === 0 && (
-                      <p className="text-[10px] font-bold text-red-600 leading-tight border-2 border-dashed border-red-300 rounded p-1.5 bg-white">{t('editor.navNoLocations')}</p>
+                      <p className="text-[10px] font-bold text-red-600 leading-tight border-2 border-dashed border-red-300 rounded p-1.5 bg-white dark:bg-slate-800">{t('editor.navNoLocations')}</p>
                     )}
                     <label className="flex items-center gap-1.5">
                       <span className="w-5 h-5 rounded-full bg-emerald-500 border-2 border-black text-white text-[10px] font-black flex items-center justify-center shrink-0">A</span>
-                      <select value={navStartId || ''} onChange={(e) => setNavPoint('start', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white">
+                      <select value={navStartId || ''} onChange={(e) => setNavPoint('start', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white dark:bg-slate-800">
                         <option value="">{t('editor.navSelectStart')}</option>
                         {locationElements.map((el) => (
                           <option key={el.id} value={el.id}>{el.locationDetails?.name || getElementLabel(el)}</option>
@@ -2530,7 +2583,7 @@ if (updates.privacy === 'private') {
                     </label>
                     <label className="flex items-center gap-1.5">
                       <span className="w-5 h-5 rounded-full bg-red-600 border-2 border-black text-white text-[10px] font-black flex items-center justify-center shrink-0">B</span>
-                      <select value={navEndId || ''} onChange={(e) => setNavPoint('end', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white">
+                      <select value={navEndId || ''} onChange={(e) => setNavPoint('end', e.target.value || null)} className="min-w-0 flex-1 border-2 border-black rounded px-1.5 py-1 text-[10px] font-bold outline-none bg-white dark:bg-slate-800">
                         <option value="">{t('editor.navSelectEnd')}</option>
                         {locationElements.map((el) => (
                           <option key={el.id} value={el.id}>{el.locationDetails?.name || getElementLabel(el)}</option>
@@ -2538,10 +2591,10 @@ if (updates.privacy === 'private') {
                       </select>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={swapNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <button type="button" onClick={swapNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
                         <ArrowLeftRight className="w-3 h-3" /> {t('editor.navSwap')}
                       </button>
-                      <button type="button" onClick={clearNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-red-50 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
+                      <button type="button" onClick={clearNavAB} disabled={!navStartId && !navEndId} className="flex items-center justify-center gap-1 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-2 py-1.5 font-black text-[9px] uppercase hover:bg-red-50 text-red-600 disabled:opacity-40 disabled:cursor-not-allowed">
                         <X className="w-3 h-3" /> {t('editor.navClear')}
                       </button>
                     </div>
@@ -2552,7 +2605,7 @@ if (updates.privacy === 'private') {
                   <div className="flex flex-col gap-1.5 bg-gray-100 p-1.5 rounded border border-gray-200">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">STYLE</span>
-                      <div className="flex items-center gap-1 bg-white rounded border border-gray-300 p-0.5">
+                      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded border border-gray-300 p-0.5">
                         <button type="button" onClick={() => { setRouteIsDashed(false); if (activeRouteId) setRoutes(prev => prev.map(r => r.id === activeRouteId ? { ...r, isDashed: false } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${!routeIsDashed ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Solid</button>
                         <button type="button" onClick={() => { setRouteIsDashed(true); if (activeRouteId) setRoutes(prev => prev.map(r => r.id === activeRouteId ? { ...r, isDashed: true } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${routeIsDashed ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Dashed</button>
                       </div>
@@ -2582,7 +2635,7 @@ if (updates.privacy === 'private') {
                   {routes.length === 0 ? (
                     <p className="text-[10px] text-gray-400 font-bold text-center italic py-2 border-2 border-dashed border-gray-300 rounded">{t('editor.routesEmpty')}</p>
                   ) : routes.map((route) => (
-                    <div key={route.id} className={`border-2 rounded-lg p-2 space-y-2 ${activeRouteId === route.id ? 'border-black bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-gray-300 bg-white'}`}>
+                    <div key={route.id} className={`border-2 rounded-lg p-2 space-y-2 ${activeRouteId === route.id ? 'border-black bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' : 'border-gray-300 bg-white dark:bg-slate-800'}`}>
                       <button type="button" onClick={() => { setActiveRouteId(route.id); setActiveTool('route'); }} className="w-full flex items-center gap-2 text-left">
                         <span className="w-4 h-4 rounded-full border-2 border-black shrink-0" style={{ backgroundColor: route.color }} />
                         <span className="font-black text-[11px] truncate flex-1">{route.name}</span>
@@ -2600,10 +2653,10 @@ if (updates.privacy === 'private') {
                       </div>
                       {activeRouteId === route.id && (
                         <div className="space-y-2 mt-2">
-                          <div className="flex flex-col gap-1.5 bg-white/50 p-1.5 rounded border border-gray-200">
+                          <div className="flex flex-col gap-1.5 bg-white/50 dark:bg-slate-800/50 p-1.5 rounded border border-gray-200">
                             <div className="flex items-center justify-between">
                               <span className="text-[9px] font-black text-gray-500 uppercase shrink-0">STYLE</span>
-                              <div className="flex items-center gap-1 bg-white rounded border border-gray-300 p-0.5">
+                              <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded border border-gray-300 p-0.5">
                                 <button type="button" onClick={() => { pushHistory(); setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, isDashed: false } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${route.isDashed === false ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Solid</button>
                                 <button type="button" onClick={() => { pushHistory(); setRoutes(prev => prev.map(r => r.id === route.id ? { ...r, isDashed: true } : r)); }} className={`px-1.5 py-0.5 text-[8px] font-black rounded ${route.isDashed !== false ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-500'}`}>Dashed</button>
                               </div>
@@ -2621,7 +2674,7 @@ if (updates.privacy === 'private') {
                           {route.pointIds.map((pid, idx) => {
                             const el = elements.find((e) => e.id === pid);
                             return (
-                              <div key={`${pid}-${idx}`} className="flex items-center gap-1 bg-white border border-black rounded px-1.5 py-1">
+                              <div key={`${pid}-${idx}`} className="flex items-center gap-1 bg-white dark:bg-slate-800 border border-black rounded px-1.5 py-1">
                                 <span className="w-4 h-4 rounded-full text-white text-[8px] font-black flex items-center justify-center shrink-0" style={{ backgroundColor: route.color }}>{idx + 1}</span>
                                 <span className="text-[9px] font-bold truncate flex-1">{el ? (el.locationDetails?.name || getElementLabel(el)) : pid}</span>
                                 <button type="button" onClick={() => moveRoutePoint(route.id, idx, -1)} disabled={idx === 0} className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
@@ -2642,16 +2695,16 @@ if (updates.privacy === 'private') {
 <div className="border-t-2 border-black pt-3 space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">{t('editor.actions')}</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={undo} disabled={!history.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button type="button" onClick={undo} disabled={!history.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
                       <Undo2 className="w-4 h-4" /> {t('editor.undo')}
                     </button>
-                    <button type="button" onClick={redo} disabled={!future.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button type="button" onClick={redo} disabled={!future.length} className="flex items-center justify-center gap-2 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed">
                       <Redo2 className="w-4 h-4" /> {t('editor.redo')}
                     </button>
-                    <button type="button" onClick={fitView} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100">
+                    <button type="button" onClick={fitView} className="flex items-center justify-center gap-2 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-3 py-2 font-black text-[10px] uppercase hover:bg-gray-100">
                       <Maximize className="w-4 h-4" /> {t('editor.fitView')}
                     </button>
-                    <button type="button" onClick={() => { pushHistory(); setElements([]); setElementPositions({}); setRoutes([]); setActiveRouteId(null); setNavStartId(null); setNavEndId(null); setSelectedElement(null); setContextMenuElementId(null); }} className="flex items-center justify-center gap-2 border-2 border-black bg-white rounded-lg px-3 py-2 font-black text-[10px] uppercase text-red-600 hover:bg-red-50">
+                    <button type="button" onClick={() => { pushHistory(); setElements([]); setElementPositions({}); setRoutes([]); setActiveRouteId(null); setNavStartId(null); setNavEndId(null); setSelectedElement(null); setContextMenuElementId(null); }} className="flex items-center justify-center gap-2 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-3 py-2 font-black text-[10px] uppercase text-red-600 hover:bg-red-50">
                       <Trash2 className="w-4 h-4" /> {t('editor.clearCanvas')}
                     </button>
                   </div>
@@ -2667,7 +2720,7 @@ if (updates.privacy === 'private') {
                     <p className="text-[10px] font-black text-gray-400 mt-2">{t('editor.projectsEmpty')}</p>
                   </div>
                 ) : savedProjects.map((project) => (
-                  <div key={project.id} className={`border-2 border-black rounded-lg p-3 ${project.id === mapId ? 'bg-amber-50' : 'bg-white'}`}>
+                  <div key={project.id} className={`border-2 border-black rounded-lg p-3 ${project.id === mapId ? 'bg-amber-50' : 'bg-white dark:bg-slate-800'}`}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-black text-xs truncate">{project.mapTitle || t('editor.untitledMap')}</p>
                       {project.id === mapId && <span className="text-[9px] font-black text-amber-600 uppercase shrink-0">{t('editor.currentProject')}</span>}
@@ -2690,7 +2743,7 @@ if (updates.privacy === 'private') {
                   { id: 'profile', labelKey: 'editor.appProfile', icon: <Compass className="w-5 h-5" />, onClick: () => navigateTo('profile') },
                   { id: 'settings', labelKey: 'editor.appSettings', icon: <Settings className="w-5 h-5" />, onClick: () => navigateTo('settings') }
                 ].map((app) => (
-                  <button key={app.id} type="button" onClick={app.onClick} className="w-full flex items-center gap-3 border-2 border-black bg-white rounded-lg px-3 py-3 hover:bg-amber-100 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <button key={app.id} type="button" onClick={app.onClick} className="w-full flex items-center gap-3 border-2 border-black bg-white dark:bg-slate-800 rounded-lg px-3 py-3 hover:bg-amber-100 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <span className="w-9 h-9 bg-gray-100 border-2 border-black rounded flex items-center justify-center">{app.icon}</span>
                     <span className="font-black text-xs">{t(app.labelKey)}</span>
                     <ArrowLeft className="w-4 h-4 ml-auto text-gray-400 rotate-180" />
@@ -2707,14 +2760,14 @@ if (updates.privacy === 'private') {
                       <button key={color} type="button" onClick={() => applyBackgroundColor(color)} title={color} className="aspect-square rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform" style={{ backgroundColor: color }} />
                     ))}
                   </div>
-                  <label className="mt-2 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-3 py-2 cursor-pointer">
+                  <label className="mt-2 flex items-center gap-2 rounded-xl border-2 border-black bg-white dark:bg-slate-800 px-3 py-2 cursor-pointer">
                     <span className="text-[9px] font-black uppercase text-gray-700">{t('editor.color')}</span>
                     <input type="color" defaultValue="#ffffff" onInput={(event) => applyBackgroundColor(event.target.value)} className="h-7 w-9 cursor-pointer border border-black bg-transparent p-0" />
                   </label>
                 </div>
                 <div className="border-t-2 border-black pt-3 space-y-2">
                   <input ref={backgroundInputRef} type="file" accept="image/*" onChange={handleBackgroundUpload} className="hidden" />
-                  <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white'}`}>
+                  <button type="button" onClick={() => backgroundInputRef.current?.click()} className={`w-full border-2 border-black font-black text-[10px] uppercase rounded px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-amber-100 flex items-center justify-center gap-1.5 ${backgroundImage ? 'bg-amber-300' : 'bg-white dark:bg-slate-800'}`}>
                     <ImagePlus className="w-3.5 h-3.5" /> {t('editor.uploadBackground')}
                   </button>
                   {myBackgrounds.length > 0 && (
@@ -2723,10 +2776,10 @@ if (updates.privacy === 'private') {
                       <div className="grid grid-cols-2 gap-2">
                         {myBackgrounds.map((asset) => (
                           <div key={asset.id} className={`relative aspect-square border-2 overflow-hidden rounded group ${backgroundImage === (asset.url || asset.content) ? 'border-[#4895ef] ring-4 ring-[#4895ef] ring-offset-1' : 'border-black'}`}>
-                            <button type="button" onClick={() => setBackgroundImage(asset.url || asset.content)} title={asset.label} className="w-full h-full cursor-pointer">
+                            <button type="button" onClick={() => { setBackgroundImage(asset.url || asset.content); fitBackgroundToCanvas(); }} title={asset.label} className="w-full h-full cursor-pointer">
                               <img src={asset.url || asset.content} alt={asset.label} className="w-full h-full object-cover" />
                             </button>
-                            <button type="button" onClick={() => removeUserAsset(asset)} className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
+                            <button type="button" onClick={() => removeUserAsset(asset)} className="absolute top-1 right-1 w-5 h-5 bg-white dark:bg-slate-800 border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 hover:text-red-600 cursor-pointer" title={t('editor.removeAsset')}>
                               <X className="w-3 h-3" />
                             </button>
                           </div>
@@ -2735,7 +2788,61 @@ if (updates.privacy === 'private') {
                     </div>
                   )}
                   {backgroundImage && (
-                    <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
+                    <div className="border-t-2 border-black pt-3 space-y-2">
+                      <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">{t('editor.backgroundSize')}</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { axis: 'width', short: 'W', labelKey: 'editor.bgWidth' },
+                          { axis: 'height', short: 'H', labelKey: 'editor.bgHeight' }
+                        ].map((field) => (
+                          <label key={field.axis} className="flex items-center gap-1 border-2 border-black rounded-lg bg-white dark:bg-slate-800 px-2 py-1.5 focus-within:bg-amber-50">
+                            <span className="text-[9px] font-black uppercase text-gray-500">{field.short}</span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={MIN_BACKGROUND_SIZE}
+                              max={MAX_BACKGROUND_SIZE}
+                              step={10}
+                              aria-label={t(field.labelKey)}
+                              value={bgSizeDraft[field.axis]}
+                              onChange={(event) => {
+                                const raw = event.target.value;
+                                setBgSizeDraft((prev) => ({ ...prev, [field.axis]: raw }));
+                                applyBackgroundSize(field.axis, raw);
+                              }}
+                              onBlur={() => setBgSizeDraft((prev) => ({ ...prev, [field.axis]: String(backgroundSize[field.axis]) }))}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter') event.currentTarget.blur();
+                              }}
+                              className="w-full min-w-0 text-[11px] font-black text-black bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                            <span className="text-[9px] font-bold text-gray-400">px</span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBgAspectLocked((prev) => !prev)}
+                          className={`border-2 border-black rounded-lg font-black text-[9px] uppercase px-2 py-1.5 flex items-center justify-center gap-1 ${bgAspectLocked ? 'bg-amber-300' : 'bg-white dark:bg-slate-800 hover:bg-amber-100'}`}
+                        >
+                          {bgAspectLocked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />} {t('editor.bgLockAspect')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={fitBackgroundToCanvas}
+                          className="border-2 border-black bg-white dark:bg-slate-800 hover:bg-amber-100 rounded-lg font-black text-[9px] uppercase px-2 py-1.5 flex items-center justify-center gap-1"
+                        >
+                          <Maximize className="w-3 h-3" /> {t('editor.bgFitCanvas')}
+                        </button>
+                      </div>
+                      <p className="text-[9px] text-gray-500 font-bold leading-tight">
+                        {t('editor.backgroundSizeHint', { canvas: `${canvasWidth}x${canvasHeight}` })}
+                      </p>
+                    </div>
+                  )}
+                  {backgroundImage && (
+                    <button type="button" onClick={clearBackground} className="w-full border-2 border-black bg-white dark:bg-slate-800 font-black text-[10px] uppercase rounded px-3 py-2 hover:bg-red-50 text-red-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-1.5">
                       <X className="w-3.5 h-3.5" /> {t('editor.clearBackground')}
                     </button>
                   )}
@@ -2746,7 +2853,7 @@ if (updates.privacy === 'private') {
           </div>
         </div>
         ) : (
-        <div className="w-10 bg-white border-r-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden md:flex">
+        <div className="w-10 bg-white dark:bg-slate-900 border-r-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden md:flex">
           <button type="button" onClick={() => setPanelOpen(true)} title={t('editor.expandPanel')} className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
             <PanelLeftOpen className="w-4 h-4" />
           </button>
@@ -2756,7 +2863,7 @@ if (updates.privacy === 'private') {
         {/* CENTER CANVAS AREA */}
         <div
           ref={viewportRef}
-          className="flex-1 relative overflow-hidden bg-gray-100"
+          className="flex-1 relative overflow-hidden bg-gray-100 dark:bg-slate-950"
           style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           onClick={() => {
             setSelectedElement(null);
@@ -2774,7 +2881,7 @@ if (updates.privacy === 'private') {
               scaleY={camera.scale}
               listening={false}
             >
-              <BackgroundLayer key={selectedTemplate} templateId={selectedTemplate} backgroundImage={backgroundImage} width={canvasWidth} height={canvasHeight} />
+              <BackgroundLayer key={selectedTemplate} templateId={selectedTemplate} backgroundImage={backgroundImage} backgroundSize={backgroundSize} width={canvasWidth} height={canvasHeight} />
             </Stage>
           </div>
 
@@ -2805,7 +2912,7 @@ if (updates.privacy === 'private') {
                 if (isDrawTool) e.preventDefault();
               }}
             >
-              <div className="absolute top-3 left-3 z-10 bg-white/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
+              <div className="absolute top-3 left-3 z-10 bg-white/90 dark:bg-slate-800/90 border-2 border-black px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
                 {t(activeTemplate.labelKey)}
               </div>
 
@@ -2905,27 +3012,27 @@ if (updates.privacy === 'private') {
               )}
 
               {selectedElement && selectedData && selectedPosition && (
-                <div className="absolute z-40 flex items-center gap-2 rounded-xl border-2 border-black bg-white px-2 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
+                <div className="absolute z-40 flex items-center gap-2 rounded-xl border-2 border-black bg-white dark:bg-slate-800 px-2 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]" style={selectionToolbarStyle}>
                   <div className="flex items-center gap-1">
-                    <button type="button" title={t('editor.move')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
+                    <button type="button" title={t('editor.move')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white dark:bg-slate-800 hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); setActiveTool('select'); }}>
                       <MousePointer2 className="w-3.5 h-3.5" />
                     </button>
-                    <button type="button" title={t(selectedData.locked ? 'editor.unlock' : 'editor.lock')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
+                    <button type="button" title={t(selectedData.locked ? 'editor.unlock' : 'editor.lock')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white dark:bg-slate-800 hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); toggleLockSelectedElement(); }}>
                       {selectedData.locked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                   <div className="h-7 w-px bg-gray-300" />
                   <div className="flex items-center gap-1">
-                    <button type="button" title={t('editor.editText')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-amber-50" onClick={(event) => { event.stopPropagation(); if (selectedData?.type === 'text') { setSelectedElement(selectedElement); setEditingTextId(selectedElement); } }}>
+                    <button type="button" title={t('editor.editText')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white dark:bg-slate-800 hover:bg-amber-50" onClick={(event) => { event.stopPropagation(); if (selectedData?.type === 'text') { setSelectedElement(selectedElement); setEditingTextId(selectedElement); } }}>
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
-                    <button type="button" title={selectedData.isLocation ? t('editor.unpinElement') : t('editor.pinElement')} className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black ${selectedData.isLocation ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white hover:bg-amber-50'}`} onClick={(event) => { event.stopPropagation(); handlePinToolbarClick(); }}>
+                    <button type="button" title={selectedData.isLocation ? t('editor.unpinElement') : t('editor.pinElement')} className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black ${selectedData.isLocation ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white dark:bg-slate-800 hover:bg-amber-50'}`} onClick={(event) => { event.stopPropagation(); handlePinToolbarClick(); }}>
                       <MapPin className={`w-3.5 h-3.5 ${selectedData.isLocation ? 'fill-white' : ''}`} />
                     </button>
-                    <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
+                    <button type="button" title={t('editor.duplicate')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white dark:bg-slate-800 hover:bg-gray-100" onClick={(event) => { event.stopPropagation(); duplicateSelectedElement(); }}>
                       <Copy className="w-3.5 h-3.5" />
                     </button>
-                    <button type="button" title={t('editor.deleteSelected')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
+                    <button type="button" title={t('editor.deleteSelected')} className="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-white dark:bg-slate-800 hover:bg-red-50 text-red-600" onClick={(event) => { event.stopPropagation(); deleteSelectedElement(); }}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -2933,7 +3040,7 @@ if (updates.privacy === 'private') {
               )}
 
               {contextMenuElement && contextMenuPosition && (
-                <div className="absolute z-30 w-64 rounded-xl border border-gray-200 bg-white py-2 shadow-2xl" style={quickActionMenuStyle} onClick={(e) => e.stopPropagation()}>
+                <div className="absolute z-30 w-64 rounded-xl border border-gray-200 bg-white dark:bg-slate-800 py-2 shadow-2xl" style={quickActionMenuStyle} onClick={(e) => e.stopPropagation()}>
                   <div className="flex flex-col">
                     <button onClick={() => { duplicateSelectedElement(); setContextMenuElementId(null); }} className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3 text-xs font-bold text-gray-700">
@@ -3061,13 +3168,13 @@ if (updates.privacy === 'private') {
                     {element.type === 'image' ? (
                       element.filter === 'polaroid' ? (
                         <div className="w-full h-full flex items-center justify-center p-[5%] pointer-events-none">
-                          <div className="w-full h-full bg-white border-2 border-black p-1 pb-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] rotate-[-2deg]">
+                          <div className="w-full h-full bg-white dark:bg-slate-800 border-2 border-black p-1 pb-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,0.25)] rotate-[-2deg]">
                             <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-contain" style={getImageFilterStyle(element)} />
                           </div>
                         </div>
                       ) : element.filter === 'sticker' ? (
                         <div className="w-full h-full p-[4%] pointer-events-none">
-                          <div className="w-full h-full bg-white rounded-[28%] border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden">
+                          <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[28%] border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,0.2)] overflow-hidden">
                             <img src={element.content} alt={getElementLabel(element)} className="w-full h-full object-cover" style={getImageFilterStyle(element)} />
                           </div>
                         </div>
@@ -3151,19 +3258,19 @@ if (updates.privacy === 'private') {
                     )}
                     {isSelected && !isEditingText && <>
                       {/* corners */}
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tl'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tr'); }} className="absolute -top-2 -right-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-bl'); }} className="absolute -bottom-2 -left-2 w-4 h-4 bg-white border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 100%' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-br'); }} className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tl'); }} className="absolute -top-2 -left-2 w-4 h-4 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-tr'); }} className="absolute -top-2 -right-2 w-4 h-4 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-bl'); }} className="absolute -bottom-2 -left-2 w-4 h-4 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-nesw-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-br'); }} className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-nwse-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 100%' }}></div>
                       
                       {/* edges */}
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-t'); }} className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 0' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-b'); }} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-l'); }} className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-4 bg-white border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 50%' }}></div>
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-r'); }} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-4 bg-white border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 50%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-t'); }} className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 0' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-b'); }} className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-3 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-ns-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-l'); }} className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-4 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '0 50%' }}></div>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'resize-r'); }} className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-4 bg-white dark:bg-slate-800 border-2 border-violet-500 cursor-ew-resize" style={{ transform: `scale(${1 / camera.scale})`, transformOrigin: '100% 50%' }}></div>
                       
                       {/* rotate */}
-                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'rotate'); }} title={t('editor.rotate')} className="absolute left-1/2 -translate-x-1/2 -bottom-9 flex h-7 w-7 cursor-grab items-center justify-center rounded-full border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50 active:cursor-grabbing" style={{ transform: `translateX(-50%) scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}>
+                      <div onPointerDown={(event) => { event.stopPropagation(); startDragging(element.id, event, 'rotate'); }} title={t('editor.rotate')} className="absolute left-1/2 -translate-x-1/2 -bottom-9 flex h-7 w-7 cursor-grab items-center justify-center rounded-full border-2 border-black bg-white dark:bg-slate-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-violet-50 active:cursor-grabbing" style={{ transform: `translateX(-50%) scale(${1 / camera.scale})`, transformOrigin: '50% 100%' }}>
                         <RotateCw className="w-3.5 h-3.5 text-violet-600" />
                       </div>
                     </>}
@@ -3254,32 +3361,32 @@ if (updates.privacy === 'private') {
           </div>
 
           {tourActive && tourStops[tourIndex] && (
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white border-2 border-black rounded-xl px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 bg-white dark:bg-slate-800 border-2 border-black rounded-xl px-4 py-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="text-center min-w-[130px]">
                 <div className="text-[9px] font-black uppercase text-gray-400">{t('editor.tourLabel')} {tourIndex + 1}<span className="mx-0.5">/</span>{tourStops.length}</div>
                 <div className="font-black text-sm text-[#cc0000] truncate max-w-[200px]">{getElementLabel(tourStops[tourIndex].element)}</div>
               </div>
               <div className="flex items-center gap-1">
-                <button type="button" onClick={() => setTourIndex(Math.max(0, tourIndex - 1))} disabled={tourIndex === 0} title={t('editor.tourPrev')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
-                <button type="button" onClick={() => setTourIndex(Math.min(tourStops.length - 1, tourIndex + 1))} disabled={tourIndex === tourStops.length - 1} title={t('editor.tourNext')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-gray-100 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
-                <button type="button" onClick={() => setTourActive(false)} title={t('editor.tourStop')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white hover:bg-red-50 text-red-600"><X className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setTourIndex(Math.max(0, tourIndex - 1))} disabled={tourIndex === 0} title={t('editor.tourPrev')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white dark:bg-slate-800 hover:bg-gray-100 disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setTourIndex(Math.min(tourStops.length - 1, tourIndex + 1))} disabled={tourIndex === tourStops.length - 1} title={t('editor.tourNext')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white dark:bg-slate-800 hover:bg-gray-100 disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                <button type="button" onClick={() => setTourActive(false)} title={t('editor.tourStop')} className="w-7 h-7 flex items-center justify-center border-2 border-black rounded-lg bg-white dark:bg-slate-800 hover:bg-red-50 text-red-600"><X className="w-4 h-4" /></button>
               </div>
             </div>
           )}
 
           {/* Pan hint */}
-          <div className="absolute bottom-6 left-6 z-20 bg-white/85 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
+          <div className="absolute bottom-6 left-6 z-20 bg-white/85 dark:bg-slate-800/90 border-2 border-black rounded px-2.5 py-1 text-[9px] font-black uppercase text-gray-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] pointer-events-none">
             {activeTool === 'route' ? t('editor.routeHint') : ['pen', 'highlight', 'rectangle', 'circle', 'grid'].includes(activeTool) ? t('editor.drawHint') : t('editor.panHint')}
           </div>
 
           {/* Minimap */}
           <div 
-            className="absolute bottom-16 right-6 z-20 bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden cursor-crosshair group bg-gray-200 hidden sm:block"
+            className="absolute bottom-16 right-6 z-20 bg-white dark:bg-slate-800 border-2 border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden cursor-crosshair group bg-gray-200 hidden sm:block"
             style={{ 
               width: 140, 
               height: 140 * (canvasHeight / canvasWidth),
               backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
-              backgroundSize: '100% 100%',
+              backgroundSize: `${(backgroundSize.width / canvasWidth) * 100}% ${(backgroundSize.height / canvasHeight) * 100}%`,
               backgroundPosition: 'center',
             }}
             onPointerDown={(e) => {
@@ -3324,7 +3431,7 @@ if (updates.privacy === 'private') {
           </div>
 
           {/* Zoom Control */}
-          <div className="absolute bottom-6 right-6 bg-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
+          <div className="absolute bottom-6 right-6 bg-white dark:bg-slate-800 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center text-xs font-black p-1 z-20">
             <button className="w-6 h-6 hover:bg-gray-200 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); zoomOut(); }}>-</button>
             {zoomEditing ? (
               <input
@@ -3361,7 +3468,7 @@ if (updates.privacy === 'private') {
 
         {/* RIGHT PANEL (PROPERTIES) */}
         {propertiesPanelOpen ? (
-        <div className="w-72 bg-white border-l-4 border-black flex flex-col z-10 shadow-[-4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden xl:flex">
+        <div className="w-72 bg-white dark:bg-slate-900 border-l-4 border-black flex flex-col z-10 shadow-[-4px_0_0_0_rgba(0,0,0,1)] shrink-0 hidden xl:flex">
           <div className="p-4 border-b-2 border-black flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
@@ -3379,7 +3486,7 @@ if (updates.privacy === 'private') {
               <div>
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">{t('editor.selectedElement')}</label>
                 <div className="flex items-center gap-3 bg-gray-100 border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                  <div className="w-10 h-10 bg-white border border-black rounded flex items-center justify-center text-xl overflow-hidden">
+                  <div className="w-10 h-10 bg-white dark:bg-slate-800 border border-black rounded flex items-center justify-center text-xl overflow-hidden">
                     {selectedData.type === 'image' ? <img src={selectedData.content} alt="" className="w-full h-full object-contain" /> : selectedData.content}
                   </div>
                   <span className="font-black text-sm truncate">{getElementLabel(selectedData)}</span>
@@ -3406,10 +3513,10 @@ if (updates.privacy === 'private') {
 
               {selectedData.isLocation && locationModalOpen && (
                 <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLocationModalOpen(false)}>
-                  <div className="w-full max-w-lg bg-white border-4 border-black rounded-2xl shadow-[8px_8px_0_0_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
+                  <div className="w-full max-w-lg bg-white dark:bg-slate-900 border-4 border-black rounded-2xl shadow-[8px_8px_0_0_rgba(0,0,0,1)] overflow-hidden" onClick={(event) => event.stopPropagation()}>
                     <div className="bg-[#cc0000] text-white p-4 border-b-4 border-black flex items-center justify-between">
                       <h3 className="font-black text-sm uppercase tracking-wide flex items-center gap-1.5">📍 {t('editor.editLocation')}</h3>
-                      <button type="button" onClick={() => setLocationModalOpen(false)} title={t('editor.close')} className="w-7 h-7 bg-white text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => setLocationModalOpen(false)} title={t('editor.close')} className="w-7 h-7 bg-white dark:bg-slate-800 text-black border-2 border-black rounded flex items-center justify-center hover:bg-gray-200"><X className="w-4 h-4" /></button>
                     </div>
                     <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
                       <div>
@@ -3445,7 +3552,7 @@ if (updates.privacy === 'private') {
                                       <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
                                       <button
                                         type="button"
-                                        onClick={() => removeLocationPhoto(idx)}
+onClick={() => removeLocationPhoto(idx)}
                                         className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
                                         title={t('editor.removeSelfie')}
                                       >
@@ -3630,7 +3737,7 @@ if (updates.privacy === 'private') {
 
               {/* Delete Button */}
               <div className="pt-4 border-t-2 border-black border-dashed">
-                <button onClick={deleteSelectedElement} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
+                <button onClick={deleteSelectedElement} className="w-full flex items-center justify-center gap-2 border-2 border-black bg-white dark:bg-slate-800 text-black hover:bg-red-50 hover:text-red-600 font-black py-2 rounded text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 active:shadow-none">
                   <Trash2 className="w-4 h-4" /> {t('editor.deleteElement')}
                 </button>
               </div>
@@ -3653,7 +3760,7 @@ if (updates.privacy === 'private') {
               {locationElements.length === 0 ? (
                  <p className="text-[10px] text-gray-400 font-bold text-center italic py-4 border-2 border-dashed border-gray-300 rounded">{t('editor.markLocationHint')}</p>
               ) : locationElements.map((loc, idx) => (
-                <div key={loc.id} className={`flex items-center justify-between bg-white border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-amber-50 transition-colors ${selectedElement === loc.id ? 'border-amber-400 bg-amber-50' : ''}`} onClick={() => setSelectedElement(loc.id)}>
+                <div key={loc.id} className={`flex items-center justify-between bg-white dark:bg-slate-800 border-2 border-black p-2 rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer hover:bg-amber-50 transition-colors ${selectedElement === loc.id ? 'border-amber-400 bg-amber-50' : ''}`} onClick={() => setSelectedElement(loc.id)}>
                   <div className="flex items-center gap-2 overflow-hidden flex-1">
                     <div className="w-6 h-6 rounded-full bg-red-600 border-2 border-black flex items-center justify-center text-[10px] font-black text-white shrink-0">
                       {idx + 1}
@@ -3664,8 +3771,8 @@ if (updates.privacy === 'private') {
                     <span className="font-black text-[10px] truncate">{loc.locationDetails?.name || getElementLabel(loc)}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('start', navStartId === loc.id ? null : loc.id); }} title={t('editor.navSetStart')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navStartId === loc.id ? 'bg-emerald-500 text-white' : 'bg-white hover:bg-emerald-100'}`}>A</button>
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('end', navEndId === loc.id ? null : loc.id); }} title={t('editor.navSetEnd')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navEndId === loc.id ? 'bg-red-600 text-white' : 'bg-white hover:bg-red-100'}`}>B</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('start', navStartId === loc.id ? null : loc.id); }} title={t('editor.navSetStart')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navStartId === loc.id ? 'bg-emerald-500 text-white' : 'bg-white dark:bg-slate-800 hover:bg-emerald-100'}`}>A</button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setNavPoint('end', navEndId === loc.id ? null : loc.id); }} title={t('editor.navSetEnd')} className={`w-5 h-5 rounded-full border-2 border-black text-[9px] font-black flex items-center justify-center ${navEndId === loc.id ? 'bg-red-600 text-white' : 'bg-white dark:bg-slate-800 hover:bg-red-100'}`}>B</button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedElement(loc.id); setLocationModalOpen(true); }} title={t('editor.editLocation')} className="p-1 hover:bg-gray-100 rounded border border-transparent hover:border-black"><Pencil className="w-3 h-3 text-blue-600" /></button>
                     <button type="button" onClick={(e) => { e.stopPropagation(); pushHistory(); setElements(prev => prev.map(el => el.id === loc.id ? { ...el, isLocation: false, locationDetails: undefined } : el)); setRoutes((prev) => prev.map((route) => ({ ...route, pointIds: route.pointIds.filter((id) => id !== loc.id) }))); pruneNavForElement(loc.id); if (selectedElement === loc.id) setSelectedElement(null); }} className="p-1 hover:bg-red-50 rounded border border-transparent hover:border-black" title={t('editor.unmarkLocationTitle')}><X className="w-3 h-3 text-red-600" /></button>
                   </div>
@@ -3676,7 +3783,7 @@ if (updates.privacy === 'private') {
 
         </div>
         ) : (
-        <div className="w-10 bg-white border-l-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden xl:flex">
+        <div className="w-10 bg-white dark:bg-slate-900 border-l-4 border-black flex flex-col items-center pt-4 gap-2 z-10 shrink-0 hidden xl:flex">
           <button type="button" onClick={() => setPropertiesPanelOpen(true)} title={t('editor.expandPanel')} className="w-8 h-8 flex items-center justify-center rounded-lg border-2 border-black hover:bg-gray-100">
             <PanelRightOpen className="w-4 h-4" />
           </button>
