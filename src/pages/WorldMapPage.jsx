@@ -5,7 +5,7 @@ import MapElementsLayer from '../components/editor/MapElementsLayer';
 import LocationPopupModal from '../components/map/LocationPopupModal';
 import AddSpotModal from '../components/map/AddSpotModal';
 import MapBackgroundModal from '../components/map/MapBackgroundModal';
-import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Image as ImageIcon, ZoomIn, ZoomOut, RotateCcw, Play, ChevronLeft, ChevronRight, X, Maximize2, Minimize2 } from 'lucide-react';
 import { cleanAssetName } from '../lib/imageUtils';
 import { useApp } from '../context/AppContext';
 
@@ -22,6 +22,54 @@ export default function WorldMapPage() {
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const mapContainerRef = useRef(null);
+
+  // Fullscreen map viewing — real Fullscreen API on the wrapper, with a CSS
+  // fixed overlay as fallback when the API is unavailable (e.g. iOS Safari).
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const mapFullscreenRef = useRef(null);
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsMapFullscreen(
+        Boolean(document.fullscreenElement) && document.fullscreenElement === mapFullscreenRef.current
+      );
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
+
+  // Lock page scroll behind the fullscreen view and let fixed overlays
+  // (detail popup) recompute their position against the new layout.
+  useEffect(() => {
+    document.body.style.overflow = isMapFullscreen ? 'hidden' : '';
+    window.dispatchEvent(new Event('resize'));
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMapFullscreen]);
+
+  const exitMapFullscreen = useCallback(() => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    setIsMapFullscreen(false);
+  }, []);
+
+  const toggleMapFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+      return;
+    }
+    if (isMapFullscreen) {
+      setIsMapFullscreen(false);
+      return;
+    }
+    const node = mapFullscreenRef.current;
+    if (node?.requestFullscreen) {
+      node.requestFullscreen().catch(() => {
+        // API blocked → the CSS overlay still provides the fullscreen view.
+      });
+    }
+    setIsMapFullscreen(true);
+  }, [isMapFullscreen]);
 
   // Tour State
   const [tourActive, setTourActive] = useState(false);
@@ -217,6 +265,12 @@ export default function WorldMapPage() {
         </div>
       </div>
 
+      {/* Fullscreen wrapper — target of the Fullscreen API; letterboxes the
+          map on a black backdrop so the editor aspect ratio is preserved */}
+      <div
+        ref={mapFullscreenRef}
+        className={isMapFullscreen ? 'fixed inset-0 z-[190] bg-black flex items-center justify-center overflow-hidden' : ''}
+      >
       {/* Map Container Viewport (matches the editor's aspect ratio) */}
       <div 
         ref={mapContainerRef}
@@ -228,6 +282,9 @@ export default function WorldMapPage() {
         className="w-full mx-auto rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] relative bg-[#e2f0d9] select-none [container-type:inline-size]"
         style={{ 
           aspectRatio: `${mapCanvasWidth || 4000} / ${mapCanvasHeight || 4000}`,
+          ...(isMapFullscreen
+            ? { width: `min(100%, calc(100vh * ${((mapCanvasWidth || 4000) / (mapCanvasHeight || 4000)).toFixed(4)}))` }
+            : null),
           cursor: zoomLevel > 1 ? (isPanning ? 'grabbing' : 'grab') : 'crosshair'
         }}
       >
@@ -333,18 +390,20 @@ export default function WorldMapPage() {
             box so the detail card is never clipped, and pinned to the viewport */}
         {selectedPin && (
           <LocationPopupModal
+            key={selectedPin.id || selectedPin.title || 'pin'}
             pin={selectedPin}
             onClose={() => setSelectedPin(null)}
             anchorRef={mapContainerRef}
             zoomLevel={zoomLevel}
+            pan={pan}
           />
         )}
 
         {/* Sidebar Filters & Action Buttons (Fixed on top of zoom) */}
         <div onClick={(e) => e.stopPropagation()} className="relative z-20">
           <KeyItemsSidebar 
-            onOpenUpload={() => setShowAddModal(true)} 
-            onOpenMapBgModal={() => setShowBgModal(true)}
+            onOpenUpload={() => { exitMapFullscreen(); setShowAddModal(true); }} 
+            onOpenMapBgModal={() => { exitMapFullscreen(); setShowBgModal(true); }}
           />
         </div>
 
@@ -375,6 +434,17 @@ export default function WorldMapPage() {
           >
             <RotateCcw className="w-3.5 h-3.5 text-brand-dark" />
           </button>
+          <button
+            onClick={toggleMapFullscreen}
+            className="w-8 h-8 bg-brand-light hover:bg-brand-light/60 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
+            title={isMapFullscreen ? t('worldMap.exitFullscreen') : t('worldMap.fullscreen')}
+          >
+            {isMapFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5 text-brand-dark" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5 text-brand-dark" />
+            )}
+          </button>
         </div>
 
         {/* Badge in Bottom Right */}
@@ -382,6 +452,7 @@ export default function WorldMapPage() {
           <ImageIcon className="w-4 h-4 text-brand-green" />
           <span>{mapBackgroundImage || mapCanvasStyle ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>
+      </div>
       </div>
 
       {/* Whole Map Image Background Upload Modal */}

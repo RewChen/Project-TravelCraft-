@@ -9,7 +9,7 @@ import {
   Crown, PenTool, Folder, LayoutDashboard, ImagePlus,
   Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, AlignRight, AlignJustify, ChevronDown,
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,   Play, ChevronLeft, ChevronRight, Wand2,
-  Clock3, CircleDollarSign, Sun, Train, Camera, Video, Image as ImageIcon, Eye, Route as RouteIcon, Plus, ArrowUp, ArrowDown, ArrowLeftRight
+  Video, Image as ImageIcon, Images, Eye, Route as RouteIcon, Plus, ArrowUp, ArrowDown, ArrowLeftRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import useCanvasControls from '../hooks/useCanvasControls';
@@ -45,33 +45,16 @@ const tabLabelKeys = {
   BACKGROUND: 'editor.background'
 };
 
-const locationHoursOptions = [
-  '24/7',
-  'Open 24 hours',
-  '6:00 AM - 10:00 PM',
-  '7:00 AM - 9:00 PM',
-  '8:00 AM - 6:00 PM',
-  '9:00 AM - 5:00 PM',
-  '10:00 AM - 8:00 PM',
-  '10:00 AM - 10:00 PM',
-  'Sunrise - Sunset',
-  'Weekdays only',
-  'Closed Mondays'
-];
+const isYoutubeLink = (url) => typeof url === 'string' && /youtu\.?be|youtube\.com/i.test(url);
 
-const locationBestTimeOptions = [
-  'Anytime',
-  'Every season',
-  'Morning',
-  'Afternoon',
-  'Sunset',
-  'Night'
-];
-
-const locationTravelOptions = [
-  '🚶 Walking', '🚲 Bicycle', '🛵 Scooter', '🚗 Car', '🚕 Taxi', '🚌 Bus', '🚆 Train',
-  '🚇 Metro', '🚢 Ferry', '✈️ Flight', '🚁 Helicopter', '🐘 Elephant', '⛵ Boat', '🌍 Community Gateway'
-];
+// Merge the newer `videos` array with the legacy single-video fields
+// (video / youtubeUrl) so maps saved before multi-video keep working.
+const getLocationVideos = (details) => {
+  if (!details) return [];
+  const legacy = details.video ? [details.video] : (details.youtubeUrl ? [details.youtubeUrl] : []);
+  const list = Array.isArray(details.videos) ? details.videos.filter(Boolean) : [];
+  return [...new Set([...list, ...legacy])];
+};
 
 const elementOptions = [
   { content: '🌲', labelKey: 'editor.elemTree' },
@@ -271,7 +254,8 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   const elementImageInputRef = useRef(null);
   const backgroundInputRef = useRef(null);
   const locationVideoInputRef = useRef(null);
-  const locationSelfieInputRef = useRef(null);
+  const locationPhotoInputRef = useRef(null);
+  const [locationYtUrl, setLocationYtUrl] = useState('');
   const nextElementId = useRef(0);
 
   const getElementLabel = (element) => (element.labelKey ? t(element.labelKey) : element.label);
@@ -446,25 +430,66 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }));
   };
 
-  const handleLocationVideoUpload = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    event.target.value = '';
-    if (!file.type.startsWith('video/')) return;
-    if (file.size > 25 * 1024 * 1024) return;
-    try {
-      const url = await uploadMapMedia(mapId, 'loc-video', file);
-      if (url) patchLocationDetails({ video: url });
-    } catch (err) {
-      console.warn('Location video upload skipped:', err);
-    }
+  const setLocationVideos = (list) => {
+    const videos = [...new Set(list.filter((url) => typeof url === 'string' && url.trim()).map((url) => url.trim()))].slice(0, 6);
+    const firstFile = videos.find((url) => !isYoutubeLink(url)) || null;
+    const firstYoutube = videos.find(isYoutubeLink) || null;
+    patchLocationDetails({ videos, video: firstFile, youtubeUrl: firstYoutube });
   };
 
-  const addLocationSelfie = (url) => {
+  const addLocationVideo = (url) => setLocationVideos([...getLocationVideos(selectedData?.locationDetails), url]);
+
+  const removeLocationVideo = (idx) => {
+    const videos = getLocationVideos(selectedData?.locationDetails);
+    videos.splice(idx, 1);
+    setLocationVideos(videos);
+  };
+
+  const addLocationYoutubeVideo = () => {
+    const url = locationYtUrl.trim();
+    if (!url) return;
+    if (!isYoutubeLink(url)) {
+      showAdminToast?.(t('editor.ytInvalid'), 'error');
+      return;
+    }
+    addLocationVideo(url);
+    setLocationYtUrl('');
+  };
+
+  const handleLocationVideoUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+    if (!files.length) return;
+    let videos = getLocationVideos(selectedData?.locationDetails);
+    for (const file of files) {
+      if (!file.type.startsWith('video/')) {
+        showAdminToast?.(t('editor.onlyVideo'), 'error');
+        continue;
+      }
+      if (file.size > 25 * 1024 * 1024) {
+        showAdminToast?.(t('editor.videoTooLarge'), 'error');
+        continue;
+      }
+      if (videos.length >= 6) {
+        showAdminToast?.(t('editor.videoTooMany'), 'error');
+        break;
+      }
+      try {
+        const url = await uploadMapMedia(mapId, 'loc-video', file);
+        if (url) videos = [...videos, url];
+      } catch (err) {
+        console.warn('Location video upload skipped:', err);
+      }
+    }
+    setLocationVideos(videos);
+  };
+
+  const addLocationPhoto = (url) => {
     pushHistory();
     setElements((previous) => previous.map((element) => {
       if (element.id !== selectedElement) return element;
       const existing = Array.isArray(element.locationDetails?.selfies) ? element.locationDetails.selfies : [];
+      if (existing.length >= 9) return element;
       return {
         ...element,
         locationDetails: {
@@ -475,25 +500,35 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     }));
   };
 
-  const handleLocationSelfieUpload = async (event) => {
+  const handleLocationPhotoUpload = async (event) => {
     const files = Array.from(event.target.files || []);
-    if (!files.length) return;
     event.target.value = '';
+    if (!files.length) return;
     const currentCount = Array.isArray(selectedData?.locationDetails?.selfies) ? selectedData.locationDetails.selfies.length : 0;
     const toProcess = files.slice(0, Math.max(0, 9 - currentCount));
+    if (!toProcess.length) {
+      showAdminToast?.(t('editor.selfieTooMany', { max: 9 }), 'error');
+      return;
+    }
     for (const file of toProcess) {
-      if (!file.type.startsWith('image/')) continue;
-      if (file.size > 8 * 1024 * 1024) continue;
+      if (!file.type.startsWith('image/')) {
+        showAdminToast?.(t('editor.onlyImage'), 'error');
+        continue;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        showAdminToast?.(t('editor.imageTooLarge'), 'error');
+        continue;
+      }
       try {
-        const url = await uploadMapMedia(mapId, 'loc-selfie', file);
-        if (url) addLocationSelfie(url);
+        const url = await uploadMapMedia(mapId, 'loc-img', file);
+        if (url) addLocationPhoto(url);
       } catch (err) {
-        console.warn('Location selfie upload skipped:', err);
+        console.warn('Location photo upload skipped:', err);
       }
     }
   };
 
-  const removeLocationSelfie = (idx) => {
+  const removeLocationPhoto = (idx) => {
     pushHistory();
     setElements((previous) => previous.map((element) => {
       if (element.id !== selectedElement) return element;
@@ -1827,6 +1862,8 @@ if (updates.privacy === 'private') {
   };
 
   const selectedData = elements.find((element) => element.id === selectedElement);
+  const locationPhotos = Array.isArray(selectedData?.locationDetails?.selfies) ? selectedData.locationDetails.selfies : [];
+  const locationVideos = getLocationVideos(selectedData?.locationDetails);
   const selectedPosition = selectedElement ? elementPositions[selectedElement] : null;
   const contextMenuElement = contextMenuElementId ? elements.find((element) => element.id === contextMenuElementId) : null;
   const selectionToolbarStyle = selectedPosition ? {
@@ -3379,40 +3416,9 @@ if (updates.privacy === 'private') {
                         <label className="block text-xs font-black uppercase mb-1.5">{t('editor.locName')}</label>
                         <input type="text" value={selectedData.locationDetails?.name || ''} onChange={(e) => updateSelectedLocationData('name', e.target.value)} placeholder="Starting Town" className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50" />
                       </div>
-                      <div>
-                        <label className="block text-xs font-black uppercase mb-1.5">{t('editor.locDescription')}</label>
-                        <textarea rows="3" value={selectedData.locationDetails?.description || ''} onChange={(e) => updateSelectedLocationData('description', e.target.value)} placeholder="Where the journey begins." className="w-full border-2 border-black rounded p-2.5 text-sm font-bold bg-gray-50 focus:outline-none focus:bg-amber-50 resize-y" />
-                      </div>
                       <div className="border-t-4 border-black" />
                       <div>
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase mb-3">
-                          <span className="text-red-600">2.</span> {t('myMaps.logisticsTitle')}
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          <label className="border-2 border-black p-2.5 block">
-                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Clock3 className="w-3.5 h-3.5" /> {t('myMaps.hours')}</span>
-                            <input value={selectedData.locationDetails?.hours || (selectedData.locationDetails?.openTime && selectedData.locationDetails?.closeTime ? `${selectedData.locationDetails.openTime} - ${selectedData.locationDetails.closeTime}` : '')} onChange={(e) => updateSelectedLocationData('hours', e.target.value)} placeholder="24/7" list="loc-hours-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
-                            <datalist id="loc-hours-options">{locationHoursOptions.map((option) => <option key={option} value={option} />)}</datalist>
-                          </label>
-                          <label className="border-2 border-black p-2.5 block">
-                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><CircleDollarSign className="w-3.5 h-3.5" /> {t('myMaps.fee')}</span>
-                            <input value={selectedData.locationDetails?.fee || ''} onChange={(e) => updateSelectedLocationData('fee', e.target.value)} placeholder={t('editor.freeExploration')} className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
-                          </label>
-                          <label className="border-2 border-black p-2.5 block">
-                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Sun className="w-3.5 h-3.5" /> {t('myMaps.bestTime')}</span>
-                            <input value={selectedData.locationDetails?.bestTime || ''} onChange={(e) => updateSelectedLocationData('bestTime', e.target.value)} placeholder={t('editor.anytime')} list="loc-besttime-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
-                            <datalist id="loc-besttime-options">{locationBestTimeOptions.map((option) => <option key={option} value={option} />)}</datalist>
-                          </label>
-                          <label className="border-2 border-black p-2.5 block">
-                            <span className="flex items-center gap-1 text-[10px] text-red-600 font-black uppercase"><Train className="w-3.5 h-3.5" /> {t('myMaps.travel')}</span>
-                            <input value={selectedData.locationDetails?.travel || ''} onChange={(e) => updateSelectedLocationData('travel', e.target.value)} placeholder={t('editor.communityGateway')} list="loc-travel-options" className="w-full mt-1 text-xs font-bold bg-transparent outline-none" />
-                            <datalist id="loc-travel-options">{locationTravelOptions.map((option) => <option key={option} value={option} />)}</datalist>
-                          </label>
-                        </div>
-                      </div>
-                      <div className="border-t-4 border-black" />
-                      <div>
-                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-[#cc0000]" /> {t('editor.mapCover')}</label>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5"><ImageIcon className="w-3.5 h-3.5 text-[#cc0000]" /> {t('editor.locCover')}</label>
                         <EditableCover
                           value={selectedData.locationDetails?.image || ''}
                           onApply={(url) => patchLocationDetails({ image: url })}
@@ -3420,54 +3426,26 @@ if (updates.privacy === 'private') {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
-                          <Video className="w-3.5 h-3.5" /> {t('editor.mapVideo')}
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="url"
-                            value={selectedData.locationDetails?.video?.startsWith?.('data:') ? '' : (selectedData.locationDetails?.youtubeUrl || '')}
-                            onChange={(e) => updateSelectedLocationData('youtubeUrl', e.target.value)}
-                            placeholder={t('editor.videoYtPh')}
-                            className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
-                          />
-                          <input ref={locationVideoInputRef} type="file" accept="video/*" onChange={handleLocationVideoUpload} className="hidden" />
-                          <button type="button" onClick={() => locationVideoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                            <Video className="w-4 h-4 mx-auto" />
-                            <span className="sr-only">{t('editor.uploadVideo')}</span>
-                          </button>
-                        </div>
-                        {selectedData.locationDetails?.video && (
-                          <div className="mt-2 flex items-center gap-2 border-2 border-black rounded p-2 bg-emerald-50">
-                            <span className="text-[10px] text-emerald-800 font-black uppercase flex-1 min-w-0 truncate">{t('editor.videoSelected')}</span>
-                            <button type="button" onClick={() => removeLocationMedia('video')} className="shrink-0 w-5 h-5 bg-white border border-black rounded-full flex items-center justify-center text-red-600 hover:bg-red-50" title={t('editor.removeVideo')}><X className="w-3 h-3" /></button>
-                          </div>
-                        )}
-                        <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
-                          <Camera className="w-3.5 h-3.5" /> {t('editor.selfiePhoto')}
-                        </label>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5"><Images className="w-3.5 h-3.5 text-[#cc0000]" /> {t('editor.locPhotos')}</label>
                         <div className="flex gap-2 items-start">
-                          <input ref={locationSelfieInputRef} type="file" accept="image/*" multiple onChange={handleLocationSelfieUpload} className="hidden" />
+                          <input ref={locationPhotoInputRef} type="file" accept="image/*" multiple onChange={handleLocationPhotoUpload} className="hidden" />
                           <button
                             type="button"
-                            onClick={() => locationSelfieInputRef.current?.click()}
+                            onClick={() => locationPhotoInputRef.current?.click()}
                             className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
                           >
-                            <ImageIcon className="w-4 h-4" /> {t('editor.attachSelfie')} {selectedData.locationDetails?.selfies?.length ? `(${selectedData.locationDetails.selfies.length}/9)` : ''}
+                            <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')} {locationPhotos.length ? `(${locationPhotos.length}/9)` : ''}
                           </button>
                           <div className="flex-1 min-w-0">
-                            {selectedData.locationDetails?.selfies?.length ? (
+                            {locationPhotos.length ? (
                               <div className="space-y-2">
                                 <div className="grid grid-cols-3 gap-2">
-                                  {selectedData.locationDetails.selfies.map((url, idx) => (
+                                  {locationPhotos.map((url, idx) => (
                                     <div key={`${url.slice(0, 20)}-${idx}`} className="relative border-2 border-black rounded overflow-hidden bg-gray-50 group">
                                       <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
                                       <button
                                         type="button"
-                                        onClick={() => removeLocationSelfie(idx)}
+                                        onClick={() => removeLocationPhoto(idx)}
                                         className="absolute top-1 right-1 w-5 h-5 bg-white border-2 border-black rounded-full flex items-center justify-center hover:bg-red-50 text-red-600 opacity-90"
                                         title={t('editor.removeSelfie')}
                                       >
@@ -3477,13 +3455,51 @@ if (updates.privacy === 'private') {
                                     </div>
                                   ))}
                                 </div>
-                                <p className="text-[10px] text-emerald-700 font-bold">{t('editor.selfieSelected')} · {selectedData.locationDetails.selfies.length} {t('editor.imagesAttached')}</p>
+                                <p className="text-[10px] text-emerald-700 font-bold">{t('editor.imagesAttached')} · {locationPhotos.length}</p>
                               </div>
                             ) : (
-                              <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.selfieHelper')}</p>
+                              <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.locPhotosHelper')}</p>
                             )}
                           </div>
                         </div>
+                      </div>
+                      <div className="border-t-4 border-black" />
+                      <div>
+                        <label className="block text-xs font-black uppercase mb-1.5 flex items-center gap-1.5">
+                          <Video className="w-3.5 h-3.5" /> {t('editor.mapVideo')} {locationVideos.length ? `(${locationVideos.length}/6)` : ''}
+                        </label>
+                        {locationVideos.length ? (
+                          <div className="space-y-1.5 mb-2">
+                            {locationVideos.map((url, idx) => (
+                              <div key={`${url.slice(0, 30)}-${idx}`} className="flex items-center gap-2 border-2 border-black rounded p-2 bg-gray-50">
+                                <Video className="w-3.5 h-3.5 shrink-0 text-[#cc0000]" />
+                                <span className="text-[10px] font-bold flex-1 min-w-0 truncate" title={url}>{isYoutubeLink(url) ? url : `${t('editor.videoSelected')} ${idx + 1}`}</span>
+                                <button type="button" onClick={() => removeLocationVideo(idx)} className="shrink-0 w-5 h-5 bg-white border border-black rounded-full flex items-center justify-center text-red-600 hover:bg-red-50" title={t('editor.removeVideo')}><X className="w-3 h-3" /></button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="mb-2 text-[10px] text-gray-500 font-bold">{t('editor.videoListEmpty')}</p>
+                        )}
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={locationYtUrl}
+                            onChange={(e) => setLocationYtUrl(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addLocationYoutubeVideo(); } }}
+                            placeholder={t('editor.videoYtPh')}
+                            className="min-w-0 flex-1 border-2 border-black rounded p-2.5 text-xs font-bold bg-gray-50 focus:outline-none focus:bg-amber-50"
+                          />
+                          <button type="button" onClick={addLocationYoutubeVideo} className="shrink-0 border-2 border-black rounded bg-white px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100">
+                            {t('editor.addToLoc')}
+                          </button>
+                          <input ref={locationVideoInputRef} type="file" accept="video/*" multiple onChange={handleLocationVideoUpload} className="hidden" />
+                          <button type="button" onClick={() => locationVideoInputRef.current?.click()} className="shrink-0 border-2 border-black rounded bg-amber-400 px-3 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Video className="w-4 h-4 mx-auto" />
+                            <span className="sr-only">{t('editor.uploadVideo')}</span>
+                          </button>
+                        </div>
+                        <p className="mt-1 text-[10px] text-gray-500 font-bold">{t('editor.videoHelper')}</p>
                       </div>
                       <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
                         <button type="button" onClick={() => setLocationModalOpen(false)} className="px-4 py-2 border-2 border-black rounded font-black text-xs uppercase hover:bg-gray-100">{t('editor.cancel')}</button>

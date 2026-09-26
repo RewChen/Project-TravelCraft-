@@ -30,6 +30,8 @@ import {
 } from '../lib/supabaseUserAssets';
 import { derivePinsFromElements, scaleElementPositions, scaleElementFontSizes, resolvePinOverlaps, buildRoutePaths } from '../lib/editorCanvas';
 import { fetchFavorites, insertFavorite, deleteFavorite } from '../lib/supabaseFavorites';
+import { fetchLikeInfo, insertLike, deleteLike } from '../lib/supabaseLikes';
+import { isSchemaMissing } from '../lib/schemaGuard';
 
 const AppContext = createContext();
 
@@ -1691,6 +1693,68 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Per-location "ถูกใจ / Like" with a public count (public.location_likes).
+  const [locationLikes, setLocationLikes] = useState({});
+  const locationLikesRef = useRef(locationLikes);
+  useEffect(() => {
+    locationLikesRef.current = locationLikes;
+  }, [locationLikes]);
+
+  const loadLocationLikes = useCallback(async (locationKey) => {
+    if (!locationKey) return;
+    try {
+      const info = await fetchLikeInfo(locationKey, currentUserIdRef.current || null);
+      if (info) {
+        setLocationLikes((prev) => ({ ...prev, [locationKey]: info }));
+      }
+    } catch (err) {
+      console.warn('Like info load skipped:', err);
+      // Table missing (migration not applied): restore the local mirror only.
+      try {
+        const mirror = JSON.parse(localStorage.getItem('project_travelcraft_likes') || '{}');
+        if (mirror[locationKey]) {
+          setLocationLikes((prev) => ({
+            ...prev,
+            [locationKey]: { count: prev[locationKey]?.count || 0, liked: true }
+          }));
+        }
+      } catch {
+        // ignore malformed mirror
+      }
+    }
+  }, []);
+
+  const toggleLocationLike = useCallback(async (locationKey) => {
+    if (!locationKey) return;
+    const uid = currentUserIdRef.current || null;
+    const prev = locationLikesRef.current[locationKey] || { count: 0, liked: false };
+    const liked = !prev.liked;
+    const next = { count: Math.max(0, prev.count + (liked ? 1 : -1)), liked };
+    setLocationLikes((state) => ({ ...state, [locationKey]: next }));
+    if (!uid) return;
+    try {
+      if (liked) await insertLike(uid, locationKey);
+      else await deleteLike(uid, locationKey);
+      const fresh = await fetchLikeInfo(locationKey, uid);
+      if (fresh) setLocationLikes((state) => ({ ...state, [locationKey]: fresh }));
+    } catch (err) {
+      console.warn('Like sync skipped:', err);
+      if (isSchemaMissing('location_likes')) {
+        // Table missing: keep the optimistic like as a local mirror instead.
+        try {
+          const mirror = JSON.parse(localStorage.getItem('project_travelcraft_likes') || '{}');
+          if (liked) mirror[locationKey] = true;
+          else delete mirror[locationKey];
+          localStorage.setItem('project_travelcraft_likes', JSON.stringify(mirror));
+        } catch {
+          // ignore quota failures
+        }
+      } else {
+        setLocationLikes((state) => ({ ...state, [locationKey]: prev }));
+      }
+    }
+  }, []);
+
   const addCustomPin = (newPinData) => {
     const customId = newPinData.id || `custom-pin-${newPinData.title.replace(/\s+/g, '-').toLowerCase()}`;
     const newPin = {
@@ -2774,6 +2838,9 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         deleteCustomPin,
         favorites,
         toggleFavorite,
+        locationLikes,
+        loadLocationLikes,
+        toggleLocationLike,
         mapFilters,
         toggleFilter,
         login,

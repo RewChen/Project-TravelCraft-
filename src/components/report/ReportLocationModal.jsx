@@ -60,7 +60,7 @@ export default function ReportLocationModal({ isOpen, onClose, locationName, map
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60] font-mono">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[200] font-mono">
       <div className="bg-white border-4 border-black rounded-2xl w-full max-w-md shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden animate-in fade-in zoom-in duration-200">
         
         {/* Header */}

@@ -198,6 +198,23 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));
       const locationSelfies = Array.isArray(details.selfies) ? details.selfies : [];
+      const imageUrls = [...new Set(
+        [details.image || (isImageSrc ? element.content : null), ...locationSelfies].filter(Boolean)
+      )];
+      const rawVideos = [
+        ...(Array.isArray(details.videos) ? details.videos : []),
+        ...(details.video ? [details.video] : []),
+        ...(details.youtubeUrl ? [details.youtubeUrl] : [])
+      ].filter(Boolean);
+      const videoUrls = [...new Set(rawVideos)]
+        .map((url) => {
+          const embedded = toYouTubeEmbedUrl(url);
+          if (embedded) return embedded;
+          // Not a YouTube link: keep uploaded file URLs as-is, drop broken
+          // YouTube links that failed to convert into an embed.
+          return /youtu\.?be|youtube\.com/i.test(url) ? null : url;
+        })
+        .filter(Boolean);
       const pinHours = details.hours
         || (details.openTime && details.closeTime ? `${details.openTime} - ${details.closeTime}` : null);
       
@@ -209,6 +226,9 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         title: details.name || fallbackLabel,
         top: `${Math.round(((position.top + position.height / 2) / canvasHeight) * 100)}%`,
         left: `${Math.round(((position.left + position.width / 2) / canvasWidth) * 100)}%`,
+        // Rendered size as % of the canvas — lets the detail popup clear the element.
+        widthPct: ((position.width || 0) / canvasWidth) * 100,
+        heightPct: ((position.height || 0) / canvasHeight) * 100,
         icon: element.type === 'image' ? '🖼️' : element.type === 'text' ? '📝' : (element.content || '📍'),
         category: 'landmarks',
         tag: 'Landmark',
@@ -220,8 +240,10 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         shapeColor: element.color,
         previewUrl: isImageSrc ? element.content : details.image || null,
         imageUrl: details.image || (isImageSrc ? element.content : null),
+        imageUrls: imageUrls.length ? imageUrls : null,
         youtubeUrl: details.youtubeUrl || null,
-        videoUrl: details.video ? details.video : (details.youtubeUrl ? toYouTubeEmbedUrl(details.youtubeUrl) || null : null),
+        videoUrl: videoUrls[0] || null,
+        videoUrls: videoUrls.length ? videoUrls : null,
         openTime: details.openTime || null,
         closeTime: details.closeTime || null,
         hours: pinHours,

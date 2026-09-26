@@ -1,9 +1,9 @@
-import { MapPin, ImageIcon, Images, Clapperboard, X, Plus, Minus, Maximize } from 'lucide-react';
+import { MapPin, ImageIcon, Images, Clapperboard, X, Plus, Minus, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
-import { resolveRealCoverImage, toEmbedUrl } from '../../lib/imageUtils';
+import { resolveRealCoverImage, toEmbedUrl, isDefaultCover } from '../../lib/imageUtils';
 
 export default function LocationHero() {
   const { selectedLocation, t, effectiveRarityFor } = useApp();
@@ -21,19 +21,46 @@ export default function LocationHero() {
     ? rawRegion
     : '';
   const coverImage = resolveRealCoverImage(selectedLocation);
-  const [coverFailed, setCoverFailed] = useState(false);
+
+  // รูปทั้งหมดของจุดนี้: รูปหลัก + รูปที่อัปโหลดเพิ่ม (imageUrls) + รูปจาก publish (selfie*)
+  const photoList = useMemo(() => {
+    const candidates = [
+      ...(coverImage ? [coverImage] : []),
+      ...(Array.isArray(selectedLocation?.imageUrls) ? selectedLocation.imageUrls : []),
+      ...(Array.isArray(selectedLocation?.selfieUrls) ? selectedLocation.selfieUrls : []),
+      ...(typeof selectedLocation?.selfieUrl === 'string' && selectedLocation.selfieUrl ? [selectedLocation.selfieUrl] : [])
+    ];
+    return [...new Set(candidates.filter((url) => typeof url === 'string' && url && !isDefaultCover(url)))];
+  }, [selectedLocation, coverImage]);
+
+  // คลิปวิดีโอทั้งหมดของจุดนี้ (อัปโหลด + ลิงก์ YouTube)
+  const videoList = useMemo(() => {
+    const candidates = Array.isArray(selectedLocation?.videoUrls) && selectedLocation.videoUrls.length
+      ? selectedLocation.videoUrls
+      : (selectedLocation?.videoUrl ? [selectedLocation.videoUrl] : []);
+    return [...new Set(candidates.filter((url) => typeof url === 'string' && url))];
+  }, [selectedLocation]);
+
+  const [failedPhotoIdx, setFailedPhotoIdx] = useState(-1);
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [videoIdx, setVideoIdx] = useState(0);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
   const [mediaTab, setMediaTab] = useState('photo'); // photo | video
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const hasCover = Boolean(coverImage);
-  const displayCover = coverFailed ? null : coverImage;
-  const videoSrc = useMemo(() => toEmbedUrl(selectedLocation?.videoUrl), [selectedLocation]);
+
+  const activePhotoIdx = photoList.length ? Math.min(photoIdx, photoList.length - 1) : 0;
+  const activeVideoIdx = videoList.length ? Math.min(videoIdx, videoList.length - 1) : 0;
+  const currentPhoto = photoList[activePhotoIdx] || null;
+  const currentVideoUrl = videoList[activeVideoIdx] || '';
+  const hasCover = photoList.length > 0;
+  const displayCover = failedPhotoIdx === activePhotoIdx ? null : currentPhoto;
+  const videoSrc = useMemo(() => toEmbedUrl(currentVideoUrl), [currentVideoUrl]);
   const hasVideo = Boolean(videoSrc);
-  const isFileVideo = typeof selectedLocation?.videoUrl === 'string' &&
-    (selectedLocation.videoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/'));
+  const isFileVideo = Boolean(currentVideoUrl) &&
+    (currentVideoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/'));
   const showVideo = hasVideo && mediaTab === 'video';
   // ซ่อน hero image ทั้งหมดถ้า creator ไม่ได้ใส่รูป cover จริง
   const showHeroMedia = hasCover || hasVideo;
@@ -116,7 +143,7 @@ export default function LocationHero() {
           )
         ) : !showVideo && hasCover && displayCover ? (
           <button type="button" onClick={openPreview} title="ดูรูปปกขนาดใหญ่" className="absolute inset-0 w-full h-full cursor-zoom-in">
-            <img src={displayCover} alt={selectedLocation.title} onError={() => setCoverFailed(true)} className="absolute inset-0 w-full h-full object-cover" />
+            <img src={displayCover} alt={selectedLocation.title} onError={() => setFailedPhotoIdx(activePhotoIdx)} className="absolute inset-0 w-full h-full object-cover" />
           </button>
         ) : null}
         {!showVideo && hasCover && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
@@ -143,6 +170,49 @@ export default function LocationHero() {
               <Clapperboard className="w-3.5 h-3.5" /> {t('details.mediaVideo')}
             </button>
           </div>
+        )}
+        {/* เลื่อนดูรูป/คลิปเมื่อจุดนั้นมีหลายไฟล์ */}
+        {!showVideo && photoList.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setPhotoIdx((idx) => (idx - 1 + photoList.length) % photoList.length)}
+              title={t('details.prevMedia')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhotoIdx((idx) => (idx + 1) % photoList.length)}
+              title={t('details.nextMedia')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur">{activePhotoIdx + 1}/{photoList.length}</span>
+          </>
+        )}
+        {showVideo && videoList.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setVideoIdx((idx) => (idx - 1 + videoList.length) % videoList.length)}
+              title={t('details.prevMedia')}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur z-10"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setVideoIdx((idx) => (idx + 1) % videoList.length)}
+              title={t('details.nextMedia')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur z-10"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur z-10">{activeVideoIdx + 1}/{videoList.length}</span>
+          </>
         )}
         {!showVideo && hasCover && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
       </div>
@@ -209,7 +279,7 @@ export default function LocationHero() {
                 className="absolute inset-0 flex items-center justify-center"
                 style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transition: dragging ? 'none' : 'transform 0.15s ease' }}
               >
-                <img src={displayCover} alt={selectedLocation.title} onError={() => setCoverFailed(true)} className="w-full h-full object-contain select-none" style={{ pointerEvents: 'none', userSelect: 'none' }} draggable={false} />
+                <img src={displayCover} alt={selectedLocation.title} onError={() => setFailedPhotoIdx(activePhotoIdx)} className="w-full h-full object-contain select-none" style={{ pointerEvents: 'none', userSelect: 'none' }} draggable={false} />
               </div>
             </div>
           </div>

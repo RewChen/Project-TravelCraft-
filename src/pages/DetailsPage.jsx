@@ -30,7 +30,7 @@ export default function DetailsPage() {
 
       {/* Top Hero Banner (รูป+วิดีโอสลับในปกเดียว) */}
       <Reveal>
-        <LocationHero />
+        <LocationHero key={selectedLocation?.id || selectedLocation?.title || 'location'} />
       </Reveal>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
