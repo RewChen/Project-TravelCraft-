@@ -96,7 +96,7 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
 
   if (!pin) return null;
 
-  // สื่อของจุดหมุด (กรอกใน MapEditor แล้วแสดงที่ popup ของ World Map แยกจากหน้า Details)
+  // สื่อของจุดหมุด — กรอกใน MapEditor แล้วแสดงที่ popup นี้ (เฉพาะ element)
   const photoList = [...new Set(
     (Array.isArray(pin.imageUrls) && pin.imageUrls.length ? pin.imageUrls : [pin.imageUrl]).filter(Boolean)
   )];

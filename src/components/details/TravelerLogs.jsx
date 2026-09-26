@@ -8,7 +8,7 @@ export default function TravelerLogs() {
   const logs = selectedLocation?.logs || [];
   const selfieLogs = logs.filter((l) => l.type === 'selfie' && l.image);
   // fallback for older records where selfieUrls stored separately
-  const fallbackSelfies = !selfieLogs.length && (selectedLocation?.selfieUrls || (selectedLocation?.selfieUrl ? [selectedLocation.selfieUrl] : []));
+  const fallbackSelfies = !selfieLogs.length && !selectedLocation?.popupMediaOnly && (selectedLocation?.selfieUrls || (selectedLocation?.selfieUrl ? [selectedLocation.selfieUrl] : []));
   const displaySelfies = selfieLogs.length ? selfieLogs : (fallbackSelfies?.length ? fallbackSelfies.map((img, i) => ({ id: `fallback-${i}`, image: img, caption: selectedLocation?.title })) : []);
   const hasSelfies = displaySelfies.length > 0;
   // โชว์แค่ 3 รูปด้านล่าง ที่เหลือต้องกด "ดูทั้งหมด"

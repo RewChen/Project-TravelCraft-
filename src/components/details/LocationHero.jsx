@@ -22,8 +22,12 @@ export default function LocationHero() {
     : '';
   const coverImage = resolveRealCoverImage(selectedLocation);
 
+  // สื่อจากฟอร์มแก้ไขหมุดขึ้นแค่ popup ของ element — หน้า Details ไม่ยุ่ง (hero ถูกซ่อน)
+  const popupOnlyMedia = Boolean(selectedLocation?.popupMediaOnly);
+
   // รูปทั้งหมดของจุดนี้: รูปหลัก + รูปที่อัปโหลดเพิ่ม (imageUrls) + รูปจาก publish (selfie*)
   const photoList = useMemo(() => {
+    if (popupOnlyMedia) return [];
     const candidates = [
       ...(coverImage ? [coverImage] : []),
       ...(Array.isArray(selectedLocation?.imageUrls) ? selectedLocation.imageUrls : []),
@@ -31,15 +35,16 @@ export default function LocationHero() {
       ...(typeof selectedLocation?.selfieUrl === 'string' && selectedLocation.selfieUrl ? [selectedLocation.selfieUrl] : [])
     ];
     return [...new Set(candidates.filter((url) => typeof url === 'string' && url && !isDefaultCover(url)))];
-  }, [selectedLocation, coverImage]);
+  }, [selectedLocation, coverImage, popupOnlyMedia]);
 
   // คลิปวิดีโอทั้งหมดของจุดนี้ (อัปโหลด + ลิงก์ YouTube)
   const videoList = useMemo(() => {
+    if (popupOnlyMedia) return [];
     const candidates = Array.isArray(selectedLocation?.videoUrls) && selectedLocation.videoUrls.length
       ? selectedLocation.videoUrls
       : (selectedLocation?.videoUrl ? [selectedLocation.videoUrl] : []);
     return [...new Set(candidates.filter((url) => typeof url === 'string' && url))];
-  }, [selectedLocation]);
+  }, [selectedLocation, popupOnlyMedia]);
 
   const [failedPhotoIdx, setFailedPhotoIdx] = useState(-1);
   const [photoIdx, setPhotoIdx] = useState(0);

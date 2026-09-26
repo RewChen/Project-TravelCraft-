@@ -56,7 +56,7 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     selfieTooMany: 'แนบได้สูงสุด {max} รูป',
     locCover: 'รูปหลัก (ใช้เป็นปก)',
     locPhotos: 'รูปภาพเพิ่มเติม',
-    locPhotosHelper: 'แนบได้สูงสุด 9 รูป — แสดงในแกลเลอรีของหน้า Details',
+    locPhotosHelper: 'แนบได้สูงสุด 9 รูป — แสดงในป๊อปอัปแผนที่โลกของจุดนี้',
     addToLoc: 'เพิ่ม',
     videoList: 'วิดีโอที่แนบ',
     videoListEmpty: 'ยังไม่มีวิดีโอ — วางลิงก์หรืออัปโหลดคลิปได้เลย',

@@ -56,7 +56,7 @@ export default {
     selfieTooMany: '셀카는 최대 {max}장까지 첨부할 수 있습니다',
     locCover: '대표 사진 (표지로 사용)',
     locPhotos: '추가 사진',
-    locPhotosHelper: '최대 9장까지 — 상세 페이지 갤러리에 표시됩니다',
+    locPhotosHelper: '최대 9장까지 — 이 지점의 월드맵 팝업에 표시됩니다',
     addToLoc: '추가',
     videoList: '첨부된 동영상',
     videoListEmpty: '동영상이 없습니다 — 링크를 붙여넣거나 클립을 업로드하세요',

@@ -56,7 +56,7 @@ export default {
     selfieTooMany: '最多可附加 {max} 张自拍',
     locCover: '主图（用作封面）',
     locPhotos: '更多照片',
-    locPhotosHelper: '最多 9 张 — 显示在详情页画廊中',
+    locPhotosHelper: '最多 9 张 — 显示在该地点的世界地图弹窗中',
     addToLoc: '添加',
     videoList: '已附加视频',
     videoListEmpty: '还没有视频 — 粘贴链接或上传片段',

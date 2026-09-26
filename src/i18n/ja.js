@@ -56,7 +56,7 @@ export default {
     selfieTooMany: '自撮りは最大{max}枚まで添付できます',
     locCover: 'メイン写真（カバー用）',
     locPhotos: '追加の写真',
-    locPhotosHelper: '最大9枚 — 詳細ページのギャラリーに表示されます',
+    locPhotosHelper: '最大9枚 — この地点のワールドマップポップアップに表示されます',
     addToLoc: '追加',
     videoList: '添付した動画',
     videoListEmpty: '動画がありません — リンクを貼り付けるかクリップをアップロードしてください',

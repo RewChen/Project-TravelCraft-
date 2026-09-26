@@ -198,6 +198,8 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         && typeof element.content === 'string'
         && (element.content.indexOf('data:image/') === 0 || /^https?:\/\//i.test(element.content));
       const locationSelfies = Array.isArray(details.selfies) ? details.selfies : [];
+      // สื่อจากฟอร์มแก้ไขหมุดส่งขึ้นเฉพาะ popup ของ element (imageUrls/videoUrls)
+      // — หน้า Details ไม่แสดง (popupMediaOnly)
       const imageUrls = [...new Set(
         [details.image || (isImageSrc ? element.content : null), ...locationSelfies].filter(Boolean)
       )];
@@ -244,6 +246,7 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         youtubeUrl: details.youtubeUrl || null,
         videoUrl: videoUrls[0] || null,
         videoUrls: videoUrls.length ? videoUrls : null,
+        popupMediaOnly: true,
         openTime: details.openTime || null,
         closeTime: details.closeTime || null,
         hours: pinHours,

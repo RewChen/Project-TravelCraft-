@@ -56,7 +56,7 @@ export default {
     selfieTooMany: 'You can attach up to {max} selfies',
     locCover: 'Main photo (used as cover)',
     locPhotos: 'More photos',
-    locPhotosHelper: 'Up to 9 photos — shown in the Details page gallery',
+    locPhotosHelper: 'Up to 9 photos — shown in this pin\u2019s World Map popup',
     addToLoc: 'Add',
     videoList: 'Attached videos',
     videoListEmpty: 'No videos yet — paste a link or upload a clip',
