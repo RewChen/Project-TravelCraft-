@@ -1,9 +1,9 @@
-import { MapPin, ImageIcon, Images, Clapperboard, X, Plus, Minus, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, ImageIcon, Clapperboard, X, Plus, Minus, Maximize } from 'lucide-react';
 import { useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../../context/AppContext';
 import { rarityColorForTier, rarityLabelKey } from '../../lib/mapViews';
-import { resolveRealCoverImage, toEmbedUrl, isDefaultCover } from '../../lib/imageUtils';
+import { resolveRealCoverImage, collectVideoUrls, toEmbedUrl } from '../../lib/imageUtils';
 
 export default function LocationHero() {
   const { selectedLocation, t, effectiveRarityFor } = useApp();
@@ -20,55 +20,40 @@ export default function LocationHero() {
     && !placeholderRegions.has(rawRegion)
     ? rawRegion
     : '';
-  const coverImage = resolveRealCoverImage(selectedLocation);
 
   // สื่อจากฟอร์มแก้ไขหมุดขึ้นแค่ popup ของ element — หน้า Details ไม่ยุ่ง (hero ถูกซ่อน)
   const popupOnlyMedia = Boolean(selectedLocation?.popupMediaOnly);
 
-  // รูปทั้งหมดของจุดนี้: รูปหลัก + รูปที่อัปโหลดเพิ่ม (imageUrls) + รูปจาก publish (selfie*)
-  const photoList = useMemo(() => {
-    if (popupOnlyMedia) return [];
-    const candidates = [
-      ...(coverImage ? [coverImage] : []),
-      ...(Array.isArray(selectedLocation?.imageUrls) ? selectedLocation.imageUrls : []),
-      ...(Array.isArray(selectedLocation?.selfieUrls) ? selectedLocation.selfieUrls : []),
-      ...(typeof selectedLocation?.selfieUrl === 'string' && selectedLocation.selfieUrl ? [selectedLocation.selfieUrl] : [])
-    ];
-    return [...new Set(candidates.filter((url) => typeof url === 'string' && url && !isDefaultCover(url)))];
-  }, [selectedLocation, coverImage, popupOnlyMedia]);
+  // Hero owns only the location cover. The separate Photo section lower on the
+  // Details page owns the gallery itself.
+  const photoList = useMemo(
+    () => {
+      const cover = popupOnlyMedia ? null : resolveRealCoverImage(selectedLocation);
+      return cover ? [cover] : [];
+    },
+    [selectedLocation, popupOnlyMedia]
+  );
 
-  // คลิปวิดีโอทั้งหมดของจุดนี้ (อัปโหลด + ลิงก์ YouTube)
-  const videoList = useMemo(() => {
-    if (popupOnlyMedia) return [];
-    const candidates = Array.isArray(selectedLocation?.videoUrls) && selectedLocation.videoUrls.length
-      ? selectedLocation.videoUrls
-      : (selectedLocation?.videoUrl ? [selectedLocation.videoUrl] : []);
-    return [...new Set(candidates.filter((url) => typeof url === 'string' && url))];
-  }, [selectedLocation, popupOnlyMedia]);
+  // คลิปวิดีโอทั้งหมดของจุดนี้ (อัปโหลด + ลิงก์ YouTube) — แสดงเป็นส่วนข้างล่าง ไม่สลับในปก
+  const videoList = useMemo(
+    () => (popupOnlyMedia ? [] : collectVideoUrls(selectedLocation)),
+    [selectedLocation, popupOnlyMedia]
+  );
 
   const [failedPhotoIdx, setFailedPhotoIdx] = useState(-1);
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [videoIdx, setVideoIdx] = useState(0);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
-  const [mediaTab, setMediaTab] = useState('photo'); // photo | video
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
-  const activePhotoIdx = photoList.length ? Math.min(photoIdx, photoList.length - 1) : 0;
-  const activeVideoIdx = videoList.length ? Math.min(videoIdx, videoList.length - 1) : 0;
+  const activePhotoIdx = 0;
   const currentPhoto = photoList[activePhotoIdx] || null;
-  const currentVideoUrl = videoList[activeVideoIdx] || '';
   const hasCover = photoList.length > 0;
   const displayCover = failedPhotoIdx === activePhotoIdx ? null : currentPhoto;
-  const videoSrc = useMemo(() => toEmbedUrl(currentVideoUrl), [currentVideoUrl]);
-  const hasVideo = Boolean(videoSrc);
-  const isFileVideo = Boolean(currentVideoUrl) &&
-    (currentVideoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/'));
-  const showVideo = hasVideo && mediaTab === 'video';
   // ซ่อน hero image ทั้งหมดถ้า creator ไม่ได้ใส่รูป cover จริง
-  const showHeroMedia = hasCover || hasVideo;
+  const showHeroMedia = hasCover;
+
 
   const resetZoom = useCallback(() => {
     setZoom(1);
@@ -134,92 +119,18 @@ export default function LocationHero() {
     <div className="bg-white rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
       {showHeroMedia && (
       <div className="h-64 bg-brand-light dark:bg-slate-900 relative overflow-hidden">
-        {showVideo ? (
-          isFileVideo ? (
-            <video src={videoSrc} controls className="absolute inset-0 w-full h-full object-cover bg-black" />
-          ) : (
-            <iframe
-              src={videoSrc}
-              title={t('details.videoTitle', { title: selectedLocation.title })}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          )
-        ) : !showVideo && hasCover && displayCover ? (
+        {hasCover && displayCover ? (
           <button type="button" onClick={openPreview} title="ดูรูปปกขนาดใหญ่" className="absolute inset-0 w-full h-full cursor-zoom-in">
             <img src={displayCover} alt={selectedLocation.title} onError={() => setFailedPhotoIdx(activePhotoIdx)} className="absolute inset-0 w-full h-full object-cover" />
           </button>
         ) : null}
-        {!showVideo && hasCover && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
+        {hasCover && <div className="absolute inset-0 bg-black/25 pointer-events-none" />}
         {displayRegion && (
           <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-brand-dark/80 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-semibold w-fit">
             <MapPin className="w-3 h-3" /> {displayRegion}
           </div>
         )}
-        {/* ปุ่มสลับ ภาพถ่าย / วิดีโอทัวร์ */}
-        {hasVideo && (
-          <div className="absolute top-4 right-4 flex gap-1.5">
-            <button
-              type="button"
-              onClick={() => setMediaTab('photo')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-semibold uppercase cursor-pointer backdrop-blur ${!showVideo ? 'bg-white text-brand-dark' : 'bg-black/60 text-white hover:bg-black/80'}`}
-            >
-              <Images className="w-3.5 h-3.5" /> {t('details.mediaPhotos')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setMediaTab('video')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[10px] font-semibold uppercase cursor-pointer backdrop-blur ${showVideo ? 'bg-white text-brand-dark' : 'bg-black/60 text-white hover:bg-black/80'}`}
-            >
-              <Clapperboard className="w-3.5 h-3.5" /> {t('details.mediaVideo')}
-            </button>
-          </div>
-        )}
-        {/* เลื่อนดูรูป/คลิปเมื่อจุดนั้นมีหลายไฟล์ */}
-        {!showVideo && photoList.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => setPhotoIdx((idx) => (idx - 1 + photoList.length) % photoList.length)}
-              title={t('details.prevMedia')}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPhotoIdx((idx) => (idx + 1) % photoList.length)}
-              title={t('details.nextMedia')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur">{activePhotoIdx + 1}/{photoList.length}</span>
-          </>
-        )}
-        {showVideo && videoList.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={() => setVideoIdx((idx) => (idx - 1 + videoList.length) % videoList.length)}
-              title={t('details.prevMedia')}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur z-10"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setVideoIdx((idx) => (idx + 1) % videoList.length)}
-              title={t('details.nextMedia')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center cursor-pointer backdrop-blur z-10"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur z-10">{activeVideoIdx + 1}/{videoList.length}</span>
-          </>
-        )}
-        {!showVideo && hasCover && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
+        {hasCover && <ImageIcon className="absolute bottom-4 right-4 w-8 h-8 text-white/70 pointer-events-none" />}
       </div>
       )}
       
@@ -239,7 +150,45 @@ export default function LocationHero() {
           </span>
         </div>
       </div>
-      {/* วิดีโออยู่ในปกนี้แล้ว (แท็บวิดีโอทัวร์) ไม่ต้องแยก section */}
+      {/* วิดีโออยู่ด้านล่างของการ์ด (ไม่มีปุ่มสลับในปกแล้ว) */}
+      {videoList.length > 0 && (
+        <div className="p-5 space-y-3">
+          <div className="flex items-center gap-2 text-brand-dark dark:text-slate-100">
+            <Clapperboard className="w-4 h-4 text-brand-green" />
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.2em]">{t('details.mediaVideoSection')}</h2>
+            {videoList.length > 1 && (
+              <span className="ml-auto text-[10px] font-semibold uppercase text-brand-dark/40 dark:text-slate-300/50 tabular-nums">
+                {videoList.length}
+              </span>
+            )}
+          </div>
+          <div className="max-h-[540px] overflow-y-auto overscroll-contain space-y-3 pr-1">
+            {videoList.map((videoUrl, videoIdx) => {
+              const videoSrc = toEmbedUrl(videoUrl);
+              const isFileVideo = videoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/');
+              return isFileVideo ? (
+                <video
+                  key={`${videoUrl}-${videoIdx}`}
+                  src={videoSrc}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="w-full aspect-video bg-black rounded-2xl"
+                />
+              ) : (
+                <iframe
+                  key={`${videoUrl}-${videoIdx}`}
+                  src={videoSrc}
+                  title={t('details.mediaVideoTitle', { title: selectedLocation.title })}
+                  className="w-full aspect-video bg-black rounded-2xl"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
       {coverPreviewOpen && displayCover && createPortal(
         <div
           className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"

@@ -183,6 +183,60 @@ export const toEmbedUrl = (url) => {
   }
 };
 
+// รูปแกลเลอรีของจุดหมุด (ไม่รวมรูปปก) — แหล่งข้อมูลเดียว ไม่ union หลายฟิลด์เข้าด้วยกัน
+//
+// ประวัติบั๊ก: pin เดียวกันถูกเขียนรูปชุดเดียวกันลง 3 ชื่อฟิลด์ (imageUrls /
+// selfieUrls / selfieUrl ดู editorCanvas.js) แล้วตอน render เดิมเอามา
+// union กันทั้งสามชื่อ — ถ้าสำเนาใดสำเนาหนึ่งค้างค่าเก่า (เช่น ผู้ใช้ลบรูปแล้ว
+// snapshot เก่ายังอยู่) Set ก็กันไม่ได้เพราะคนละชื่อฟิลด์ ผลคือรูปที่ลบแล้ว
+// กลับมาโผล่ และรูปใหม่ถูกต่อท้ายรูปเก่า
+//
+// กฎใหม่: ถ้ามีคีย์ `imageUrls` เป็น array แปลว่านี่คือ "รายการรูปที่ถูกต้อง"
+// ของจุดนั้น — ใช้มันอย่างเดียว (รวมกรณี array ว่าง = ผู้ใช้ลบหมด) ห้ามไปเอา
+// selfie* มาต่อท้าย ส่วนข้อมูลระดับแผนที่/แผนที่เก่าที่ไม่มีคีย์นี้เลย
+// ค่อย fallback ไปใช้ selfieUrls / selfieUrl
+const normalizePhotoList = (value) =>
+  [...new Set(
+    (Array.isArray(value) ? value : [])
+      .map((url) => (typeof url === 'string' ? url.trim() : ''))
+      .filter((url) => url && !isDefaultCover(url))
+  )];
+
+export const collectGalleryUrls = (item) => {
+  if (!item) return [];
+  const candidates = Array.isArray(item.imageUrls)
+    ? item.imageUrls
+    : [
+        ...(Array.isArray(item.selfieUrls) ? item.selfieUrls : []),
+        ...(typeof item.selfieUrl === 'string' && item.selfieUrl ? [item.selfieUrl] : [])
+      ];
+  const cover = resolveRealCoverImage(item);
+  return normalizePhotoList(candidates).filter((url) => url !== cover);
+};
+
+// รูปทั้งหมดของแผนที่/จุดหมุดที่ใช้ทำ banner: รูปปกจริงมาก่อน แล้วตามด้วยรูปแกลเลอรี
+export const collectPhotoUrls = (item) => {
+  if (!item) return [];
+  const cover = resolveRealCoverImage(item);
+  return [
+    ...(cover ? [cover] : []),
+    ...collectGalleryUrls(item)
+  ].filter((url, index, list) => url && list.indexOf(url) === index);
+};
+
+// คลิปวิดีโอทั้งหมด (ไฟล์อัปโหลด + ลิงก์ YouTube) — videoUrls ถ้ามี ไม่งั้นใช้ videoUrl ตัวเดียว
+// รองรับทั้งค่าระดับบนแผนที่และค่าที่ซ่อนอยู่ใน details (แผนที่ที่ publish ก่อนแยกฟิลด์)
+export const collectVideoUrls = (item) => {
+  if (!item) return [];
+  const candidates = [
+    ...(Array.isArray(item.videoUrls) ? item.videoUrls : []),
+    ...(item.videoUrl ? [item.videoUrl] : []),
+    ...(Array.isArray(item.details?.videoUrls) ? item.details.videoUrls : []),
+    ...(item.details?.videoUrl ? [item.details.videoUrl] : [])
+  ];
+  return [...new Set(candidates.map((url) => (typeof url === 'string' ? url.trim() : '')).filter(Boolean))];
+};
+
 // Render a fitted (optionally zoomed/rotated/offset) image into a square
 // canvas clipped to a centered circle. Used by the profile avatar cropper.
 // The preview simply mirrors this transform with the same parameters, so the

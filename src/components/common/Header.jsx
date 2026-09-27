@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { isAvatarImage } from '../../lib/imageUtils';
 
 export default function Header() {
-  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, language, setLanguage, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps } = useApp();
+  const { currentPage, navigateTo, isLoggedIn, isAdminLoggedIn, setAuthMode, userProfile, t, language, setLanguage, notifications, unreadCount, markNotificationRead, markAllNotificationsRead, clearNotifications, communityMaps, hasEverOpenedMap } = useApp();
   const avatar = userProfile?.avatar || '🏃';
   const [showNotifications, setShowNotifications] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -139,10 +139,12 @@ export default function Header() {
 
   return (
     <header className="font-thai sticky top-0 z-40 w-full bg-brand-cream/90 backdrop-blur-md shadow-[0_1px_0_0_rgba(45,58,46,0.08),0_8px_24px_-18px_rgba(45,58,46,0.25)] dark:bg-slate-800/90 dark:shadow-none" >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative flex items-center h-16 md:h-[72px]">
+      <div className="w-full px-4 sm:px-6 lg:px-10 relative flex items-center h-16 md:h-[72px]">
 
-        {/* Desktop left links */}
-        <div className="hidden md:flex items-center gap-7">
+        {/* Desktop nav — hard left against the viewport edge. flex-1 + right
+            padding reserves the centered logo's half-width, and the tool cluster
+            is shrink-0, so the nav can never slide under either of them. */}
+        <div className="hidden md:flex flex-1 min-w-0 items-center gap-4 lg:gap-6 pr-14 lg:pr-24">
           <button
             onClick={() => navigateTo('home')}
             className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'home' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
@@ -155,6 +157,16 @@ export default function Header() {
           >
             {t('nav.community')}
           </button>
+          {/* World Map โผล่ใน nav ได้หลังผู้ใช้เปิดดูแผนที่จาก card ใน
+              COMMUNITY DISCOVERIES มาแล้วเท่านั้น */}
+          {hasEverOpenedMap && (
+            <button
+              onClick={() => navigateTo('map')}
+              className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'map' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
+            >
+              {t('nav.worldMap')}
+            </button>
+          )}
           <button
             onClick={() => navigateTo('mymaps')}
             className={`text-sm tracking-wide uppercase transition-colors cursor-pointer ${currentPage === 'mymaps' ? 'text-brand-dark dark:text-slate-100 font-bold' : 'text-brand-dark/70 hover:text-brand-dark dark:text-gray-400 dark:hover:text-gray-100'}`}
@@ -190,7 +202,7 @@ export default function Header() {
         </div>
 
         {/* Desktop right actions */}
-        <div className="hidden md:flex items-center ml-auto gap-2">
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           {/* Language toggle */}
           <button
             onClick={() => setLanguage(language === 'en' ? 'th' : 'en')}
@@ -335,7 +347,8 @@ export default function Header() {
           {[
             { page: 'home', label: t('nav.home') },
             { page: 'community', label: t('nav.community') },
-            { page: 'mymaps', label: t('nav.mymaps') },
+            ...(hasEverOpenedMap ? [{ page: 'map', label: t('nav.worldMap') }] : []),
+            { page: 'mymaps', label: t('nav.myMaps') },
           ].map((item) => (
             <button key={item.page} onClick={() => { closeMenu(); navigateTo(item.page); }} className="text-3xl text-brand-dark dark:text-gray-200 tracking-tight hover:opacity-70 cursor-pointer">
               {item.label}

@@ -12,19 +12,19 @@ export default function SettingsPage() {
         <div className="mx-auto w-12 h-12 bg-brand-dark rounded-2xl flex items-center justify-center text-white mb-3 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.3)]">
           <Palette className="w-6 h-6" />
         </div>
-        <h1 className="text-3xl font-bold uppercase tracking-tight text-brand-dark">{t('settings.title')}</h1>
-        <p className="text-sm font-medium text-brand-dark/60">{t('settings.subtitle')}</p>
+        <h1 className="text-3xl font-bold uppercase tracking-tight text-brand-dark dark:text-slate-100">{t('settings.title')}</h1>
+        <p className="text-sm font-medium text-brand-dark/60 dark:text-slate-400">{t('settings.subtitle')}</p>
       </div>
 
       {/* Settings Panel (Language + Theme) */}
-      <div className="bg-white rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06]">
         {/* Language Selector */}
-        <div className="p-6 border-b border-brand-dark/[0.06]">
+        <div className="p-6 border-b border-brand-dark/[0.06] dark:border-slate-700">
           <div className="flex items-center gap-2 mb-1">
             <Languages className="w-5 h-5 text-brand-green" />
-            <h2 className="text-base font-bold uppercase text-brand-dark">{t('settings.language')}</h2>
+            <h2 className="text-base font-bold uppercase text-brand-dark dark:text-slate-100">{t('settings.language')}</h2>
           </div>
-          <p className="text-xs text-brand-dark/60 mb-4">{t('settings.languageDesc')}</p>
+          <p className="text-xs text-brand-dark/60 dark:text-slate-400 mb-4">{t('settings.languageDesc')}</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {languages.map((lang) => {
@@ -37,7 +37,7 @@ export default function SettingsPage() {
                   className={`flex items-center justify-between px-4 py-3 rounded-2xl transition-all cursor-pointer text-left ${
                     isActive
                       ? 'bg-amber-400 text-brand-dark shadow-[0_4px_14px_-6px_rgba(217,119,6,0.5)]'
-                      : 'bg-brand-light/40 hover:bg-brand-light/80 dark:bg-slate-800 dark:hover:bg-slate-700'
+                      : 'bg-brand-light/40 hover:bg-brand-light/80 dark:bg-slate-700 dark:hover:bg-slate-600'
                   }`}
                 >
                   <span className="flex items-center gap-3">
@@ -58,9 +58,9 @@ export default function SettingsPage() {
         <div className="p-6">
           <div className="flex items-center gap-2 mb-1">
             <Palette className="w-5 h-5 text-brand-green" />
-            <h2 className="text-base font-bold uppercase text-brand-dark">{t('settings.theme')}</h2>
+            <h2 className="text-base font-bold uppercase text-brand-dark dark:text-slate-100">{t('settings.theme')}</h2>
           </div>
-          <p className="text-xs text-brand-dark/60 mb-4">{t('settings.themeDesc')}</p>
+          <p className="text-xs text-brand-dark/60 dark:text-slate-400 mb-4">{t('settings.themeDesc')}</p>
 
           <div className="grid grid-cols-2 gap-3">
             <button

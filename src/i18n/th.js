@@ -627,6 +627,8 @@ statusPublished: 'เผยแพร่แผนที่สู่ชุมช�
     loadMore: 'ดูเพิ่มเติม (เหลือ {count} รายการ)',
     allRatings: 'คะแนนทั้งหมด',
     mediaPhotos: 'แกลเลอรีภาพถ่าย',
+    mediaViewMore: 'ดูเพิ่มเติม',
+    mediaMoreCount: 'ดูอีก {count} รูป',
     mediaVideo: 'วิดีโอทัวร์',
     prevMedia: 'ก่อนหน้า',
     nextMedia: 'ถัดไป',

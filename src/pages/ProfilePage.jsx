@@ -79,12 +79,12 @@ export default function ProfilePage() {
   if (!isLoggedIn || !userProfile) {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center font-thai text-brand-dark dark:text-slate-100">
-        <div className="bg-white rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] space-y-4">
-          <div className="w-16 h-16 bg-red-50 rounded-full mx-auto flex items-center justify-center text-3xl">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] space-y-4">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 rounded-full mx-auto flex items-center justify-center text-3xl">
             🔒
           </div>
           <h2 className="text-xl font-bold uppercase">{t('profile.lockedTitle')}</h2>
-          <p className="text-xs text-brand-dark/60">
+          <p className="text-xs text-brand-dark/60 dark:text-slate-400">
             {t('profile.lockedDesc')}
           </p>
           <button
@@ -102,7 +102,7 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto px-4 pt-8 md:pt-10 pb-12 space-y-6 font-thai text-brand-dark dark:text-slate-100">
 
       {/* Profile Card */}
-      <div className="bg-white rounded-3xl p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Avatar Column */}
         <div className="flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-brand-dark/[0.06] pb-6 md:pb-0 md:pr-6">
@@ -146,7 +146,7 @@ export default function ProfilePage() {
                 autoFocus
                 placeholder={t('profile.usernamePlaceholder')}
                 aria-label={t('profile.editUsername')}
-                className="w-40 text-center text-sm font-semibold border border-brand-dark/20 rounded-full px-3 py-1 bg-white text-brand-dark focus:outline-none focus:ring-2 focus:ring-amber-400"
+                className="w-40 text-center text-sm font-semibold border border-brand-dark/20 dark:border-slate-600 rounded-full px-3 py-1 bg-white dark:bg-slate-700 text-brand-dark dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
               />
               <button
                 type="submit"
@@ -157,21 +157,21 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setEditingUsername(false)}
-                className="bg-brand-light text-brand-dark font-semibold px-3 py-1.5 rounded-full text-[10px] uppercase cursor-pointer transition-colors"
+                className="bg-brand-light dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 text-brand-dark dark:text-slate-100 font-semibold px-3 py-1.5 rounded-full text-[10px] uppercase cursor-pointer transition-colors"
               >
                 {t('profile.cancel')}
               </button>
               {usernameError && (
-                <span className="text-[10px] text-red-600 font-semibold">{usernameError}</span>
+                <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold">{usernameError}</span>
               )}
             </form>
           ) : (
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-bold text-brand-dark">{userProfile.name}</h2>
+              <h2 className="text-xl font-bold text-brand-dark dark:text-slate-100">{userProfile.name}</h2>
               <button
                 type="button"
                 onClick={startEditUsername}
-                className="bg-brand-light hover:bg-amber-100 text-brand-dark rounded-full p-1.5 cursor-pointer transition-colors"
+                className="bg-brand-light dark:bg-slate-700 hover:bg-amber-100 dark:hover:bg-slate-600 text-brand-dark dark:text-slate-100 rounded-full p-1.5 cursor-pointer transition-colors"
                 title={t('profile.editUsername')}
                 aria-label={t('profile.editUsername')}
               >
@@ -271,7 +271,7 @@ export default function ProfilePage() {
 
             <button
               onClick={logout}
-              className="bg-white hover:bg-red-50 text-red-600 font-semibold px-4 py-2.5 rounded-full border border-red-300 text-xs flex items-center gap-2 cursor-pointer transition-colors"
+              className="bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 font-semibold px-4 py-2.5 rounded-full border border-red-300 dark:border-red-800 text-xs flex items-center gap-2 cursor-pointer transition-colors"
             >
               <LogOut className="w-4 h-4" /> {t('profile.logoutSession')}
             </button>

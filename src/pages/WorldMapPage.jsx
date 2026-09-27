@@ -11,7 +11,7 @@ import { normalizeBackgroundSize } from '../lib/editorCanvas';
 import { useApp } from '../context/AppContext';
 
 export default function WorldMapPage() {
-  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapBackgroundSize, mapCanvasStyle, mapCanvasWidth, mapCanvasHeight, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading, hasEverOpenedMap } = useApp();
+  const { t, navigateTo, selectedPin, setSelectedPin, mapBackgroundImage, mapBackgroundSize, mapCanvasStyle, mapCanvasWidth, mapCanvasHeight, mapElements, mapRoutes, navStartId, navEndId, mapPins, activeCommunityMap, mapViewLoading } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBgModal, setShowBgModal] = useState(false);
 
@@ -238,20 +238,19 @@ export default function WorldMapPage() {
     setIsPanning(false);
   }, []);
 
-  // The World Map stays hidden until the user has previewed a map at least
-  // once this session. Only a map loading in (or an already-seen map) reveals it.
-  if (!mapViewLoading && !hasEverOpenedMap) return null;
+  // หน้า World Map เปิดได้เสมอ (มี nav bar เข้ามา) — ถ้ายังไม่มีแผนที่ไหน active
+  // จะเห็นผืน Kyoto ดีฟอลต์พร้อมหมุดเริ่มต้น ไม่ใช่หน้าว่าง
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-8 md:pt-10 pb-12 font-thai text-brand-dark dark:text-slate-100">
       {/* Top Control Header Bar */}
-      <div className="bg-white rounded-3xl p-4 mb-4 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-4 mb-4 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 bg-brand-dark rounded-2xl flex items-center justify-center text-white font-bold shrink-0">
             🗺️
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-bold text-brand-dark break-words line-clamp-2">
+            <h2 className="text-base font-bold text-brand-dark dark:text-slate-100 break-words line-clamp-2">
               {mapViewLoading ? t('worldMap.loadingMap') : (activeCommunityMap ? activeCommunityMap.title : t('worldMap.defaultTitle'))}
             </h2>
             {(mapBackgroundImage || mapCanvasStyle) && (
@@ -259,7 +258,7 @@ export default function WorldMapPage() {
                 {t('worldMap.customMapActive')}
               </span>
             )}
-            <p className="text-[11px] text-brand-dark/50">
+            <p className="text-[11px] text-brand-dark/50 dark:text-slate-400">
               {t('worldMap.clickDetailsHint')}
             </p>
           </div>
@@ -299,7 +298,7 @@ export default function WorldMapPage() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        className="w-full mx-auto rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] relative bg-[#e2f0d9] select-none [container-type:inline-size]"
+        className="w-full mx-auto rounded-3xl overflow-hidden shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] relative bg-[#e2f0d9] dark:bg-slate-900 select-none [container-type:inline-size]"
         style={{ 
           aspectRatio: `${mapCanvasWidth || 4000} / ${mapCanvasHeight || 4000}`,
           ...(isMapFullscreen
@@ -315,9 +314,9 @@ export default function WorldMapPage() {
         >
           {/* Custom Uploaded Map Image Background */}
           {mapViewLoading ? (
-            <div className="absolute inset-0 z-30 bg-[#e2f0d9]/70 flex items-center justify-center">
-              <div className="bg-white rounded-2xl px-4 py-3 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-2 text-xs font-semibold uppercase text-brand-dark">
-                <span className="w-4 h-4 border-2 border-brand-dark border-t-transparent rounded-full animate-spin"></span>
+            <div className="absolute inset-0 z-30 bg-[#e2f0d9]/70 dark:bg-slate-900/70 flex items-center justify-center">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-2 text-xs font-semibold uppercase text-brand-dark dark:text-slate-100">
+                <span className="w-4 h-4 border-2 border-brand-dark dark:border-slate-100 border-t-transparent dark:border-t-transparent rounded-full animate-spin"></span>
                 {t('worldMap.loadingMap')}
               </div>
             </div>
@@ -372,17 +371,17 @@ export default function WorldMapPage() {
             className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white rounded-2xl px-4 py-2 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-3">
-              <span className="text-xs font-semibold text-brand-dark/40 uppercase tracking-wider">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-2 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-3">
+              <span className="text-xs font-semibold text-brand-dark/40 dark:text-slate-400 uppercase tracking-wider">
                 {t('worldMap.tourLabel')} {tourIndex + 1}<span className="mx-1">/</span>{tourStops.length}
               </span>
-              <span className="font-bold text-sm text-[#cc0000] truncate max-w-[200px]">{tourStops[tourIndex]?.title}</span>
+              <span className="font-bold text-sm text-[#cc0000] dark:text-[#ff4444] truncate max-w-[200px]">{tourStops[tourIndex]?.title}</span>
               <button
                 type="button"
                 onClick={prevTourStop}
                 disabled={tourIndex === 0}
                 title={t('worldMap.tourPrev')}
-                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 rounded-full bg-white hover:bg-brand-light disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 dark:border-slate-600 rounded-full bg-white dark:bg-slate-700 hover:bg-brand-light dark:hover:bg-slate-600 dark:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -391,7 +390,7 @@ export default function WorldMapPage() {
                 onClick={nextTourStop}
                 disabled={tourIndex === tourStops.length - 1}
                 title={t('worldMap.tourNext')}
-                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 rounded-full bg-white hover:bg-brand-light disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 dark:border-slate-600 rounded-full bg-white dark:bg-slate-700 hover:bg-brand-light dark:hover:bg-slate-600 dark:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -399,7 +398,7 @@ export default function WorldMapPage() {
                 type="button"
                 onClick={stopTour}
                 title={t('worldMap.tourStop')}
-                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 rounded-full bg-white hover:bg-red-50 text-red-600 cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center border border-brand-dark/15 dark:border-slate-600 rounded-full bg-white dark:bg-slate-700 hover:bg-red-50 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -431,7 +430,7 @@ export default function WorldMapPage() {
         {/* Floating Zoom Control Panel */}
         <div 
           onClick={(e) => e.stopPropagation()}
-          className="absolute bottom-4 left-4 z-20 bg-white rounded-2xl p-1.5 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-1.5"
+          className="absolute bottom-4 left-4 z-20 bg-white dark:bg-slate-800 rounded-2xl p-1.5 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-1.5"
         >
           <button 
             onClick={handleZoomIn}
@@ -440,7 +439,7 @@ export default function WorldMapPage() {
           >
             <ZoomIn className="w-4 h-4 text-brand-dark" />
           </button>
-          <span className="text-xs font-semibold px-2">{Math.round(zoomLevel * 100)}%</span>
+          <span className="text-xs font-semibold px-2 dark:text-slate-200">{Math.round(zoomLevel * 100)}%</span>
           <button 
             onClick={handleZoomOut}
             className="w-8 h-8 bg-amber-400 hover:bg-amber-300 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
@@ -450,26 +449,26 @@ export default function WorldMapPage() {
           </button>
           <button 
             onClick={handleResetZoom}
-            className="w-8 h-8 bg-brand-light hover:bg-brand-light/60 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
+            className="w-8 h-8 bg-brand-light dark:bg-slate-700 hover:bg-brand-light/60 dark:hover:bg-slate-600 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
             title={t('worldMap.resetZoom')}
           >
-            <RotateCcw className="w-3.5 h-3.5 text-brand-dark" />
+            <RotateCcw className="w-3.5 h-3.5 text-brand-dark dark:text-slate-200" />
           </button>
           <button
             onClick={toggleMapFullscreen}
-            className="w-8 h-8 bg-brand-light hover:bg-brand-light/60 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
+            className="w-8 h-8 bg-brand-light dark:bg-slate-700 hover:bg-brand-light/60 dark:hover:bg-slate-600 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
             title={isMapFullscreen ? t('worldMap.exitFullscreen') : t('worldMap.fullscreen')}
           >
             {isMapFullscreen ? (
-              <Minimize2 className="w-3.5 h-3.5 text-brand-dark" />
+              <Minimize2 className="w-3.5 h-3.5 text-brand-dark dark:text-slate-200" />
             ) : (
-              <Maximize2 className="w-3.5 h-3.5 text-brand-dark" />
+              <Maximize2 className="w-3.5 h-3.5 text-brand-dark dark:text-slate-200" />
             )}
           </button>
         </div>
 
         {/* Badge in Bottom Right */}
-        <div className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur rounded-full px-3 py-1.5 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-2 text-xs font-semibold">
+        <div className="absolute bottom-4 right-4 z-20 bg-white/90 dark:bg-slate-800/90 backdrop-blur rounded-full px-3 py-1.5 shadow-[0_4px_20px_-10px_rgba(45,58,46,0.10)] ring-1 ring-brand-dark/[0.06] flex items-center gap-2 text-xs font-semibold dark:text-slate-200">
           <ImageIcon className="w-4 h-4 text-brand-green" />
           <span>{mapBackgroundImage || mapCanvasStyle ? t('worldMap.customMapActive') : t('worldMap.kyotoCanvas')}</span>
         </div>

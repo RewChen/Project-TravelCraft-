@@ -627,6 +627,8 @@ export default {
     loadMore: 'Load More ({count} left)',
     allRatings: 'All ratings',
     mediaPhotos: 'Photo gallery',
+    mediaViewMore: 'View More',
+    mediaMoreCount: '+{count} more',
     mediaVideo: 'Video tour',
     prevMedia: 'Previous',
     nextMedia: 'Next',

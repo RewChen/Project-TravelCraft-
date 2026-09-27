@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { translations, languages } from '../i18n';
-import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, mapRowToItem, mapItemSummary } from '../lib/supabaseMaps';
+import { fetchMapFeed, fetchMapById, upsertMap, deleteMapRow, summaryToItem, mapItemSummary } from '../lib/supabaseMaps';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { loadViewCounts, readLocalViewCounts, recordMapView, effectiveRarity } from '../lib/mapViews';
 import {
@@ -391,6 +391,27 @@ const rarityColorForTier = (tier) => {
   }
 };
 
+// Pin media is denormalized from the editor elements, so a data URL left in a
+// pin's gallery is always a stale copy of a photo the user has since replaced.
+// Null them out and flag the snapshot so hydration refetches the full row.
+const stripPinMedia = (pin) => {
+  if (!pin || typeof pin !== 'object') return { pin, truncated: false };
+  const clone = { ...pin };
+  let truncated = false;
+  // Pins duplicate media already present in editorState. Omit every copy from
+  // the local snapshot, including hosted URLs, so stale denormalized media can
+  // never be trusted after reload. `_snapshotTruncated` forces a full DB read.
+  for (const key of ['imageUrl', 'selfieUrl', 'locationCoverUrl', 'previewUrl']) {
+    if (clone[key]) { clone[key] = null; truncated = true; }
+  }
+  for (const key of ['imageUrls', 'selfieUrls']) {
+    if (!Array.isArray(clone[key])) continue;
+    if (clone[key].length) truncated = true;
+    clone[key] = [];
+  }
+  return { pin: clone, truncated };
+};
+
 const stripMediaFromMap = (item) => {
   if (!item || typeof item !== 'object') return item;
   const clone = { ...item };
@@ -402,6 +423,13 @@ const stripMediaFromMap = (item) => {
     clone.selfieUrls = clone.selfieUrls.map((u) => {
       if (typeof u === 'string' && u.startsWith('data:')) { truncated = true; return null; }
       return u;
+    });
+  }
+  if (Array.isArray(clone.pins)) {
+    clone.pins = clone.pins.map((pin) => {
+      const { pin: nextPin, truncated: pinTruncated } = stripPinMedia(pin);
+      if (pinTruncated) truncated = true;
+      return nextPin;
     });
   }
   if (clone.details && typeof clone.details === 'object') {
@@ -1380,7 +1408,9 @@ return 'light';
               if (existing && !existing._summaryOnly && item._summaryOnly) {
                 // Never downgrade a full local copy (logs/selfies/editorState)
                 // with a lean summary row — refresh only the card-level metadata.
-                const { details, _summaryOnly, ...cardMeta } = item;
+                const cardMeta = { ...item };
+                delete cardMeta.details;
+                delete cardMeta._summaryOnly;
                 next[idx] = { ...existing, ...cardMeta };
               } else {
                 next[idx] = { ...existing, ...item };
@@ -1606,6 +1636,7 @@ return 'light';
   useEffect(() => {
     document.documentElement.classList.toggle('dark', themeMode === 'dark');
     document.documentElement.dataset.theme = themeMode;
+    try { localStorage.setItem('project_travelcraft_themeMode', JSON.stringify(themeMode)); } catch(e) {}
   }, [themeMode]);
 
   const toggleTheme = () => {
@@ -1955,15 +1986,16 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       // the element layer. Legacy maps (no element layer / no marked locations)
       // fall back to the stored pins so nothing regresses.
       const getPinLabel = (el) => (el.labelKey ? t(el.labelKey) : null);
-      const hasMarkedLocations = layerItems.some((item) => item.element.isLocation === true);
       let pins = [];
-      if (hasMarkedLocations) {
+      if (Array.isArray(editor.elements)) {
+        // An editor state with an empty element list is still authoritative:
+        // do not revive the denormalized publish-time pins in `item.pins`.
+        // For non-empty lists derive pins fresh, so removed gallery photos
+        // cannot survive only in the stale stored pin copy.
         pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
-      } else if (!layerItems.length) {
+      } else {
+        // Truly legacy maps without editor state continue to use saved pins.
         pins = Array.isArray(item.pins) && item.pins.length ? item.pins : [];
-        if (!pins.length && rawElements.length) {
-          pins = derivePinsFromElements(rawElements, rawPositions, getPinLabel);
-        }
       }
       const cleanFilenameText = (text) => {
         if (!text || typeof text !== 'string') return text;
@@ -2106,6 +2138,13 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         ...currentItem,
         title: editorState.mapTitle ? String(editorState.mapTitle).toUpperCase() : currentItem.title,
         details,
+        // Keep the denormalized pin list in sync with editorState. World Map
+        // and older maps can render this list when no marked editor elements
+        // are available, so retaining publish-time pins resurrects deleted
+        // location gallery photos.
+        pins: Array.isArray(editorState.elements)
+          ? derivePinsFromElements(editorState.elements, editorState.elementPositions || {})
+          : currentItem.pins,
         editorState,
         updatedAt: Date.now()
       };
@@ -2226,6 +2265,16 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
       ? (String(rawId).startsWith('comm-user-') ? rawId : `comm-user-${mapSlug}-${rawId}`)
       : `comm-user-${mapSlug}`;
     const rarity = newCommunityMap.rarity || 'common';
+    // Authoritative pin list. A map that carries editor elements must ALWAYS
+    // have its pins re-derived from those elements, never taken from the
+    // incoming `pins` copy. The stored pin list is a denormalized snapshot from
+    // publish time; trusting it re-publishes photos the user has since deleted
+    // (they come back in Community Discoveries), and appends new photos after
+    // the stale ones instead of replacing them.
+    const publishElements = newCommunityMap.editorState?.elements;
+    const publishPins = Array.isArray(publishElements)
+      ? derivePinsFromElements(publishElements, newCommunityMap.editorState?.elementPositions || {})
+      : (newCommunityMap.pins || mapPins);
     const publishedItem = {
       id: uniqueId,
       ownerId: author.id || null,
@@ -2264,7 +2313,7 @@ const resolvedPins = resolvePinOverlaps([newPin, ...mapPins]);
         tags: newCommunityMap.tags || [],
         privacy: newCommunityMap.privacy || 'public'
       },
-      pins: newCommunityMap.pins || mapPins,
+      pins: publishPins,
       tags: newCommunityMap.tags || [],
       privacy: newCommunityMap.privacy || 'public',
       editorState: newCommunityMap.editorState || null

@@ -9,6 +9,11 @@ export const MAX_ZOOM = 8;
 export const MIN_ZOOM = 0.05;
 export const DEFAULT_ZOOM_FACTOR = 1.15;
 
+// จำนวนรูปสูงสุดที่แนบได้ต่อ 1 location (หน้า Edit Location)
+// เก็บที่นี่ที่เดียวเพื่อให้ทั้ง editor (เลือกไฟล์/แสดงผล) และการ derive pin
+// ตอน publish ใช้เพดานเดียวกัน ไม่งั้นเกิดบั๊กอีกแบบ "อัปโหลดแล้วถูกตัดทิ้ง"
+export const MAX_LOCATION_PHOTOS = 100;
+
 const LEGACY_WIDTH = 800;
 const LEGACY_HEIGHT = 600;
 const WORLD_SCALE = 5;
@@ -151,14 +156,11 @@ export const getElementCenter = (elementPositions, elementId) => {
 export const buildRoutePaths = (routes, elementPositions) => {
   if (!Array.isArray(routes)) return [];
   return routes.map((route) => {
-    let points = [];
-    if (Array.isArray(route.pointIds) && route.pointIds.length > 0) {
-      points = route.pointIds
+    const points = Array.isArray(route.pointIds) && route.pointIds.length > 0
+      ? route.pointIds
         .map((id) => getElementCenter(elementPositions, id))
-        .filter(Boolean);
-    } else {
-      points = route.points || [];
-    }
+        .filter(Boolean)
+      : route.points || [];
     return { ...route, points, controlPoints: route.controlPoints || [] };
   }).filter((route) => route.points.length >= 2);
 };
@@ -220,9 +222,11 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
       const locationSelfies = Array.isArray(details.selfies) ? details.selfies : [];
       // สื่อจากฟอร์มแก้ไขหมุดส่งขึ้นเฉพาะ popup ของ element (imageUrls/videoUrls)
       // — หน้า Details ไม่แสดง (popupMediaOnly)
-      const imageUrls = [...new Set(
-        [details.image || (isImageSrc ? element.content : null), ...locationSelfies].filter(Boolean)
-      )];
+      // Only photos explicitly attached to this location belong in its photo
+      // gallery. Covers and images used as canvas markers are separate media.
+      // The whole list is REPLACED here (never appended to a previous pin) so a
+      // publish can never resurrect photos the user removed.
+      const imageUrls = [...new Set(locationSelfies.filter(Boolean))].slice(0, MAX_LOCATION_PHOTOS);
       const rawVideos = [
         ...(Array.isArray(details.videos) ? details.videos : []),
         ...(details.video ? [details.video] : []),
@@ -261,8 +265,14 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         shape: element.shape,
         shapeColor: element.color,
         previewUrl: isImageSrc ? element.content : details.image || null,
-        imageUrl: details.image || (isImageSrc ? element.content : null),
-        imageUrls: imageUrls.length ? imageUrls : null,
+        locationCoverUrl: details.image || null,
+        // The element's own image remains the map marker preview, not a
+        // location cover. Only an explicitly saved location cover belongs in
+        // the location's Details gallery.
+        imageUrl: details.image || null,
+        // Keep an explicit empty list when the user removed every gallery
+        // photo. The popup must not fall back to the image used by the pin.
+        imageUrls,
         youtubeUrl: details.youtubeUrl || null,
         videoUrl: videoUrls[0] || null,
         videoUrls: videoUrls.length ? videoUrls : null,
@@ -279,8 +289,8 @@ export const derivePinsFromElements = (elements, elementPositions, getLabel = nu
         rarity: details.rarity || null,
         popularity: details.popularity ?? null,
         visitors: details.visitors || null,
-        selfieUrl: locationSelfies[0] || null,
-        selfieUrls: locationSelfies.length ? [...locationSelfies] : null
+        selfieUrl: imageUrls[0] || null,
+        selfieUrls: imageUrls.length ? [...imageUrls] : null
       };
     })
     .filter(Boolean);

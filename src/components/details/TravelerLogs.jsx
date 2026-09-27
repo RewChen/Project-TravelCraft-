@@ -2,17 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, X, ChevronLeft, ChevronRight, Plus, Minus, Maximize, ChevronDown, ChevronUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { collectGalleryUrls } from '../../lib/imageUtils';
 
 export default function TravelerLogs() {
   const { t, selectedLocation } = useApp();
   const logs = selectedLocation?.logs || [];
   const selfieLogs = logs.filter((l) => l.type === 'selfie' && l.image);
-  // fallback for older records where selfieUrls stored separately
-  const fallbackSelfies = !selfieLogs.length && !selectedLocation?.popupMediaOnly && (selectedLocation?.selfieUrls || (selectedLocation?.selfieUrl ? [selectedLocation.selfieUrl] : []));
-  const displaySelfies = selfieLogs.length ? selfieLogs : (fallbackSelfies?.length ? fallbackSelfies.map((img, i) => ({ id: `fallback-${i}`, image: img, caption: selectedLocation?.title })) : []);
+  // Photo is the gallery below View Detail. `imageUrls` is authoritative for
+  // current locations; old maps without it retain their selfie/log fallback.
+  const hasOwnGallery = Array.isArray(selectedLocation?.imageUrls);
+  const galleryLogs = collectGalleryUrls(selectedLocation).map((image, index) => ({
+    id: `gallery-${index}-${image}`,
+    image,
+    caption: selectedLocation?.title
+  }));
+  const displaySelfies = hasOwnGallery
+    ? galleryLogs
+    : (selfieLogs.length ? selfieLogs : galleryLogs);
   const hasSelfies = displaySelfies.length > 0;
-  // โชว์แค่ 3 รูปด้านล่าง ที่เหลือต้องกด "ดูทั้งหมด"
-  const visibleSelfies = displaySelfies.slice(0, 3);
+  // Show the first 9 photos in the View Detail Photo section.
+  const visibleSelfies = displaySelfies.slice(0, 9);
   const hiddenCount = Math.max(0, displaySelfies.length - visibleSelfies.length);
   const [activeIdx, setActiveIdx] = useState(null);
   const [showAll, setShowAll] = useState(false);
@@ -106,7 +115,7 @@ export default function TravelerLogs() {
             onClick={() => setShowAll(true)}
             className="text-xs font-semibold hover:underline text-brand-green cursor-pointer"
           >
-            {t('details.viewAll')}{displaySelfies.length > 3 ? ` (${displaySelfies.length})` : ''}
+              {t('details.mediaViewMore')}{displaySelfies.length > 9 ? ` (${displaySelfies.length})` : ''}
           </button>
         )}
       </div>
@@ -116,17 +125,17 @@ export default function TravelerLogs() {
             <button
               key={log.id}
               type="button"
-              onClick={() => (idx === 2 && hiddenCount > 0 ? setShowAll(true) : setActiveIdx(idx))}
+              onClick={() => (idx === 8 && hiddenCount > 0 ? setShowAll(true) : setActiveIdx(idx))}
               className="aspect-square rounded-xl overflow-hidden hover:scale-[1.02] transition-transform bg-brand-light group relative cursor-pointer text-left"
             >
               <img src={log.image} alt={log.caption || 'selfie'} className="w-full h-full object-cover" />
               <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[8px] font-semibold p-1 truncate opacity-0 group-hover:opacity-100 transition-opacity">
                 {log.caption} {log.author ? `· ${log.author}` : ''}
               </div>
-              {idx === 2 && hiddenCount > 0 ? (
+              {idx === 8 && hiddenCount > 0 ? (
                 <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white font-semibold">
-                  <span className="text-lg">+{hiddenCount}</span>
-                  <span className="text-[9px] uppercase">{t('details.viewAll')}</span>
+                  <span className="text-lg">{t('details.mediaMoreCount', { count: hiddenCount })}</span>
+                  <span className="text-[9px] uppercase">{t('details.mediaViewMore')}</span>
                 </div>
               ) : (
                 <span className="absolute top-1 right-1 bg-white/90 rounded-full w-5 h-5 flex items-center justify-center text-[10px]">🔍</span>

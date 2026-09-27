@@ -46,6 +46,9 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
   const [videoUrl, setVideoUrl] = useState(initial.videoUrl || '');
   const [videoError, setVideoError] = useState('');
   const [selfieUrls, setSelfieUrls] = useState(Array.isArray(initial.selfieUrls) ? [...initial.selfieUrls] : []);
+  // Existing photos are shown for review. The first newly uploaded photo starts
+  // a replacement set, so it can never be appended to the previous publish.
+  const [selfieSetReplaced, setSelfieSetReplaced] = useState(false);
   const [selfieError, setSelfieError] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -123,13 +126,14 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
   const handleSelfieUpload = async (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
-    const remainingSlots = 9 - selfieUrls.length;
+    const replacementBase = selfieSetReplaced ? selfieUrls : [];
+    const remainingSlots = 9 - replacementBase.length;
     if (files.length > remainingSlots) {
       setSelfieError(t('editor.selfieTooMany', { max: 9 }));
     }
     const toProcess = files.slice(0, remainingSlots);
     let hasError = false;
-    let next = [...selfieUrls];
+    let next = [...replacementBase];
     setUploading(true);
     for (const file of toProcess) {
       if (!file.type.startsWith('image/')) {
@@ -153,8 +157,11 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
         hasError = true;
       }
     }
-    setSelfieUrls(next);
-    notify({ selfieUrls: next });
+    if (next.length > replacementBase.length) {
+      setSelfieUrls(next);
+      setSelfieSetReplaced(true);
+      notify({ selfieUrls: next });
+    }
     setUploading(false);
     if (!hasError && toProcess.length) setSelfieError('');
     event.target.value = '';
@@ -163,6 +170,7 @@ export default function PublishMapModal({ initial = {}, mapId, onClose, onPublis
   const removeSelfieAt = (idx) => {
     const next = selfieUrls.filter((_, i) => i !== idx);
     setSelfieUrls(next);
+    setSelfieSetReplaced(true);
     notify({ selfieUrls: next });
   };
 

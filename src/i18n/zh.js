@@ -606,6 +606,8 @@ export default {
     loadMore: '加载更多（剩余 {count} 条）',
     allRatings: '全部评价',
     mediaPhotos: '照片画廊',
+    mediaViewMore: '查看更多',
+    mediaMoreCount: '还有 {count} 张',
     mediaVideo: '视频导览',
     prevMedia: '上一个',
     nextMedia: '下一个',

@@ -1,10 +1,11 @@
 import { useLayoutEffect, useEffect, useRef, useState } from 'react';
-import { X, Trash2, Clock3, Ticket, Sun, MapPin, AlertTriangle, Images, Clapperboard, ChevronLeft, ChevronRight, ThumbsUp } from 'lucide-react';
+import { X, Trash2, AlertTriangle, Images, Clapperboard, ChevronDown, ChevronUp, ThumbsUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { toEmbedUrl } from '../../lib/imageUtils';
 import ReportLocationModal from '../report/ReportLocationModal';
 
-const POPUP_WIDTH = 320;
+const POPUP_WIDTH = 360;
+const POPUP_MAX_HEIGHT = 560;
 const VIEWPORT_MARGIN = 16;
 const PIN_GAP = 14;
 
@@ -12,9 +13,10 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
   const { t, navigateTo, deleteCustomPin, isLoggedIn, setAuthMode, locationLikes, loadLocationLikes, toggleLocationLike, activeCommunityMap } = useApp();
   const [showReport, setShowReport] = useState(false);
   const [pos, setPos] = useState(() => ({ left: VIEWPORT_MARGIN, top: VIEWPORT_MARGIN, placeRight: true, placeBelow: false, caretTop: 0 }));
-  const [photoIdx, setPhotoIdx] = useState(0);
-  const [videoIdx, setVideoIdx] = useState(0);
+  const [canScroll, setCanScroll] = useState(false);
+  const [scrolledToEnd, setScrolledToEnd] = useState(false);
   const popupRef = useRef(null);
+  const scrollBodyRef = useRef(null);
 
   // Position the popup beside the pin, fully clear of the element it describes:
   // the on-screen anchor accounts for the canvas scale(zoom) translate(pan)
@@ -94,33 +96,70 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     if (locationKey) loadLocationLikes(locationKey);
   }, [locationKey, loadLocationLikes]);
 
+  // การ์ดโชว์แค่รูป+วิดีโอ ส่วน description/รายละเอียดอยู่ถัดไปใต้สุด
+  // ผู้ใช้ต้องเลื่อนลงไปอ่านเอง ปุ่มลูกศรจึงโผล่เมื่อเนื้อหายาวเกินกรอบ
+  const syncScrollState = () => {
+    const el = scrollBodyRef.current;
+    if (!el) return;
+    const overflow = el.scrollHeight - el.clientHeight;
+    setCanScroll(overflow > 8);
+    setScrolledToEnd(overflow <= 8 || el.scrollTop >= overflow - 8);
+  };
+
+  useEffect(() => {
+    const el = scrollBodyRef.current;
+    if (!el) return undefined;
+    const onScroll = () => syncScrollState();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    // รูป/วิดีโอโหลดเสร็จแล้วความสูงเปลี่ยน ต้องคำนวณปุ่มเลื่อนใหม่
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => syncScrollState());
+      observer.observe(el);
+      for (const child of el.children) observer.observe(child);
+    }
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (observer) observer.disconnect();
+    };
+  }, [locationKey]);
+
+  // เปลี่ยนหมุดแล้วเริ่มอ่านจากบนสุดเสมอ
+  useEffect(() => {
+    if (scrollBodyRef.current) scrollBodyRef.current.scrollTop = 0;
+  }, [locationKey]);
+
+  const handleScrollToggle = () => {
+    const el = scrollBodyRef.current;
+    if (!el) return;
+    el.scrollTo({ top: scrolledToEnd ? 0 : el.scrollHeight, behavior: 'smooth' });
+  };
+
   if (!pin) return null;
 
+  const isEditorLocation = pin.popupMediaOnly === true
+    || pin.type === 'Custom Location'
+    || (activeCommunityMap?.isEditorMap === true && String(pin.id || '').startsWith('editor-'))
+    || String(activeCommunityMap?.id || '').startsWith('comm-user-draft-');
+
   // สื่อของจุดหมุด — กรอกใน MapEditor แล้วแสดงที่ popup นี้ (เฉพาะ element)
-  const photoList = [...new Set(
-    (Array.isArray(pin.imageUrls) && pin.imageUrls.length ? pin.imageUrls : [pin.imageUrl]).filter(Boolean)
-  )];
+  // การ์ดนี้โชว์แค่ Main photo กับวิดีโอ รูปที่อัปโหลดเพิ่มไปดูที่หน้า VIEW DETAILS
   const videoList = [...new Set(
     (Array.isArray(pin.videoUrls) && pin.videoUrls.length ? pin.videoUrls : [pin.videoUrl]).filter(Boolean)
   )];
-  const activePhotoIdx = photoList.length ? Math.min(photoIdx, photoList.length - 1) : 0;
-  const activeVideoIdx = videoList.length ? Math.min(videoIdx, videoList.length - 1) : 0;
-  const currentVideoUrl = videoList[activeVideoIdx] || '';
+  // Main photo = ฟิลด์ "Main photo (used as cover)" ในฟอร์มแก้ไขหมุด
+  // (locationDetails.image) ไม่ใช่รายการรูปที่อัปโหลดเพิ่ม
+  const mainPhoto = pin.imageUrl || pin.previewUrl || null;
+  const currentVideoUrl = videoList[0] || '';
   const videoSrc = toEmbedUrl(currentVideoUrl);
   const isFileVideo = Boolean(currentVideoUrl) && (currentVideoUrl.startsWith('data:video/') || !videoSrc.includes('/embed/'));
-  const hasPhotos = photoList.length > 0;
+  const hasPhotos = Boolean(mainPhoto);
   const hasVideos = videoList.length > 0;
 
   const likeInfo = locationLikes[locationKey] || { count: 0, liked: false };
 
-  const pinHours = pin.hours || (pin.openTime && pin.closeTime ? `${pin.openTime} - ${pin.closeTime}` : null);
-
-  const detailFields = [
-    { icon: Clock3, label: t('details.hours'), value: pinHours },
-    { icon: Ticket, label: t('details.fee'), value: pin.fee },
-    { icon: Sun, label: t('details.bestTime'), value: pin.bestTime },
-    { icon: MapPin, label: t('details.travel'), value: pin.travel },
-  ].filter((field) => field.value);
+  // popup ไม่แสดงกริดรายละเอียด (ค่าเข้าชม / การเดินทาง / เวลา) อีกแล้ว
+  // เหลือแค่สื่อ + คำอธิบาย ส่วนรายละเอียดทั้งหมดอยู่ในหน้า VIEW DETAILS
 
   const handleDelete = () => {
     deleteCustomPin(pin.id);
@@ -143,16 +182,27 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     const nested = mapItem?.details && typeof mapItem.details === 'object' ? mapItem.details : null;
     const base = mapItem ? (nested ? { ...mapItem, ...nested } : { ...mapItem }) : {};
     const pick = (...values) => values.find((value) => value !== undefined && value !== null && value !== '') ?? null;
-    const logs = (Array.isArray(pin.logs) && pin.logs.length)
-      ? pin.logs
-      : (Array.isArray(mapItem?.logs) && mapItem.logs.length
-        ? mapItem.logs
-        : (Array.isArray(nested?.logs) ? nested.logs : []));
+    // Editor element pins represent individual locations. Their Details page
+    // must not inherit the parent map's logbook photos as location photos.
+    const logs = isEditorLocation
+      ? (Array.isArray(pin.logs) ? pin.logs : [])
+      : ((Array.isArray(pin.logs) && pin.logs.length)
+        ? pin.logs
+        : (Array.isArray(mapItem?.logs) && mapItem.logs.length
+          ? mapItem.logs
+          : (Array.isArray(nested?.logs) ? nested.logs : [])));
     return {
       ...base,
       ...pin,
       // pin ที่ไม่มีค่า (null) ไม่ควรกลบข้อมูลระดับแผนที่ — เติมจาก map แทน
-      imageUrl: pick(pin.imageUrl, nested?.imageUrl, mapItem?.imageUrl),
+      // element ของ editor: ใช้ "Main photo" ของ element เอง (pin.imageUrl) เท่านั้น
+      // ห้าม fallback ไปปกของแผนที่ ไม่งั้นหน้า Details จะไม่มีรูปให้ดู
+      imageUrl: isEditorLocation
+        ? (pin.imageUrl || null)
+        : pick(pin.imageUrl, nested?.imageUrl, mapItem?.imageUrl),
+      // A map's terrain/background is not a cover photo for each location pin.
+      bgThemeUrl: isEditorLocation ? null : base.bgThemeUrl,
+      editorState: isEditorLocation ? undefined : base.editorState,
       region: pick(pin.region, nested?.region, mapItem?.region, mapItem?.locationCity),
       tags: (Array.isArray(pin.tags) && pin.tags.length) ? pin.tags : (Array.isArray(base.tags) ? base.tags : []),
       rarity: pick(pin.rarity, nested?.rarity, mapItem?.rarity),
@@ -167,7 +217,11 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
       tag: pick(pin.tag, nested?.tag),
       logs,
       // merge ที่นี่ครบแล้ว — กัน navigateTo นำ details มากองทับค่าของ pin
-      details: undefined
+      details: undefined,
+      // pin ของ element มาจาก editor มีธง popupMediaOnly (กันสื่อซ้ำในหน้า
+      // Details เดิม) — ปลดธงนี้ เพราะผู้ใช้กด VIEW DETAILS แล้วต้องเห็น
+      // รูป + วิดีโอของ element นั้นในหน้า Details ด้วย
+      popupMediaOnly: false
     };
   };
 
@@ -175,10 +229,16 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
     <>
       <div
         ref={popupRef}
-        style={{ left: pos.left, top: pos.top }}
+        style={{
+          left: pos.left,
+          top: pos.top,
+          width: POPUP_WIDTH,
+          maxWidth: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
+          maxHeight: `min(${POPUP_MAX_HEIGHT}px, calc(100vh - ${VIEWPORT_MARGIN * 2}px))`
+        }}
         onClick={(event) => event.stopPropagation()}
         onMouseDown={(event) => event.stopPropagation()}
-        className="fixed w-80 bg-white dark:bg-slate-800 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 max-h-[calc(100vh-2rem)] flex flex-col"
+        className="fixed bg-white dark:bg-slate-800 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-[150] rounded-xl font-mono animate-in zoom-in-95 fade-in duration-150 flex flex-col"
       >
         {/* Anchor caret pointing at the pin */}
         {pos.placeBelow ? (
@@ -210,8 +270,11 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
           </button>
         </div>
 
-        {/* Scrollable body keeps the side caret on the outer box unclipped */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* Scrollable body keeps the side caret on the outer box unclipped.
+            The height is capped at exactly the media block (main photo + video)
+            so the description and detail fields sit below the fold — the user
+            scrolls (or taps the arrow) to read them. */}
+        <div ref={scrollBodyRef} className="flex-1 min-h-0 max-h-[400px] overflow-y-auto">
         <div className="p-3">
           {(hasPhotos || hasVideos) && (
             <div className="mb-3 space-y-2">
@@ -219,31 +282,10 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <Images className="w-3 h-3 text-red-600" />
-                    <span className="text-[9px] font-black uppercase text-red-600">{t('details.mediaPhotos')} ({photoList.length})</span>
+                    <span className="text-[9px] font-black uppercase text-red-600">{t('details.mainImage')}</span>
                   </div>
-                  <div className="relative border-2 border-black rounded-lg overflow-hidden bg-gray-100">
-                    <img src={photoList[activePhotoIdx]} alt={pin.title} className="w-full aspect-video object-cover" />
-                    {photoList.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setPhotoIdx((idx) => (idx - 1 + photoList.length) % photoList.length)}
-                          title={t('details.prevMedia')}
-                          className="absolute left-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
-                        >
-                          <ChevronLeft className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPhotoIdx((idx) => (idx + 1) % photoList.length)}
-                          title={t('details.nextMedia')}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer"
-                        >
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
-                        <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">{activePhotoIdx + 1}/{photoList.length}</span>
-                      </>
-                    )}
+                  <div className="border-2 border-black rounded-lg overflow-hidden bg-gray-100">
+                    <img src={mainPhoto} alt={pin.title} className="w-full h-32 object-cover" />
                   </div>
                 </div>
               )}
@@ -252,7 +294,7 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
                 <div>
                   <div className="flex items-center gap-1 mb-1">
                     <Clapperboard className="w-3 h-3 text-red-600" />
-                    <span className="text-[9px] font-black uppercase text-red-600">{t('details.mediaVideo')} ({videoList.length})</span>
+                    <span className="text-[9px] font-black uppercase text-red-600">{t('details.mediaVideo')}</span>
                   </div>
                   {isFileVideo ? (
                     <video src={videoSrc} controls playsInline className="w-full aspect-video bg-black rounded-lg border-2 border-black" />
@@ -265,25 +307,6 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
                       allowFullScreen
                     />
                   )}
-                  {videoList.length > 1 && (
-                    <div className="flex items-center justify-between gap-2 mt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setVideoIdx((idx) => (idx - 1 + videoList.length) % videoList.length)}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase border-2 border-black rounded px-2 py-1 bg-white hover:bg-gray-100 cursor-pointer"
-                      >
-                        <ChevronLeft className="w-3 h-3" /> {t('details.prevMedia')}
-                      </button>
-                      <span className="text-[9px] font-black">{activeVideoIdx + 1}/{videoList.length}</span>
-                      <button
-                        type="button"
-                        onClick={() => setVideoIdx((idx) => (idx + 1) % videoList.length)}
-                        className="flex items-center gap-1 text-[9px] font-black uppercase border-2 border-black rounded px-2 py-1 bg-white hover:bg-gray-100 cursor-pointer"
-                      >
-                        {t('details.nextMedia')} <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -294,21 +317,21 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
               {pin.lore}
             </p>
           ) : null}
-
-          {detailFields.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {detailFields.map((field) => (
-                <div key={field.label} className="border-2 border-black rounded-lg p-2 bg-white dark:bg-slate-800 min-w-0">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <field.icon className="w-3 h-3 text-red-600 shrink-0" />
-                    <span className="text-[9px] font-black uppercase text-red-600 truncate">{field.label}</span>
-                  </div>
-                  <div className="text-[11px] font-black leading-snug break-words">{field.value}</div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+        </div>
+
+        {/* ปุ่มเลื่อนดู description/รายละเอียดด้านล่าง */}
+        {canScroll && (
+          <button
+            type="button"
+            onClick={handleScrollToggle}
+            title={scrolledToEnd ? t('details.prevMedia') : t('details.nextMedia')}
+            aria-label={scrolledToEnd ? t('details.prevMedia') : t('details.nextMedia')}
+            className="absolute bottom-[76px] left-1/2 -translate-x-1/2 z-10 w-8 h-8 rounded-full bg-black/80 hover:bg-black text-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
+          >
+            {scrolledToEnd ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col gap-2 px-3 pb-3 pt-2 border-t-2 border-black">
@@ -354,7 +377,6 @@ export default function LocationPopupModal({ pin, onClose, anchorRef, zoomLevel 
               <AlertTriangle className="w-3 h-3" /> {t('map.reportLocationTitle')}
             </button>
           </div>
-        </div>
         </div>
 
       </div>

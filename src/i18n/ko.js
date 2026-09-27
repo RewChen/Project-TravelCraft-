@@ -606,6 +606,8 @@ export default {
     loadMore: '더 보기 ({count}개 남음)',
     allRatings: '모든 평가',
     mediaPhotos: '사진 갤러리',
+    mediaViewMore: '더 보기',
+    mediaMoreCount: '외 {count}장',
     mediaVideo: '비디오 투어',
     prevMedia: '이전',
     nextMedia: '다음',

@@ -606,6 +606,8 @@ export default {
     loadMore: 'もっと見る（残り {count} 件）',
     allRatings: 'すべての評価',
     mediaPhotos: 'フォトギャラリー',
+    mediaViewMore: 'もっと見る',
+    mediaMoreCount: 'ほか {count} 枚',
     mediaVideo: 'ビデオツアー',
     prevMedia: '前へ',
     nextMedia: '次へ',

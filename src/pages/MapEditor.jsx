@@ -18,7 +18,7 @@ import { uploadMapMedia } from '../lib/supabaseUploads';
 import BackgroundLayer from '../components/editor/BackgroundLayer';
 import PublishMapModal from '../components/map/PublishMapModal';
 import EditableCover from '../components/map/EditableCover';
-import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, MIN_BACKGROUND_SIZE, MAX_BACKGROUND_SIZE, clampValue, normalizeBackgroundSize, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
+import { DEFAULT_CANVAS_WIDTH, DEFAULT_CANVAS_HEIGHT, MIN_ELEMENT_SIZE, MIN_ZOOM, MAX_ZOOM, MIN_BACKGROUND_SIZE, MAX_BACKGROUND_SIZE, MAX_LOCATION_PHOTOS, clampValue, normalizeBackgroundSize, scaleElementPositions, scaleElementFontSizes, derivePinsFromElements, buildRoutePaths, deriveRoutePathsFromElements } from '../lib/editorCanvas';
 import { getShapeStyle, getImageFilterStyle, getElementFrameStyle, getFramePlaceholderStyle } from '../lib/editorElements';
 import { mapTemplates } from '../data/templates';
 
@@ -487,16 +487,19 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   };
 
   const addLocationPhoto = (url) => {
+    if (typeof url !== 'string' || !url) return;
     pushHistory();
     setElements((previous) => previous.map((element) => {
       if (element.id !== selectedElement) return element;
       const existing = Array.isArray(element.locationDetails?.selfies) ? element.locationDetails.selfies : [];
-      if (existing.length >= 9) return element;
+      if (existing.length >= MAX_LOCATION_PHOTOS) return element;
       return {
         ...element,
         locationDetails: {
           ...(element.locationDetails || {}),
-          selfies: [...existing, url].slice(0, 9)
+          // The guard above is the single capacity check. Do not slice here:
+          // storage uploads beyond the ninth image must remain in the location.
+          selfies: [...existing, url]
         }
       };
     }));
@@ -507,9 +510,9 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
     event.target.value = '';
     if (!files.length) return;
     const currentCount = Array.isArray(selectedData?.locationDetails?.selfies) ? selectedData.locationDetails.selfies.length : 0;
-    const toProcess = files.slice(0, Math.max(0, 9 - currentCount));
+    const toProcess = files.slice(0, Math.max(0, MAX_LOCATION_PHOTOS - currentCount));
     if (!toProcess.length) {
-      showAdminToast?.(t('editor.selfieTooMany', { max: 9 }), 'error');
+      showAdminToast?.(t('editor.selfieTooMany', { max: MAX_LOCATION_PHOTOS }), 'error');
       return;
     }
     for (const file of toProcess) {
@@ -1254,12 +1257,16 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
   };
 
   const publishMap = async (updates) => {
-    // Build traveler logs with all attached selfies (multi)
-    let finalLogs = Array.isArray(editorSetup?.logs) ? [...editorSetup.logs] : [];
-    if (Array.isArray(updates.selfieUrls) && updates.selfieUrls.length) {
+    // Photo is a replacement set at publish time. Never append to the last
+    // editorSetup logs: those are the previous publish's photos.
+    const publishSelfieUrls = Array.isArray(updates.selfieUrls)
+      ? updates.selfieUrls.filter(Boolean)
+      : [];
+    const finalLogs = [];
+    if (publishSelfieUrls.length) {
       // eslint-disable-next-line react-hooks/purity -- unique id for publish-time log entries (event handler, not render)
       const baseTime = Date.now();
-      const selfieLogs = updates.selfieUrls.map((img, idx) => ({
+      const selfieLogs = publishSelfieUrls.map((img, idx) => ({
         id: `selfie-${baseTime}-${idx}`,
         type: 'selfie',
         image: img,
@@ -1267,7 +1274,7 @@ const [mapTitle, setMapTitle] = useState(() => savedEditorState?.mapTitle || edi
         author: userProfile?.name || 'Traveler',
         date: new Date().toLocaleDateString(),
       }));
-      finalLogs = [...finalLogs, ...selfieLogs];
+      finalLogs.push(...selfieLogs);
     }
 
     const publishedPins = derivePinsFromElements(elements, elementPositions, (el) => (el.labelKey ? t(el.labelKey) : el.label));
@@ -1304,8 +1311,8 @@ id: mapId,
       bestTime: editorSetup?.bestTime || t('editor.anytime'),
       travel: editorSetup?.travel || t('editor.communityGateway'),
       logs: finalLogs,
-      selfieUrl: updates.selfieUrl || null,
-      selfieUrls: Array.isArray(updates.selfieUrls) && updates.selfieUrls.length ? [...updates.selfieUrls] : null,
+      selfieUrl: publishSelfieUrls[0] || null,
+      selfieUrls: publishSelfieUrls,
       rarity: editorSetup?.rarity || 'common',
       tags: Array.isArray(updates.tags) ? updates.tags : [],
       privacy: updates.privacy,
@@ -1971,7 +1978,6 @@ if (updates.privacy === 'private') {
     if (!points || points.length < 2) return '';
     let d = `M ${points[0].x},${points[0].y}`;
     for (let i = 0; i < points.length - 1; i++) {
-      const p1 = points[i];
       const p2 = points[i + 1];
       const cp = controlPoints[i];
       if (cp) {
@@ -3541,15 +3547,15 @@ if (updates.privacy === 'private') {
                             onClick={() => locationPhotoInputRef.current?.click()}
                             className="shrink-0 border-2 border-black rounded bg-sky-400 hover:bg-sky-300 px-3 py-2.5 font-black text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
                           >
-                            <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')} {locationPhotos.length ? `(${locationPhotos.length}/9)` : ''}
+                            <ImageIcon className="w-4 h-4" /> {t('editor.uploadCover')} {locationPhotos.length ? `(${locationPhotos.length}/${MAX_LOCATION_PHOTOS})` : ''}
                           </button>
                           <div className="flex-1 min-w-0">
                             {locationPhotos.length ? (
                               <div className="space-y-2">
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto overscroll-contain pr-1">
                                   {locationPhotos.map((url, idx) => (
                                     <div key={`${url.slice(0, 20)}-${idx}`} className="relative border-2 border-black rounded overflow-hidden bg-gray-50 group">
-                                      <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} className="w-full h-20 object-cover" />
+                                      <img src={url} alt={`${t('editor.selfiePreviewAlt')} ${idx + 1}`} loading="lazy" className="w-full h-20 object-cover" />
                                       <button
                                         type="button"
 onClick={() => removeLocationPhoto(idx)}
@@ -3558,11 +3564,11 @@ onClick={() => removeLocationPhoto(idx)}
                                       >
                                         <X className="w-3 h-3" />
                                       </button>
-                                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.5">{idx + 1}/9</span>
+                                      <span className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[7px] font-bold text-center py-0.5">{idx + 1}/{MAX_LOCATION_PHOTOS}</span>
                                     </div>
                                   ))}
                                 </div>
-                                <p className="text-[10px] text-emerald-700 font-bold">{t('editor.imagesAttached')} · {locationPhotos.length}</p>
+                                <p className="text-[10px] text-emerald-700 font-bold">{t('editor.imagesAttached')} · {locationPhotos.length}/{MAX_LOCATION_PHOTOS}</p>
                               </div>
                             ) : (
                               <p className="text-[10px] text-gray-500 font-bold leading-tight pt-1">{t('editor.locPhotosHelper')}</p>
